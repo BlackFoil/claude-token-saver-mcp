@@ -1,0 +1,10 @@
+services:
+  claude-token-saver-mcp:
+    build: .
+    stdin_open: true
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - NODE_ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
