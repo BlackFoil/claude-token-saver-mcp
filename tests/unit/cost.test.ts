@@ -89,6 +89,59 @@ describe('CostCalculator', () => {
     expect(cum.totalSavingsUsd).toBe(5.0);
     expect(cum.totalRequests).toBe(100);
   });
+
+  it('C-09: throws on negative output tokens', () => {
+    const calc = new CostCalculator(pricing, 'claude-sonnet-4-5');
+    expect(() =>
+      calc.calculateSavings({
+        inputTokens: 100,
+        outputTokens: -5,
+        tool: 'offload_work',
+      }),
+    ).toThrow();
+  });
+
+  it('C-10: throws on unknown model in calculateSavings', () => {
+    const calc = new CostCalculator(pricing, 'claude-sonnet-4-5');
+    expect(() =>
+      calc.calculateSavings({
+        inputTokens: 100,
+        outputTokens: 50,
+        model: 'nonexistent-model',
+        tool: 'offload_work',
+      }),
+    ).toThrow();
+  });
+
+  it('C-11: throws on restoreFromHistory with negative savings', () => {
+    const calc = new CostCalculator(pricing, 'claude-sonnet-4-5');
+    expect(() =>
+      calc.restoreFromHistory({
+        totalSavingsUsd: -1,
+        totalRequests: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        byTool: {
+          offload_work: { requests: 0, savings: 0 },
+          compress_context: { requests: 0, savings: 0 },
+        },
+        lastUpdated: '2026-01-01T00:00:00Z',
+      }),
+    ).toThrow();
+  });
+
+  it('C-12: cumulative savings increments across tools', () => {
+    const calc = new CostCalculator(pricing, 'claude-sonnet-4-5');
+    const r1 = calc.calculateSavings({ inputTokens: 1000, outputTokens: 500, tool: 'offload_work' });
+    const r2 = calc.calculateSavings({ inputTokens: 1000, outputTokens: 500, tool: 'compress_context' });
+    expect(r2.cumulativeSavingsUsd).toBeCloseTo(r1.savingsUsd + r2.savingsUsd, 6);
+
+    const cum = calc.getCumulativeSavings();
+    expect(cum.totalInputTokens).toBe(2000);
+    expect(cum.totalOutputTokens).toBe(1000);
+    expect(cum.byTool.offload_work.savings).toBeCloseTo(r1.savingsUsd, 6);
+    expect(cum.byTool.compress_context.savings).toBeCloseTo(r2.savingsUsd, 6);
+  });
 });
 
 describe('loadPricing', () => {

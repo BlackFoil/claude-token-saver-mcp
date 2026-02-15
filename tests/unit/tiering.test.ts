@@ -82,6 +82,29 @@ describe('applyConfigOverrides', () => {
     expect(result.contextLimit).toBe(8000);
     expect(result.level).toBe(2); // level unchanged
   });
+
+  it('partial overrides keep remaining defaults', () => {
+    const base = detectTier(32);
+    const result = applyConfigOverrides(base, {
+      primaryModel: 'custom:7b',
+    });
+    expect(result.primaryModel).toBe('custom:7b');
+    expect(result.fallbackModel).toBe(base.fallbackModel);
+    expect(result.contextLimit).toBe(base.contextLimit);
+  });
+
+  it('overrides timeout partially', () => {
+    const base = detectTier(32);
+    const result = applyConfigOverrides(base, {
+      timeout: { requestTimeout: 999 },
+    });
+    expect(result.timeout.requestTimeout).toBe(999);
+    expect(result.timeout.heartbeatTimeout).toBe(base.timeout.heartbeatTimeout);
+  });
+
+  it('throws on negative RAM', () => {
+    expect(() => detectTier(-1)).toThrow();
+  });
 });
 
 describe('TIER_DEFINITIONS', () => {
