@@ -1,6 +1,6 @@
 # claude-token-saver-mcp 実装タスクリスト
 
-**Phase:** 5 — テスト・検証 ✅ 完了
+**Phase:** 6 — 最終仕上げ ✅ 完了
 **作成日:** 2026-02-15
 **管理者:** PM / Claude Code (Leader)
 
@@ -15,6 +15,7 @@
 | Phase 3: 詳細設計 | ✅ | 2026-02-15 |
 | Phase 4: コーディング | ✅ | 2026-02-15 |
 | Phase 5: テスト・検証 | ✅ | 2026-02-15 |
+| Phase 6: 最終仕上げ | ✅ | 2026-02-15 |
 
 ---
 
@@ -34,6 +35,15 @@
 | ステートメント | 97.19% |
 | ブランチ | 88.82% |
 | 関数 | 100% |
+
+### 検証結果
+
+| 項目 | ステータス |
+|:---|:---:|
+| ビルド (tsup) | ✅ 成功 |
+| lint (ESLint) | ✅ 0エラー, 0警告 |
+| 型チェック (tsc --noEmit) | ✅ 成功 |
+| テスト (277件) | ✅ 全パス |
 
 ---
 
@@ -68,8 +78,8 @@
 
 - [x] IMP-016: MCPサーバーエントリポイント実装 (`src/server.ts`)
 - [x] IMP-017: Docker Compose 環境構築 (`Dockerfile`, `docker-compose.yml`)
-- [ ] IMP-018: CI/CD パイプライン構築 (`.github/workflows/`) — 次フェーズ
-- [ ] IMP-019: ライセンス・ドキュメント整備 — 次フェーズ
+- [x] IMP-018: CI/CD パイプライン構築 (`.github/workflows/ci.yml`)
+- [x] IMP-019: ライセンス・ドキュメント整備 (`LICENSE`, `NOTICE`, `docs/decisions.md`)
 
 ## Sprint 6: テスト実装 — ✅ 完了
 
@@ -86,15 +96,15 @@
 | 1 | `fd517b2` | Phase 4 初期実装 — 16モジュール, 90テスト |
 | 2 | `1d627ff` | Phase 5 ユニットテスト — カバレッジ47%→95% |
 | 3 | `e68924a` | カバレッジギャップ埋め — 95%→97.19% (200テスト) |
-| 4 | (未コミット) | セキュリティテスト65件 + 統合テスト12件 |
+| 4 | `4d1aa1a` | セキュリティテスト65件 + 統合テスト12件 |
+| 5 | (未コミット) | CI/CD, LICENSE, NOTICE, decisions.md, lint修正 |
 
 ---
 
-## 残タスク（次フェーズ以降）
+## 今後の改善タスク（P2以降）
 
 | タスク | 優先度 | 備考 |
 |:---|:---:|:---|
-| IMP-018: CI/CD | P1 | GitHub Actions (lint→typecheck→test→build) |
-| IMP-019: ドキュメント | P2 | README.md, LICENSE, NOTICE |
 | E2Eテスト | P2 | 実Ollamaサーバーとの統合テスト (CI Ollama container) |
 | client.tsタイムアウトテスト | P2 | AbortController + ReadableStreamの統合テスト |
+| README.md | P2 | ユーザー向けドキュメント |

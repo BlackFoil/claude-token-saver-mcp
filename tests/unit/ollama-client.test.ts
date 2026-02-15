@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { OllamaClient } from '../../src/ollama/client.js';
 import {
   OllamaNotRunningError,

@@ -64,10 +64,8 @@ function createMockContext(overrides?: Partial<ToolHandlerContext>): ToolHandler
 }
 
 describe('handleCompressContext', () => {
-  let stderrSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
   });
 
   it('returns fallback when Ollama is unhealthy', async () => {
