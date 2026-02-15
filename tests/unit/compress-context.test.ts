@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleCompressContext } from '../../src/tools/compress-context.js';
 import type { ToolHandlerContext } from '../../src/tools/offload-work.js';
 import type { TierConfig } from '../../src/tiering/config.js';
-import { QueueFullError } from '../../src/errors.js';
+import { QueueFullError, OllamaNotRunningError, PromptInjectionError } from '../../src/errors.js';
 
 const TIER_CONFIG: TierConfig = {
   level: 2,
@@ -180,5 +180,99 @@ describe('handleCompressContext', () => {
     // Should contain compression stats
     expect(text).toContain('Compression:');
     expect(text).toMatch(/\d+\s*->\s*\d+\s*chars/);
+  });
+
+  it('rethrows non-CTSError from queue as CTS-0000', async () => {
+    const ctx = createMockContext({
+      queue: {
+        enqueue: vi.fn().mockRejectedValue(new TypeError('unexpected')),
+        getStatus: vi.fn(),
+      } as unknown as ToolHandlerContext['queue'],
+    });
+
+    const result = await handleCompressContext({ content: 'test' }, ctx);
+    expect(result.isError).toBe(true);
+    expect((result.content[0] as { text: string }).text).toContain('CTS-0000');
+  });
+
+  it('handles CTSError with fallbackToCloud in outer catch', async () => {
+    const ctx = createMockContext();
+    (ctx.costCalculator.calculateSavings as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new OllamaNotRunningError('Ollama died');
+    });
+
+    const result = await handleCompressContext({ content: 'test' }, ctx);
+    expect(result.isError).toBe(true);
+    expect((result.content[0] as { text: string }).text).toContain('FALLBACK_TO_CLOUD');
+  });
+
+  it('handles CTSError without fallback in outer catch', async () => {
+    const ctx = createMockContext();
+    (ctx.costCalculator.calculateSavings as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new PromptInjectionError('detected');
+    });
+
+    const result = await handleCompressContext({ content: 'test' }, ctx);
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('CTS-5001');
+    expect(text).not.toContain('FALLBACK');
+  });
+
+  it('handles empty content for compression ratio edge case', async () => {
+    const ctx = createMockContext({
+      queue: {
+        enqueue: vi.fn().mockResolvedValue({
+          text: '',
+          inputTokens: 0,
+          outputTokens: 0,
+          totalDurationMs: 100,
+          loadDurationMs: 10,
+          model: 'qwen2.5-coder:7b',
+        }),
+        getStatus: vi.fn(),
+      } as unknown as ToolHandlerContext['queue'],
+    });
+
+    // Need content that passes validation (non-empty)
+    const result = await handleCompressContext({ content: 'short' }, ctx);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('Compression:');
+  });
+
+  it('includes max_length in prompt when provided', async () => {
+    const ctx = createMockContext();
+    await handleCompressContext(
+      { content: 'test content', max_length: 500 },
+      ctx,
+    );
+
+    const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    const userMsg = enqueuedPayload.request.messages[1].content;
+    expect(userMsg).toContain('Target maximum length: 500');
+  });
+
+  it('truncates to word boundary correctly', async () => {
+    // Use Tier 1 with lower context limit to force truncation
+    const tier1Config: TierConfig = {
+      level: 1,
+      name: 'Light',
+      primaryModel: 'phi4:latest',
+      fallbackModel: 'phi4-mini:latest',
+      contextLimit: 100, // Very low to force truncation
+      ramRange: { min: 0, max: 16 },
+      timeout: {
+        requestTimeout: 60_000,
+        heartbeatTimeout: 30_000,
+        firstTokenTimeout: 120_000,
+      },
+    };
+
+    const ctx = createMockContext({ tierConfig: tier1Config });
+    // 400 chars / 3 = ~133 tokens > 100 token limit
+    const content = 'word '.repeat(80); // 400 chars of words with spaces
+    const result = await handleCompressContext({ content }, ctx);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('WARNING: Input truncated');
   });
 });

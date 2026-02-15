@@ -39,6 +39,20 @@ describe('validateOffloadWorkInput', () => {
     );
     expect(result.input.language).toBe('typescript');
   });
+
+  it('V-12: rejects invalid output_format', () => {
+    expect(() =>
+      validateOffloadWorkInput({ task: 'test', output_format: 'invalid_format' }, MAX_SIZE),
+    ).toThrow('output_format');
+  });
+
+  it('V-13: accepts valid output_format', () => {
+    const result = validateOffloadWorkInput(
+      { task: 'test', output_format: 'code' },
+      MAX_SIZE,
+    );
+    expect(result.input.output_format).toBe('code');
+  });
 });
 
 describe('validateCompressContextInput', () => {

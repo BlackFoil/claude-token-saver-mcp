@@ -574,3 +574,8 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
     fetchSpy.mockRestore();
   });
 });
+
+// NOTE: client.ts timeout callbacks (requestTimeout, firstTokenTimeout, heartbeatTimeout)
+// and stall detection in pullModel use AbortController.abort() which doesn't interrupt
+// ReadableStream.read() in Node.js test environment. These paths are exercised in
+// integration/E2E tests with a real Ollama server. Excluded from unit coverage.

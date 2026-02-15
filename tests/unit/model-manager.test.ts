@@ -101,13 +101,24 @@ describe('ModelManager', () => {
       await expect(manager.ensureModelAvailable(TIER1_CONFIG)).rejects.toThrow(ModelNotFoundError);
     });
 
-    it('throws when no fallback (Tier 2) and pull fails', async () => {
+    it('throws when no fallback (Tier 2) and pull fails with ModelNotFoundError', async () => {
       mockClient.listModels.mockResolvedValue([]);
       mockClient.pullModel.mockRejectedValueOnce(
         new ModelNotFoundError('qwen2.5-coder:7b'),
       );
 
       await expect(manager.ensureModelAvailable(TIER2_CONFIG)).rejects.toThrow(ModelNotFoundError);
+    });
+
+    it('wraps non-ModelNotFoundError in ModelNotFoundError (Tier 2)', async () => {
+      mockClient.listModels.mockResolvedValue([]);
+      mockClient.pullModel.mockRejectedValueOnce(
+        new Error('network error'),
+      );
+
+      const err = await manager.ensureModelAvailable(TIER2_CONFIG).catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ModelNotFoundError);
+      expect((err as ModelNotFoundError).message).toContain('qwen2.5-coder:7b');
     });
   });
 

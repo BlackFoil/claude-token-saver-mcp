@@ -76,6 +76,17 @@ describe('ModelLoadTimeoutError', () => {
     expect(err.timeoutMs).toBe(60000);
     expect(err.fallbackToCloud).toBe(true);
   });
+
+  it('E-06b: uses model name for auto-generated message (no space)', () => {
+    const err = new ModelLoadTimeoutError('phi4:latest', 30000);
+    expect(err.message).toContain('phi4:latest');
+    expect(err.message).toContain('30');
+  });
+
+  it('E-06c: uses custom message when contains space', () => {
+    const err = new ModelLoadTimeoutError('First token not received within 5000ms', 5000);
+    expect(err.message).toBe('First token not received within 5000ms');
+  });
 });
 
 describe('GenerationTimeoutError', () => {
@@ -159,5 +170,20 @@ describe('ctsErrorToCallToolResult', () => {
     expect(result.isError).toBe(true);
     const text = (result.content[0] as { text: string }).text;
     expect(text).toContain('CTS-0000');
+  });
+
+  it('E-16: converts CTSError without fallback but retryable', () => {
+    const err = new RateLimitError(10);
+    const result = ctsErrorToCallToolResult(err);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('CTS-4002');
+    expect(text).toContain('RETRY');
+  });
+
+  it('E-17: converts non-Error value', () => {
+    const result = ctsErrorToCallToolResult('string error');
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('string error');
   });
 });

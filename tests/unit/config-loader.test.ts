@@ -45,6 +45,21 @@ describe('loadConfig', () => {
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  it('deep merges nested objects from config file', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
+    const configPath = join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({
+      ollama: { baseUrl: 'http://localhost:12345' },
+      queue: { maxQueueLength: 20 },
+    }));
+
+    const config = loadConfig(configPath);
+    expect(config.ollama.baseUrl).toBe('http://localhost:12345');
+    expect(config.queue?.maxQueueLength).toBe(20);
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
   it('falls back to defaults on malformed JSON', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
@@ -205,6 +220,33 @@ describe('saveCostHistory', () => {
     const result = loadCostHistory(tmpDir);
     expect(result).not.toBeNull();
     expect(result!.totalSavingsUsd).toBe(2.0);
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('does not throw on write failure', () => {
+    // Try to save to a path that can't be written to (file as dir)
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cts-save-'));
+    const blockerPath = join(tmpDir, 'blocker');
+    writeFileSync(blockerPath, 'I am a file not a dir');
+
+    const data: CumulativeCost = {
+      totalSavingsUsd: 1.0,
+      totalRequests: 1,
+      totalInputTokens: 100,
+      totalOutputTokens: 50,
+      byTool: {
+        offload_work: { requests: 1, savings: 1.0 },
+        compress_context: { requests: 0, savings: 0 },
+      },
+      lastUpdated: '2026-01-01T00:00:00.000Z',
+    };
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    // blocker/cost-history.json will fail because blocker is a file, not a dir
+    expect(() => saveCostHistory(data, join(blockerPath, 'nested'))).not.toThrow();
+    expect(stderrSpy).toHaveBeenCalled();
+    stderrSpy.mockRestore();
 
     rmSync(tmpDir, { recursive: true, force: true });
   });

@@ -88,4 +88,64 @@ describe('FIFOQueue', () => {
     const queue = createTestQueue({ maxRequestSizeBytes: 100 });
     await expect(queue.enqueue('test', 200)).rejects.toThrow();
   });
+
+  it('Q-12: queue timeout ejects stale item', async () => {
+    const queue = new FIFOQueue<string, string>(
+      { maxQueueLength: 10, maxRequestSizeBytes: 200 * 1024, queueTimeoutMs: 50 },
+      async (item) => {
+        // This processor takes much longer than timeout
+        await new Promise((r) => setTimeout(r, 500));
+        return item;
+      },
+    );
+
+    // First item starts processing (takes 500ms)
+    const p1 = queue.enqueue('first', 100);
+    // Wait for first to start processing
+    await new Promise((r) => setTimeout(r, 5));
+    // Second item goes into queue but will timeout at 50ms
+    const p2 = queue.enqueue('second', 100);
+
+    await expect(p2).rejects.toThrow();
+    // First item should still complete
+    await expect(p1).resolves.toBe('first');
+  }, 10_000);
+
+  it('Q-13: getStatus averages are calculated after processing', async () => {
+    const queue = createTestQueue(undefined, async (item) => {
+      await new Promise((r) => setTimeout(r, 10));
+      return `done:${item}`;
+    });
+
+    await queue.enqueue('a', 100);
+    await queue.enqueue('b', 100);
+
+    const stats = queue.getStatus();
+    expect(stats.totalProcessed).toBe(2);
+    expect(stats.averageProcessingMs).toBeGreaterThan(0);
+    expect(stats.averageWaitMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it('Q-14: getStatus averages are 0 when nothing processed', () => {
+    const queue = createTestQueue();
+    const stats = queue.getStatus();
+    expect(stats.averageWaitMs).toBe(0);
+    expect(stats.averageProcessingMs).toBe(0);
+    expect(stats.totalProcessed).toBe(0);
+  });
+
+  it('Q-15: rate limiter rejects when exceeded', async () => {
+    const rateLimiter = {
+      check: vi.fn().mockReturnValue(false),
+      getLimitPerMinute: vi.fn().mockReturnValue(5),
+    };
+
+    const queue = new FIFOQueue<string, string>(
+      { maxQueueLength: 10, maxRequestSizeBytes: 200 * 1024, queueTimeoutMs: 5000 },
+      async (item) => item,
+      rateLimiter,
+    );
+
+    await expect(queue.enqueue('test', 100)).rejects.toThrow('レートリミット');
+  });
 });

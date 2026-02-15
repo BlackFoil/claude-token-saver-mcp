@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleOffloadWork } from '../../src/tools/offload-work.js';
 import type { ToolHandlerContext } from '../../src/tools/offload-work.js';
 import type { TierConfig } from '../../src/tiering/config.js';
-import { QueueFullError } from '../../src/errors.js';
+import { QueueFullError, OllamaNotRunningError, PromptInjectionError } from '../../src/errors.js';
 
 const TIER_CONFIG: TierConfig = {
   level: 2,
@@ -168,5 +168,70 @@ describe('handleOffloadWork', () => {
     expect(userMsg).toContain('Language: typescript');
     expect(userMsg).toContain('Context:');
     expect(userMsg).toContain('existing code here');
+  });
+
+  it('rethrows non-CTSError from queue as CTS-0000', async () => {
+    const ctx = createMockContext({
+      queue: {
+        enqueue: vi.fn().mockRejectedValue(new TypeError('unexpected')),
+        getStatus: vi.fn(),
+      } as unknown as ToolHandlerContext['queue'],
+    });
+
+    const result = await handleOffloadWork({ task: 'test' }, ctx);
+    expect(result.isError).toBe(true);
+    expect((result.content[0] as { text: string }).text).toContain('CTS-0000');
+  });
+
+  it('handles CTSError with fallbackToCloud in outer catch', async () => {
+    const ctx = createMockContext();
+    // Make costCalculator throw OllamaNotRunningError (fallbackToCloud=true)
+    (ctx.costCalculator.calculateSavings as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new OllamaNotRunningError('Ollama died');
+    });
+
+    const result = await handleOffloadWork({ task: 'test task' }, ctx);
+    expect(result.isError).toBe(true);
+    expect((result.content[0] as { text: string }).text).toContain('FALLBACK_TO_CLOUD');
+  });
+
+  it('handles CTSError without fallback in outer catch', async () => {
+    const ctx = createMockContext();
+    // Make costCalculator throw PromptInjectionError (fallbackToCloud=false)
+    (ctx.costCalculator.calculateSavings as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new PromptInjectionError('detected');
+    });
+
+    const result = await handleOffloadWork({ task: 'test' }, ctx);
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('CTS-5001');
+    expect(text).not.toContain('FALLBACK');
+  });
+
+  it('extracts task from rawInput in fallback when Ollama is down', async () => {
+    const ctx = createMockContext({
+      ollamaHealthy: false,
+      ollamaClient: {
+        healthCheck: vi.fn().mockResolvedValue(false),
+      } as unknown as ToolHandlerContext['ollamaClient'],
+    });
+
+    const result = await handleOffloadWork({ task: 'my special task' }, ctx);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('my special task');
+  });
+
+  it('handles non-object rawInput in fallback', async () => {
+    const ctx = createMockContext({
+      ollamaHealthy: false,
+      ollamaClient: {
+        healthCheck: vi.fn().mockResolvedValue(false),
+      } as unknown as ToolHandlerContext['ollamaClient'],
+    });
+
+    const result = await handleOffloadWork('not an object', ctx);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('FALLBACK_TO_CLOUD');
   });
 });
