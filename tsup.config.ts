@@ -9,9 +9,6 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   splitting: false,
-  banner: {
-    js: "#!/usr/bin/env node",
-  },
   external: [
     "node:os",
     "node:path",

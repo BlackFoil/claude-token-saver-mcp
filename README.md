@@ -115,16 +115,16 @@ max_length: 2000                 (オプション: 100-10000)
 
 ## 設定
 
-環境変数または `~/.claude-token-saver.json` で設定可能:
+環境変数または `~/.config/claude-token-saver/config.json` で設定可能:
 
 ### 環境変数
 
 | 変数 | デフォルト | 説明 |
 |:---|:---|:---|
-| `OLLAMA_HOST` | `http://127.0.0.1:11434` | Ollama の URL |
-| `CTS_TIER_OVERRIDE` | (自動検出) | Tier を強制指定 (`1`, `2`, `3`) |
-| `CTS_LOG_LEVEL` | `info` | ログレベル |
-| `CTS_COMPARISON_MODEL` | `claude-sonnet-4-5` | コスト比較対象モデル |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama の URL |
+| `TIER_OVERRIDE` | (自動検出) | Tier を強制指定 (`1`, `2`, `3`) |
+| `MODEL_OVERRIDE` | (Tier に応じて自動) | 使用モデルを強制指定 |
+| `LOG_LEVEL` | `info` | ログレベル |
 
 ### 設定ファイル例
 
