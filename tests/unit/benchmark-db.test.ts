@@ -95,6 +95,74 @@ describe('BenchmarkStore (DMS-028)', () => {
     warnSpy.mockRestore();
   });
 
+  it('loadFromFile merges benchmarks from valid JSON file', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const fileData = {
+      version: 1,
+      lastUpdated: '2026-06-01T00:00:00.000Z',
+      benchmarks: {
+        'file-model': { humanEval: 88.0, sweBench: 55.0 },
+      },
+    };
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(fileData));
+
+    await store.loadFromFile('/path/to/valid.json');
+
+    const loaded = store.getBenchmarks('file-model');
+    expect(loaded).toEqual({ humanEval: 88.0, sweBench: 55.0 });
+    expect(store.getLastUpdated()).toBeInstanceOf(Date);
+    expect(store.getLastUpdated()!.toISOString()).toBe('2026-06-01T00:00:00.000Z');
+  });
+
+  it('loadFromFile merges file data with existing defaults', async () => {
+    const { readFile } = await import('node:fs/promises');
+    store.updateBenchmarks('merge-model', { humanEval: 70.0 });
+
+    const fileData = {
+      version: 1,
+      lastUpdated: '2026-06-01T00:00:00.000Z',
+      benchmarks: {
+        'merge-model': { sweBench: 45.0 },
+      },
+    };
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(fileData));
+
+    await store.loadFromFile('/path/to/merge.json');
+
+    const merged = store.getBenchmarks('merge-model');
+    expect(merged).toEqual({ humanEval: 70.0, sweBench: 45.0 });
+  });
+
+  it('loadFromFile skips if benchmarks field is missing', async () => {
+    const { readFile } = await import('node:fs/promises');
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify({ version: 1 }));
+
+    await store.loadFromFile('/path/to/no-benchmarks.json');
+
+    expect(store.getAllBenchmarks().size).toBe(0);
+  });
+
+  it('loadFromFile handles file without lastUpdated', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const fileData = {
+      version: 1,
+      benchmarks: { 'test-model': { humanEval: 90.0 } },
+    };
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(fileData));
+
+    await store.loadFromFile('/path/to/no-date.json');
+
+    const loaded = store.getBenchmarks('test-model');
+    expect(loaded).toEqual({ humanEval: 90.0 });
+  });
+
+  it('constructor with default benchmarks sets lastUpdated', () => {
+    const defaults = new Map([['default-model', { humanEval: 80.0 }]]);
+    const storeWithDefaults = new BenchmarkStore(defaults);
+    expect(storeWithDefaults.getLastUpdated()).toBeInstanceOf(Date);
+    expect(storeWithDefaults.getBenchmarks('default-model')).toEqual({ humanEval: 80.0 });
+  });
+
   it('saveToFile writes correct JSON format', async () => {
     const { writeFile } = await import('node:fs/promises');
     vi.mocked(writeFile).mockResolvedValue(undefined);

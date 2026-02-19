@@ -183,6 +183,92 @@ describe('loadConfig', () => {
 
     rmSync(tmpDir, { recursive: true, force: true });
   });
+
+  // ── Branch coverage: deepMerge edge cases ──
+  it('deepMerge handles array values in config (replaces, does not merge)', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
+    const configPath = join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({
+      modelSelector: { blockedModels: ['model-a', 'model-b'] },
+    }));
+
+    const config = loadConfig(configPath);
+    expect(config.modelSelector.blockedModels).toEqual(['model-a', 'model-b']);
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('deepMerge handles null override values', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
+    const configPath = join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({
+      tier: null,
+    }));
+
+    const config = loadConfig(configPath);
+    expect(config.tier).toBeNull();
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  // ── Branch coverage: env overrides with NaN values ──
+  it('ignores NaN QUEUE_MAX_SIZE', () => {
+    process.env['QUEUE_MAX_SIZE'] = 'not-a-number';
+    const config = loadConfig('/nonexistent/path/config.json');
+    // Should not have NaN queue setting, just default
+    expect(config.queue?.maxQueueLength).not.toBeNaN();
+  });
+
+  it('ignores NaN QUEUE_TIMEOUT_MS', () => {
+    process.env['QUEUE_TIMEOUT_MS'] = 'abc';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.queue?.queueTimeoutMs).not.toBeNaN();
+  });
+
+  it('ignores NaN OLLAMA_TIMEOUT_MS', () => {
+    process.env['OLLAMA_TIMEOUT_MS'] = 'xyz';
+    const config = loadConfig('/nonexistent/path/config.json');
+    // Should fall back to default timeout
+    expect(config.timeout?.requestTimeout).not.toBeNaN();
+  });
+
+  it('ignores NaN MAX_SIMULTANEOUS_MODELS', () => {
+    process.env['MAX_SIMULTANEOUS_MODELS'] = 'bad';
+    const config = loadConfig('/nonexistent/path/config.json');
+    // Should not be NaN, should still be default
+    expect(config.modelSelector.maxSimultaneousModels).toBe('auto');
+  });
+
+  it('CLOUD_INPUT_PRICE without CLOUD_OUTPUT_PRICE triggers validation error', () => {
+    process.env['CLOUD_INPUT_PRICE_PER_MTOKEN'] = '3.0';
+    // Schema requires both input and output when pricing is set
+    expect(() => loadConfig('/nonexistent/path/config.json')).toThrow();
+  });
+
+  it('CLOUD_OUTPUT_PRICE without CLOUD_INPUT_PRICE triggers validation error', () => {
+    process.env['CLOUD_OUTPUT_PRICE_PER_MTOKEN'] = '15.0';
+    expect(() => loadConfig('/nonexistent/path/config.json')).toThrow();
+  });
+
+  it('applies OLLAMA_BASE_URL when ollama object already exists in config', () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
+    const configPath = join(tmpDir, 'config.json');
+    writeFileSync(configPath, JSON.stringify({
+      ollama: { baseUrl: 'http://localhost:11434' },
+    }));
+    process.env['OLLAMA_BASE_URL'] = 'http://remote-host:11434';
+
+    const config = loadConfig(configPath);
+    expect(config.ollama.baseUrl).toBe('http://remote-host:11434');
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('applies MODEL_PREFER_QUALITY=false env', () => {
+    process.env['MODEL_PREFER_QUALITY'] = 'false';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.preferQuality).toBe(false);
+  });
 });
 
 describe('loadCostHistory', () => {

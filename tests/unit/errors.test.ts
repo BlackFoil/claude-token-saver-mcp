@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CTSError,
+  OllamaConnectionError,
   OllamaNotRunningError,
   OllamaVersionError,
   ModelLoadTimeoutError,
@@ -151,6 +152,71 @@ describe('InvalidConfigError', () => {
     const err = new InvalidConfigError('baseUrl', 'invalid format');
     expect(err.code).toBe('CTS-6001');
     expect(err.message).toContain('baseUrl');
+  });
+});
+
+describe('OllamaConnectionError direct construction', () => {
+  it('E-18: accepts code and message (CTS-1001)', () => {
+    const err = new OllamaConnectionError('CTS-1001', 'connection refused');
+    expect(err.code).toBe('CTS-1001');
+    expect(err.message).toBe('connection refused');
+  });
+
+  it('E-19: accepts code and message (CTS-1002)', () => {
+    const err = new OllamaConnectionError('CTS-1002', 'version mismatch');
+    expect(err.code).toBe('CTS-1002');
+    expect(err.message).toBe('version mismatch');
+  });
+
+  it('E-20: accepts plain message (non-code string) defaults to CTS-1001', () => {
+    const err = new OllamaConnectionError('some connection error');
+    expect(err.code).toBe('CTS-1001');
+    expect(err.message).toBe('some connection error');
+  });
+
+  it('E-21: passes cause through to constructor', () => {
+    const cause = new Error('root cause');
+    const err = new OllamaConnectionError('CTS-1001', 'msg', cause);
+    expect(err.cause).toBe(cause);
+  });
+
+  it('E-27: code without message uses code as message fallback', () => {
+    const err = new OllamaConnectionError('CTS-1001');
+    expect(err.code).toBe('CTS-1001');
+    expect(err.message).toBe('CTS-1001');
+  });
+});
+
+describe('OllamaNotRunningError with Error argument', () => {
+  it('E-22: uses Error as cause when message is Error', () => {
+    const cause = new Error('original error');
+    const err = new OllamaNotRunningError(cause);
+    expect(err.message).toBe('Ollamaが起動していません。`ollama serve` を実行してください。');
+    expect(err.cause).toBe(cause);
+  });
+
+  it('E-23: uses separate cause parameter', () => {
+    const cause = new Error('root');
+    const err = new OllamaNotRunningError('custom msg', cause);
+    expect(err.message).toBe('custom msg');
+    expect(err.cause).toBe(cause);
+  });
+});
+
+describe('CTSError defaults', () => {
+  it('E-24: defaults httpStatus to 500', () => {
+    const err = new CTSError('CTS-1001', 'test');
+    expect(err.httpStatus).toBe(500);
+  });
+
+  it('E-25: defaults retryable to false', () => {
+    const err = new CTSError('CTS-1001', 'test');
+    expect(err.retryable).toBe(false);
+  });
+
+  it('E-26: defaults fallbackToCloud to true', () => {
+    const err = new CTSError('CTS-1001', 'test');
+    expect(err.fallbackToCloud).toBe(true);
   });
 });
 

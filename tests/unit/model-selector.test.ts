@@ -351,4 +351,59 @@ describe('formatRecommendationMarkdown', () => {
 
     expect(md).toContain('License: Apache-2.0');
   });
+
+  it('shows "No models found" when all are filtered out', () => {
+    const output = recommendModels({
+      category: 'coding',
+      totalRamGB: 64,
+      installedModels: [],
+      blockedModels: ['qwen2.5-coder', 'qwen3-coder', 'devstral'],
+      licenseFilter: ['Other'],
+    });
+
+    const md = formatRecommendationMarkdown(output, 'coding', 64);
+    expect(md).toContain('No models found matching the criteria');
+  });
+
+  it('shows [LOADED] for loaded models in markdown', () => {
+    const output = recommendModels({
+      category: 'coding',
+      totalRamGB: 64,
+      installedModels: ['qwen2.5-coder:32b'],
+      loadedModels: ['qwen2.5-coder:32b'],
+    });
+
+    const md = formatRecommendationMarkdown(output, 'coding', 64);
+    expect(md).toContain('[LOADED]');
+  });
+
+  it('formatBenchmarks shows N/A when no benchmarks available', () => {
+    // Build a custom recommendation output where recommendations have no benchmarks
+    const output: import('../../src/model-selector/recommender.js').RecommendOutput = {
+      recommendations: [{
+        recommendation: {
+          modelId: 'custom-model',
+          displayName: 'Custom Model',
+          category: 'coding',
+          tier: 3 as TierLevel,
+          minRamGB: 0,
+          parameterSize: 'unknown',
+          quantization: 'Q4_K_M',
+          vramRequired: 10,
+          license: 'Apache-2.0',
+          benchmarks: {},
+          ollamaAvailable: true,
+          priority: 1,
+        },
+        installed: false,
+        loaded: false,
+      }],
+      tier: 3 as TierLevel,
+      vramFallback: false,
+      maxSimultaneousModels: 2,
+    };
+
+    const md = formatRecommendationMarkdown(output, 'coding', 64);
+    expect(md).toContain('N/A');
+  });
 });

@@ -24,6 +24,7 @@ import { handlePreloadModel, type PreloadModelContext } from './tools/preload-mo
 import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/list-loaded-models.js';
 import { handlePullModel, type PullModelContext } from './tools/pull-model.js';
 import { handleConfigureModelSelector, type ConfigureModelSelectorContext } from './tools/configure-model-selector.js';
+import { handleCostDashboard, type CostDashboardContext } from './tools/cost-dashboard.js';
 import { ExecutionTracker } from './model-selector/execution-tracker.js';
 import { BenchmarkStore } from './model-selector/benchmark-db.js';
 import { getFullRegistry } from './model-selector/registry.js';
@@ -192,6 +193,13 @@ async function main(): Promise<void> {
     logger,
   };
 
+  // F-08: cost_dashboard context
+  const costDashboardContext: CostDashboardContext = {
+    costCalculator,
+    executionTracker,
+    logger,
+  };
+
   // Tool definitions
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools: Array<{
@@ -272,6 +280,15 @@ async function main(): Promise<void> {
             },
           },
           required: ['content'],
+        },
+      },
+      {
+        name: 'cost_dashboard',
+        description: 'View cumulative cost savings and model usage statistics.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {},
+          required: [],
         },
       },
     ];
@@ -409,6 +426,8 @@ async function main(): Promise<void> {
         return handlePullModel(args ?? {}, pullModelContext);
       case 'configure_model_selector':
         return handleConfigureModelSelector(args ?? {}, configureModelSelectorContext);
+      case 'cost_dashboard':
+        return handleCostDashboard(args ?? {}, costDashboardContext);
       default:
         return {
           content: [
@@ -438,6 +457,10 @@ async function main(): Promise<void> {
       totalSavings: cumulative.totalSavingsUsd,
     }, 'Shutting down');
 
+    if (healthCheckTimer) {
+      clearInterval(healthCheckTimer);
+    }
+
     try {
       saveCostHistory(cumulative);
     } catch (err) {
@@ -451,7 +474,38 @@ async function main(): Promise<void> {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 
-  // 9. Startup message
+  // 9. Periodic Ollama health check (F-12)
+  const HEALTH_CHECK_INTERVAL = 60_000;
+  let healthCheckTimer: ReturnType<typeof setInterval> | undefined;
+
+  setTimeout(() => {
+    healthCheckTimer = setInterval(async () => {
+      try {
+        const healthy = await ollamaClient.healthCheck();
+        const wasHealthy = toolContext.ollamaHealthy;
+
+        toolContext.ollamaHealthy = healthy;
+        recommendModelContext.ollamaHealthy = healthy;
+        preloadModelContext.ollamaHealthy = healthy;
+        listLoadedModelsContext.ollamaHealthy = healthy;
+        pullModelContext.ollamaHealthy = healthy;
+
+        if (healthy !== wasHealthy) {
+          logger.info(
+            { healthy },
+            `Ollama health changed: ${wasHealthy ? 'connected → disconnected' : 'disconnected → connected'}`,
+          );
+        }
+      } catch (err) {
+        logger.debug(
+          { error: err instanceof Error ? err.message : String(err) },
+          'Health check failed',
+        );
+      }
+    }, HEALTH_CHECK_INTERVAL);
+  }, 30_000);
+
+  // 10. Startup message
   process.stderr.write(
     `[claude-token-saver-mcp v${PACKAGE_VERSION}] ` +
     `Tier ${tierConfig.level} (${tierConfig.name}) | ` +

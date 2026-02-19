@@ -154,4 +154,225 @@ describe('handleConfigureModelSelector (DMS-032)', () => {
     const text = (result.content[0] as { text: string }).text;
     expect(text).toContain('disabled');
   });
+
+  // ── Branch coverage: validation edge cases ──
+
+  it('invalid action name returns error', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'invalid_action' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('Invalid action');
+  });
+
+  it('non-string setting returns error', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 123, action: 'get' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('Invalid setting');
+  });
+
+  it('non-string action returns error', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 42 },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('Invalid action');
+  });
+
+  it('values must be string array (non-array rejected)', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'set', values: 'not-an-array' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('Must be an array');
+  });
+
+  it('values with non-string elements rejected', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'set', values: [1, 2, 3] },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+  });
+
+  it('custom_config must be an object (array rejected)', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'custom_recommendations', action: 'set', custom_config: [1, 2] },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('Must be an object');
+  });
+
+  it('custom_recommendations with add action returns error (unsupported)', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'custom_recommendations', action: 'add', values: ['model-a'] },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('only supports');
+  });
+
+  it('custom_recommendations set without custom_config returns error', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'custom_recommendations', action: 'set' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('requires custom_config');
+  });
+
+  it('blocked_models set action requires non-empty values', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'add' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('requires non-empty values');
+  });
+
+  it('get blocked_models returns "No blocked models" when empty', async () => {
+    const ctx = createMockContext({ blockedModels: [] });
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'get' },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('No blocked models');
+  });
+
+  it('get license_filter returns "No license filter" when empty', async () => {
+    const ctx = createMockContext({ licenseFilter: [] });
+    const result = await handleConfigureModelSelector(
+      { setting: 'license_filter', action: 'get' },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('No license filter');
+  });
+
+  it('set license_filter with empty array clears filter', async () => {
+    const ctx = createMockContext({ licenseFilter: ['MIT'] });
+    const result = await handleConfigureModelSelector(
+      { setting: 'license_filter', action: 'set', values: [] },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('cleared');
+  });
+
+  it('set license_filter with valid values updates filter', async () => {
+    const ctx = createMockContext({ licenseFilter: ['MIT'] });
+    const result = await handleConfigureModelSelector(
+      { setting: 'license_filter', action: 'set', values: ['Apache-2.0', 'MIT'] },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('2 types');
+  });
+
+  it('add license_filter appends to filter', async () => {
+    const ctx = createMockContext({ licenseFilter: ['MIT'] });
+    await handleConfigureModelSelector(
+      { setting: 'license_filter', action: 'add', values: ['Apache-2.0'] },
+      ctx,
+    );
+
+    expect(ctx.config.modelSelector.licenseFilter).toContain('MIT');
+    expect(ctx.config.modelSelector.licenseFilter).toContain('Apache-2.0');
+  });
+
+  it('remove license_filter removes from filter', async () => {
+    const ctx = createMockContext({ licenseFilter: ['MIT', 'Apache-2.0'] });
+    await handleConfigureModelSelector(
+      { setting: 'license_filter', action: 'remove', values: ['MIT'] },
+      ctx,
+    );
+
+    expect(ctx.config.modelSelector.licenseFilter).not.toContain('MIT');
+    expect(ctx.config.modelSelector.licenseFilter).toContain('Apache-2.0');
+  });
+
+  it('get custom_recommendations returns "No custom recommendations" when empty', async () => {
+    const ctx = createMockContext({ customRecommendations: {} });
+    const result = await handleConfigureModelSelector(
+      { setting: 'custom_recommendations', action: 'get' },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('No custom recommendations');
+  });
+
+  it('set custom_recommendations with empty object clears', async () => {
+    const ctx = createMockContext({
+      customRecommendations: { coding: { '2': ['model-a'] } },
+    });
+    const result = await handleConfigureModelSelector(
+      { setting: 'custom_recommendations', action: 'set', custom_config: {} },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('cleared');
+  });
+
+  it('non-CTSError in handler returns CTS-0000 error', async () => {
+    const ctx = createMockContext();
+    // Force a generic error by providing a non-object custom_config that passes validation but fails later
+    Object.defineProperty(ctx.config.modelSelector, 'enabled', {
+      get() { throw new TypeError('unexpected'); },
+    });
+
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'get' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('CTS-0000');
+  });
 });

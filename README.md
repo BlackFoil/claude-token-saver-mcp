@@ -1,3 +1,5 @@
+[English](./README.en.md) | 日本語
+
 # claude-token-saver-mcp
 
 Claude Code のコーディングタスクをローカル LLM (Ollama) にオフロードし、Cloud API のトークン消費を節約する MCP サーバー。

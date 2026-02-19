@@ -204,4 +204,30 @@ describe('handleRecommendModel (DMS-010/013)', () => {
     const text = (result.content[0] as { type: 'text'; text: string }).text;
     expect(text).toContain('License:');
   });
+
+  it('returns error when prefer_quality is non-boolean', async () => {
+    const ctx = makeContext(3);
+    const result = await handleRecommendModel(
+      { category: 'coding', prefer_quality: 'yes' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { type: 'text'; text: string }).text;
+    expect(text).toContain('Must be a boolean');
+  });
+
+  it('returns error for non-CTSError from unknown error', async () => {
+    // Create a context that triggers a non-CTSError
+    const ctx = makeContext(3);
+    // Override config to cause a TypeError during recommendation
+    Object.defineProperty(ctx.config.modelSelector, 'enabled', {
+      get() { throw new TypeError('property access fail'); },
+    });
+
+    const result = await handleRecommendModel({ category: 'coding' }, ctx);
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { type: 'text'; text: string }).text;
+    expect(text).toContain('CTS-0000');
+  });
 });

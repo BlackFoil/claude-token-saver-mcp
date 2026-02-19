@@ -250,6 +250,86 @@ describe('handleCompressContext', () => {
     expect(userMsg).toContain('Target maximum length: 500');
   });
 
+  // ── Branch coverage: model override (DMS-017) ──
+
+  it('uses explicit model override when model param provided', async () => {
+    const ctx = createMockContext();
+    await handleCompressContext(
+      { content: 'test content', model: 'custom-model:7b' },
+      ctx,
+    );
+
+    const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(enqueuedPayload.request.model).toBe('custom-model:7b');
+    expect((ctx.logger.info as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'custom-model:7b' }),
+      expect.stringContaining('model override'),
+    );
+  });
+
+  it('ignores empty model string override', async () => {
+    const ctx = createMockContext();
+    await handleCompressContext(
+      { content: 'test content', model: '  ' },
+      ctx,
+    );
+
+    const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:7b');
+  });
+
+  it('handles non-object rawInput for model override path', async () => {
+    const ctx = createMockContext();
+    // rawInput that is not an object — should use tierConfig.primaryModel
+    const result = await handleCompressContext(null, ctx);
+    expect(result.isError).toBe(true); // validation will reject null
+  });
+
+  // ── Branch coverage: executionTracker (DMS-029) ──
+
+  it('records successful execution when executionTracker is present', async () => {
+    const mockTracker = { recordExecution: vi.fn() };
+    const ctx = createMockContext({ executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'] });
+
+    await handleCompressContext({ content: 'test content' }, ctx);
+
+    expect(mockTracker.recordExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskCategory: 'summarization',
+        success: true,
+      }),
+    );
+  });
+
+  it('records failed execution when executionTracker is present and error occurs', async () => {
+    const mockTracker = { recordExecution: vi.fn() };
+    const ctx = createMockContext({
+      executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'],
+    });
+    (ctx.costCalculator.calculateSavings as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new TypeError('unexpected crash');
+    });
+
+    await handleCompressContext({ content: 'test' }, ctx);
+
+    expect(mockTracker.recordExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskCategory: 'summarization',
+        success: false,
+      }),
+    );
+  });
+
+  // ── Branch coverage: Ollama recheck succeeds ──
+
+  it('recovers when Ollama becomes healthy on recheck', async () => {
+    const ctx = createMockContext({ ollamaHealthy: false });
+
+    const result = await handleCompressContext({ content: 'test content' }, ctx);
+    expect(result.isError).toBeUndefined();
+    expect(ctx.ollamaHealthy).toBe(true);
+  });
+
   it('truncates to word boundary correctly', async () => {
     // Use Tier 1 with lower context limit to force truncation
     const tier1Config: TierConfig = {
@@ -269,6 +349,36 @@ describe('handleCompressContext', () => {
     const ctx = createMockContext({ tierConfig: tier1Config });
     // 400 chars / 3 = ~133 tokens > 100 token limit
     const content = 'word '.repeat(80); // 400 chars of words with spaces
+    const result = await handleCompressContext({ content }, ctx);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('WARNING: Input truncated');
+  });
+
+  it('truncateByTokens adjusts to next space boundary when prev space too far', async () => {
+    // This triggers the else-if branch in truncateByTokens:
+    // prevSpace is NOT > cutPos * 0.8 but nextSpace IS within cutPos * 1.1
+    const tier1Config: TierConfig = {
+      level: 1,
+      name: 'Light',
+      primaryModel: 'phi4:latest',
+      fallbackModel: 'phi4-mini:latest',
+      contextLimit: 100, // 100 tokens = ~300 chars max
+      ramRange: { min: 0, max: 16 },
+      timeout: {
+        requestTimeout: 60_000,
+        heartbeatTimeout: 30_000,
+        firstTokenTimeout: 120_000,
+      },
+    };
+
+    const ctx = createMockContext({ tierConfig: tier1Config });
+    // contentLimit = floor(100 * 0.9) = 90 tokens; maxChars = 90 * 3 = 270
+    // cutPos = min(270, 386) = 270
+    // 'word ' has space at pos 4: prevSpace = lastIndexOf(' ', 270) = 4
+    // 4 > 270*0.8=216? No => skip if
+    // 'x'.repeat(270) puts next space at pos 275: nextSpace = indexOf(' ', 270) = 275
+    // 275 < 270*1.1=297? Yes => else-if triggers
+    const content = 'word ' + 'x'.repeat(270) + ' aftertext' + 'y'.repeat(100);
     const result = await handleCompressContext({ content }, ctx);
     const text = (result.content[0] as { text: string }).text;
     expect(text).toContain('WARNING: Input truncated');

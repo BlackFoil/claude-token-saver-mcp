@@ -73,8 +73,12 @@ function validateInput(args: Record<string, unknown>): ConfigureInput {
     );
   }
 
-  if (setting !== 'custom_recommendations' && action !== 'get' && (!values || values.length === 0)) {
+  if (setting !== 'custom_recommendations' && (action === 'add' || action === 'remove') && (!values || values.length === 0)) {
     throw new InvalidConfigError('values', `"${action}" action requires non-empty values array`);
+  }
+
+  if (setting !== 'custom_recommendations' && action === 'set' && values === undefined) {
+    throw new InvalidConfigError('values', `"set" action requires values array`);
   }
 
   if (setting === 'custom_recommendations' && action === 'set' && !customConfig) {

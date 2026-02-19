@@ -105,6 +105,25 @@ describe('applyConfigOverrides', () => {
   it('throws on negative RAM', () => {
     expect(() => detectTier(-1)).toThrow();
   });
+
+  it('applies fallbackModel undefined override correctly', () => {
+    const base = detectTier(8); // Tier 1, has fallbackModel
+    expect(base.fallbackModel).toBe('phi4-mini:latest');
+
+    const result = applyConfigOverrides(base, {
+      fallbackModel: undefined,
+    });
+    // fallbackModel !== undefined check fails, so keeps base value
+    expect(result.fallbackModel).toBe('phi4-mini:latest');
+  });
+
+  it('explicitly sets fallbackModel to null via override', () => {
+    const base = detectTier(8); // Tier 1, has fallbackModel
+    const result = applyConfigOverrides(base, {
+      fallbackModel: null,
+    });
+    expect(result.fallbackModel).toBeNull();
+  });
 });
 
 describe('TIER_DEFINITIONS', () => {

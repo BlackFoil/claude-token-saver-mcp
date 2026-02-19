@@ -151,6 +151,34 @@ describe('parseClaudeMdRoles (DMS-022)', () => {
     ]);
   });
 
+  it('handles rows with too few columns gracefully', () => {
+    const table = `
+| 役割 | 担当 | LLM用途 |
+|:---|:---|:---|
+| ShortRow |
+| Coder | Local | coding |
+`;
+    const result = parseClaudeMdRoles(table);
+    // ShortRow should be skipped (too few columns), Coder should be parsed
+    expect(result).toEqual([
+      { role: 'Coder', category: 'coding' },
+    ]);
+  });
+
+  it('skips rows with empty role or empty llm value', () => {
+    const table = `
+| 役割 | LLM用途 |
+|:---|:---|
+|  | coding |
+| Writer |  |
+| Valid | translation |
+`;
+    const result = parseClaudeMdRoles(table);
+    expect(result).toEqual([
+      { role: 'Valid', category: 'translation' },
+    ]);
+  });
+
   it('defaults to first column as role when no 役割/Role header', () => {
     const table = `
 | Name | LLM用途 |

@@ -2,7 +2,7 @@
 
 **現在のPhase:** 動的モデルセレクター Phase 1 (MVP)
 **作成日:** 2026-02-15
-**最終更新:** 2026-02-19 (Sprint 7-13 完了, v0.2.0 + 高度な推奨機能)
+**最終更新:** 2026-02-19 (Sprint 7-13 完了, P1統合 + P3改善, v0.2.0)
 **管理者:** PM / Claude Code (Leader)
 **設計書:** `docs/design/dynamic-model-selector-design.md`
 
@@ -31,6 +31,8 @@
 | Phase 3: 自動pull & CLAUDE.md連携 | ✅ | 2026-02-19 |
 | Phase 4: 品質保証 & ドキュメント | ✅ | 2026-02-19 |
 | Phase 5: 高度な推奨 (P2) | ✅ | 2026-02-19 |
+| P1: 統合接続 (ExecutionTracker, BenchmarkStore, Quantization) | ✅ | 2026-02-19 |
+| P3: 長期改善 (ダッシュボード, ヘルスチェック, README.en, CHANGELOG, カバレッジ) | ✅ | 2026-02-19 |
 
 ---
 
@@ -38,17 +40,17 @@
 
 | カテゴリ | テスト数 | ステータス |
 |:---|:---:|:---:|
-| ユニットテスト (tests/unit/) | 378 | ✅ 全パス |
+| ユニットテスト (tests/unit/) | 490 | ✅ 全パス |
 | セキュリティテスト (tests/security/) | 65 | ✅ 全パス |
 | 統合テスト (tests/integration/) | 19 | ✅ 全パス |
-| **合計** | **462** | **✅ 全パス** |
+| **合計** | **574** | **✅ 全パス** |
 
 ### カバレッジ
 
 | 指標 | 値 |
 |:---|:---:|
 | ステートメント | 97.19% |
-| ブランチ | 88.82% |
+| ブランチ | ~95% |
 | 関数 | 100% |
 
 ### 検証結果
@@ -58,7 +60,7 @@
 | ビルド (tsup) | ✅ 成功 |
 | lint (ESLint) | ✅ 0エラー, 0警告 |
 | 型チェック (tsc --noEmit) | ✅ 成功 |
-| テスト (462件) | ✅ 全パス |
+| テスト (574件) | ✅ 全パス |
 
 ---
 
@@ -448,6 +450,30 @@ Sprint 12 (品質保証)
 ## v0.1.0 初期実装（完了済み・アーカイブ）
 
 > 以下は v0.1.0 で完了した初期実装タスク。参照用に保持。
+
+---
+
+## P1: 統合接続 — ✅ 完了
+
+> **目的:** Sprint 13 で実装した各モジュールをシステムに接続
+
+- [x] R-04: ExecutionTracker を offload_work / compress_context に接続
+- [x] R-05: BenchmarkStore を recommender に接続
+- [x] R-06: selectQuantization を recommender に統合
+- [x] R-07: 統合テスト (14テスト)
+
+---
+
+## P3: 長期改善 — ✅ 完了
+
+> **目的:** DX改善、カバレッジ向上、運用機能の追加
+
+- [x] F-08: コスト節約ダッシュボード MCP ツール (`src/tools/cost-dashboard.ts`)
+- [x] F-12: Ollama ヘルスチェック定期実行 (60秒間隔, `src/server.ts`)
+- [x] F-14: 英語 README (`README.en.md`)
+- [x] F-07: CHANGELOG.md (`CHANGELOG.md`)
+- [x] F-03: ブランチカバレッジ 88% → ~95% 改善 (+98テスト)
+- [x] P3テスト: cost-dashboard (8テスト) + health-check (5テスト)
 
 ---
 

@@ -882,6 +882,73 @@ describe('OllamaClient.pullModel response (DMS-004)', () => {
   });
 });
 
+describe('OllamaClient.listRunning edge cases', () => {
+  it('handles missing models field with null fallback', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ models: null }), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listRunning();
+    expect(result.models).toEqual([]);
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.chat - non-done content in remaining buffer', () => {
+  it('adds content from non-done chunk in remaining buffer', async () => {
+    const chunk1 = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:00Z',
+      message: { role: 'assistant', content: 'Hi' },
+      done: false,
+    });
+    // Non-done chunk in buffer (no trailing newline)
+    const bufferChunk = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:01Z',
+      message: { role: 'assistant', content: ' there' },
+      done: false,
+    });
+    const finalChunk = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:02Z',
+      message: { role: 'assistant', content: '' },
+      done: true,
+      total_duration: 500_000_000,
+      load_duration: 50_000_000,
+      prompt_eval_count: 5,
+      prompt_eval_duration: 200_000_000,
+      eval_count: 3,
+      eval_duration: 100_000_000,
+    });
+
+    const encoder = new TextEncoder();
+    // Two newline-terminated chunks + one in buffer without newline, then final in next read
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(chunk1 + '\n' + bufferChunk + '\n' + finalChunk));
+        controller.close();
+      },
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(stream, { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.chat({
+      model: 'phi4:latest',
+      messages: [{ role: 'user', content: 'Hello' }],
+      stream: true,
+    });
+
+    expect(result.text).toBe('Hi there');
+    fetchSpy.mockRestore();
+  });
+});
+
 // NOTE: client.ts timeout callbacks (requestTimeout, firstTokenTimeout, heartbeatTimeout)
 // and stall detection in pullModel use AbortController.abort() which doesn't interrupt
 // ReadableStream.read() in Node.js test environment. These paths are exercised in

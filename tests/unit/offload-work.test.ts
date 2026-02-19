@@ -220,6 +220,169 @@ describe('handleOffloadWork', () => {
     expect(text).toContain('my special task');
   });
 
+  // ── Branch coverage: DMS-016 model override / category selection ──
+
+  it('uses explicit model override when model param provided', async () => {
+    const ctx = createMockContext();
+    await handleOffloadWork(
+      { task: 'test task', model: 'custom-model:7b' },
+      ctx,
+    );
+
+    const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(enqueuedPayload.request.model).toBe('custom-model:7b');
+  });
+
+  it('ignores empty string model override', async () => {
+    const ctx = createMockContext();
+    await handleOffloadWork(
+      { task: 'test task', model: '  ' },
+      ctx,
+    );
+
+    const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:7b');
+  });
+
+  it('selects model by category when modelSelector enabled and no model override', async () => {
+    const mockConfig = {
+      ollama: { baseUrl: 'http://127.0.0.1:11434' },
+      tier: null,
+      timeout: null,
+      queue: { maxQueueLength: 10, maxRequestSizeBytes: 204800, queueTimeoutMs: 60000 },
+      cost: { comparisonModel: 'claude-sonnet-4-5' },
+      security: { enableInputSanitization: true },
+      logLevel: 'info',
+      modelSelector: {
+        enabled: true,
+        preferQuality: false,
+        preloadKeepAlive: '-1',
+        maxSimultaneousModels: 'auto' as const,
+        customRecommendations: {},
+        blockedModels: [],
+        licenseFilter: [],
+      },
+    };
+
+    const ctx = createMockContext({
+      config: mockConfig as unknown as ToolHandlerContext['config'],
+      ollamaClient: {
+        healthCheck: vi.fn().mockResolvedValue(true),
+        chat: vi.fn(),
+        getVersion: vi.fn(),
+        listModels: vi.fn(),
+        listModelsFull: vi.fn().mockResolvedValue({ models: [] }),
+        listRunning: vi.fn().mockResolvedValue({ models: [] }),
+        pullModel: vi.fn(),
+      } as unknown as ToolHandlerContext['ollamaClient'],
+    });
+
+    const result = await handleOffloadWork(
+      { task: 'write hello', category: 'coding' },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+  });
+
+  it('falls back to default model when recommendation engine throws', async () => {
+    const mockConfig = {
+      ollama: { baseUrl: 'http://127.0.0.1:11434' },
+      tier: null,
+      timeout: null,
+      queue: { maxQueueLength: 10, maxRequestSizeBytes: 204800, queueTimeoutMs: 60000 },
+      cost: { comparisonModel: 'claude-sonnet-4-5' },
+      security: { enableInputSanitization: true },
+      logLevel: 'info',
+      modelSelector: {
+        enabled: true,
+        preferQuality: false,
+        preloadKeepAlive: '-1',
+        maxSimultaneousModels: 'auto' as const,
+        customRecommendations: {},
+        // Use a getter that throws to force the recommendation catch block
+        get blockedModels(): string[] { throw new Error('config error'); },
+        licenseFilter: [],
+      },
+    };
+
+    const ctx = createMockContext({
+      config: mockConfig as unknown as ToolHandlerContext['config'],
+      ollamaClient: {
+        healthCheck: vi.fn().mockResolvedValue(true),
+        chat: vi.fn(),
+        getVersion: vi.fn(),
+        listModels: vi.fn(),
+        listModelsFull: vi.fn().mockResolvedValue({ models: [] }),
+        listRunning: vi.fn().mockResolvedValue({ models: [] }),
+        pullModel: vi.fn(),
+      } as unknown as ToolHandlerContext['ollamaClient'],
+    });
+
+    const result = await handleOffloadWork(
+      { task: 'write hello', category: 'coding' },
+      ctx,
+    );
+
+    expect(result.isError).toBeUndefined();
+    // Should use default model since recommendation threw
+    const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:7b');
+    expect((ctx.logger.warn as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
+      expect.objectContaining({ error: expect.any(String) }),
+      'Model recommendation failed, using default',
+    );
+  });
+
+  // ── Branch coverage: DMS-029 executionTracker ──
+
+  it('records successful execution when executionTracker is present', async () => {
+    const mockTracker = { recordExecution: vi.fn() };
+    const ctx = createMockContext({ executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'] });
+
+    await handleOffloadWork({ task: 'test' }, ctx);
+
+    expect(mockTracker.recordExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskCategory: 'general',
+        success: true,
+      }),
+    );
+  });
+
+  it('records execution with explicit category from rawArgs', async () => {
+    const mockTracker = { recordExecution: vi.fn() };
+    const ctx = createMockContext({ executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'] });
+
+    await handleOffloadWork({ task: 'test', category: 'coding' }, ctx);
+
+    expect(mockTracker.recordExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskCategory: 'coding',
+        success: true,
+      }),
+    );
+  });
+
+  it('records failed execution when executionTracker is present and error occurs', async () => {
+    const mockTracker = { recordExecution: vi.fn() };
+    const ctx = createMockContext({
+      executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'],
+    });
+    (ctx.costCalculator.calculateSavings as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new TypeError('unexpected crash');
+    });
+
+    await handleOffloadWork({ task: 'test' }, ctx);
+
+    expect(mockTracker.recordExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskCategory: 'general',
+        success: false,
+      }),
+    );
+  });
+
   it('handles non-object rawInput in fallback', async () => {
     const ctx = createMockContext({
       ollamaHealthy: false,

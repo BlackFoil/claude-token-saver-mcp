@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExecutionTracker } from '../../src/model-selector/execution-tracker.js';
 import type { TaskCategory } from '../../src/model-selector/types.js';
+
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+}));
 
 function makeRecord(overrides: Partial<{
   modelId: string;
@@ -156,5 +161,86 @@ describe('ExecutionTracker (DMS-029)', () => {
     tracker.clear();
     expect(tracker.getRecordCount()).toBe(0);
     expect(tracker.getPerformanceMetrics('coding')).toEqual([]);
+  });
+
+  it('maxRecords enforces minimum of 1', () => {
+    const smallTracker = new ExecutionTracker(0);
+    smallTracker.recordExecution(makeRecord());
+    expect(smallTracker.getRecordCount()).toBe(1);
+    // Adding another should keep only 1
+    smallTracker.recordExecution(makeRecord({ modelId: 'model-b' }));
+    expect(smallTracker.getRecordCount()).toBe(1);
+  });
+
+  // ── File I/O tests ──
+
+  it('loadFromFile loads records from JSON array', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const records = [
+      { modelId: 'model-a', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: Date.now() },
+      { modelId: 'model-b', taskCategory: 'coding', executionTimeMs: 2000, success: false, inputTokens: 200, outputTokens: 100, timestamp: Date.now() },
+    ];
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(records));
+
+    await tracker.loadFromFile('/tmp/records.json');
+
+    expect(tracker.getRecordCount()).toBe(2);
+    const metrics = tracker.getPerformanceMetrics('coding');
+    expect(metrics).toHaveLength(2);
+  });
+
+  it('loadFromFile throws on non-array JSON', async () => {
+    const { readFile } = await import('node:fs/promises');
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify({ not: 'array' }));
+
+    await expect(tracker.loadFromFile('/tmp/bad.json')).rejects.toThrow('Expected JSON array');
+  });
+
+  it('loadFromFile enforces maxRecords by keeping newest', async () => {
+    const smallTracker = new ExecutionTracker(2);
+    const { readFile } = await import('node:fs/promises');
+    const records = [
+      { modelId: 'old', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: 1 },
+      { modelId: 'mid', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: 2 },
+      { modelId: 'new', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: 3 },
+    ];
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(records));
+
+    await smallTracker.loadFromFile('/tmp/records.json');
+
+    expect(smallTracker.getRecordCount()).toBe(2);
+    // Should have mid and new, not old
+    const metrics = smallTracker.getPerformanceMetrics('coding');
+    const modelIds = metrics.map((m) => m.modelId);
+    expect(modelIds).toContain('new');
+    expect(modelIds).toContain('mid');
+    expect(modelIds).not.toContain('old');
+  });
+
+  it('saveToFile writes records as JSON array', async () => {
+    const { writeFile } = await import('node:fs/promises');
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    tracker.recordExecution(makeRecord());
+    tracker.recordExecution(makeRecord({ modelId: 'model-b' }));
+
+    await tracker.saveToFile('/tmp/records.json');
+
+    expect(writeFile).toHaveBeenCalledWith(
+      '/tmp/records.json',
+      expect.any(String),
+      'utf-8',
+    );
+
+    const writtenData = JSON.parse(vi.mocked(writeFile).mock.calls[0]![1] as string);
+    expect(Array.isArray(writtenData)).toBe(true);
+    expect(writtenData).toHaveLength(2);
+  });
+
+  it('getRecommendationBoost returns 0 when slowest avgTime is 0', () => {
+    // All records with 0ms execution time
+    tracker.recordExecution(makeRecord({ executionTimeMs: 0 }));
+    const boost = tracker.getRecommendationBoost('qwen3:8b', 'coding');
+    expect(boost).toBe(0);
   });
 });
