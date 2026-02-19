@@ -148,11 +148,107 @@ JSONRPC
 ### 4.2 出力サニタイズ確認
 
 出力サニタイズは Ollama の応答に API キー等が含まれた場合に作動します。
-自動テスト (277件) でカバー済みのため、手動確認は任意。
+自動テスト (404件) でカバー済みのため、手動確認は任意。
 
 ---
 
-## 5. Tier オーバーライド確認
+## 5. 動的モデルセレクター確認 (v0.2.0)
+
+> 以下のテストは `MODEL_SELECTOR_ENABLED=true` (デフォルト) の場合に有効です。
+
+### 5.1 recommend_model — カテゴリ別推奨
+
+```bash
+cat <<'JSONRPC' | node dist/server.js 2>/tmp/cts-stderr.log
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"recommend_model","arguments":{"category":"coding"}},"id":2}
+JSONRPC
+```
+
+**チェック項目:**
+- [ ] `## Model Recommendation` ヘッダが含まれる
+- [ ] 現在のTierに応じた推奨モデルが表示される
+- [ ] インストール済みモデルに `✅`、未インストールに `📥` マークが付く
+- [ ] ライセンス情報が表示される
+
+### 5.2 pull_model — モデルダウンロード
+
+```bash
+cat <<'JSONRPC' | node dist/server.js 2>/tmp/cts-stderr.log
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"pull_model","arguments":{"model":"qwen3:8b"}},"id":2}
+JSONRPC
+```
+
+**チェック項目:**
+- [ ] `pulled successfully` または `already up to date` が返る
+- [ ] サイズと所要時間が表示される
+- [ ] 存在しないモデル名では `CTS-3001` エラーが返る
+
+### 5.3 preload_model — VRAMへのプリロード
+
+```bash
+cat <<'JSONRPC' | node dist/server.js 2>/tmp/cts-stderr.log
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"preload_model","arguments":{"model":"qwen2.5-coder:7b"}},"id":2}
+JSONRPC
+```
+
+**チェック項目:**
+- [ ] `preloaded successfully` が返る
+- [ ] VRAM Usage が表示される
+- [ ] `ready for inference` ステータスが表示される
+- [ ] 未インストールモデルでは適切なエラーが返る
+
+### 5.4 list_loaded_models — ロード中モデル一覧
+
+```bash
+cat <<'JSONRPC' | node dist/server.js 2>/tmp/cts-stderr.log
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_loaded_models","arguments":{}},"id":2}
+JSONRPC
+```
+
+**チェック項目:**
+- [ ] `## Loaded Models` ヘッダが含まれる
+- [ ] ロード中モデルがテーブル形式で表示される（またはモデル未ロード時は `No models currently loaded`）
+- [ ] VRAM Total とスロット使用状況が表示される
+
+### 5.5 offload_work + model 指定
+
+```bash
+cat <<'JSONRPC' | node dist/server.js 2>/tmp/cts-stderr.log
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"offload_work","arguments":{"task":"Write a hello world function","language":"typescript","model":"qwen2.5-coder:7b"}},"id":2}
+JSONRPC
+```
+
+**チェック項目:**
+- [ ] `Model:` 行に指定したモデル名が表示される
+- [ ] コード生成結果が返る
+
+### 5.6 offload_work + category 指定
+
+```bash
+cat <<'JSONRPC' | node dist/server.js 2>/tmp/cts-stderr.log
+{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}},"id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"offload_work","arguments":{"task":"Write a hello world function","category":"coding"}},"id":2}
+JSONRPC
+```
+
+**チェック項目:**
+- [ ] 推奨エンジンが選択したモデルが `Model:` 行に表示される
+- [ ] コード生成結果が返る
+
+---
+
+## 6. Tier オーバーライド確認
 
 環境変数で Tier を強制変更できることを確認:
 
@@ -235,6 +331,12 @@ Claude Code を起動し、以下を試す:
 | 3 | offload_work コンテキスト付き | |
 | 4 | compress_context 基本動作 | |
 | 5 | PI 検知 (CTS-5001) | |
-| 6 | Tier オーバーライド | |
-| 7 | Ollama 未接続フォールバック | |
-| 8 | Claude Code 連携 | |
+| 6 | recommend_model カテゴリ推奨 | |
+| 7 | pull_model ダウンロード | |
+| 8 | preload_model VRAMプリロード | |
+| 9 | list_loaded_models 一覧表示 | |
+| 10 | offload_work + model 指定 | |
+| 11 | offload_work + category 指定 | |
+| 12 | Tier オーバーライド | |
+| 13 | Ollama 未接続フォールバック | |
+| 14 | Claude Code 連携 | |

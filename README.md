@@ -16,6 +16,8 @@ Claude Code  ──MCP──▶  claude-token-saver-mcp  ──HTTP──▶  Ol
 
 Claude Code が `offload_work` / `compress_context` ツールを呼ぶと、リクエストはローカルの Ollama に転送されます。Cloud API を使わないため、その分のトークンコストが節約されます。
 
+v0.2.0 では**動的モデルセレクター**を搭載。タスクカテゴリに応じて最適なローカルモデルを自動推奨・選択します。
+
 ## 要件
 
 - Node.js >= 20
@@ -111,7 +113,61 @@ output_format: "code"           (オプション: code|diff|explanation|raw)
 content:    "大量のログ出力やファイル内容..."
 focus:      "エラーに関する部分"  (オプション)
 max_length: 2000                 (オプション: 100-10000)
+model:      "qwen3:8b"           (オプション: モデル指定)
 ```
+
+### `recommend_model` (v0.2.0)
+
+タスクカテゴリに応じた最適モデルを推奨。システムスペックとインストール済みモデルを考慮。
+
+```
+category:       "coding"    (必須: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general)
+prefer_quality: true        (オプション: 品質優先=true, 速度優先=false)
+```
+
+### `pull_model` (v0.2.0)
+
+Ollama レジストリからモデルをダウンロード。
+
+```
+model: "qwen3:14b"  (必須: ダウンロードするモデル名)
+```
+
+### `preload_model` (v0.2.0)
+
+モデルを VRAM にプリロードし、推論をウォームスタート。
+
+```
+model:      "qwen2.5-coder:32b"  (必須: プリロードするモデル名)
+keep_alive: "-1"                 (オプション: ロード保持時間。"-1"=永続, "5m", "1h")
+```
+
+### `list_loaded_models` (v0.2.0)
+
+現在 VRAM にロード中のモデル一覧を表示。
+
+```
+(引数なし)
+```
+
+## Agent Team 連携 (v0.2.0)
+
+CLAUDE.md のロールテーブルに `LLM用途` 列を追加すると、各ロールに最適なモデルを自動推奨できます:
+
+```markdown
+| 役割 | 担当 | LLM用途 |
+|:---|:---|:---|
+| PM | Claude Code | Cloud API |
+| Coder | Local LLM | coding |
+| Writer | Local LLM | japanese-text |
+```
+
+推奨ワークフロー:
+
+1. `recommend_model(category="coding")` で最適モデルを確認
+2. `pull_model(model="qwen2.5-coder:32b")` でモデルをダウンロード
+3. `preload_model(model="qwen2.5-coder:32b")` で VRAM にプリロード
+4. `offload_work(task="...", model="qwen2.5-coder:32b")` でタスク実行
 
 ## 設定
 
@@ -125,6 +181,10 @@ max_length: 2000                 (オプション: 100-10000)
 | `TIER_OVERRIDE` | (自動検出) | Tier を強制指定 (`1`, `2`, `3`) |
 | `MODEL_OVERRIDE` | (Tier に応じて自動) | 使用モデルを強制指定 |
 | `LOG_LEVEL` | `info` | ログレベル |
+| `MODEL_SELECTOR_ENABLED` | `true` | 動的モデルセレクター有効/無効 |
+| `MODEL_PREFER_QUALITY` | `false` | 品質優先 (`true`) / 速度優先 (`false`) |
+| `MAX_SIMULTANEOUS_MODELS` | `auto` | VRAM同時ロード上限 (`auto` または数値) |
+| `PRELOAD_KEEP_ALIVE` | `-1` | プリロード保持時間 (`-1`=永続) |
 
 ### 設定ファイル例
 
@@ -170,7 +230,7 @@ Ollama がホストマシンで動いている場合、`host.docker.internal` �
 ```bash
 npm ci
 npm run dev          # 開発モード (tsx watch)
-npm test             # テスト実行 (277 テスト)
+npm test             # テスト実行 (404+ テスト)
 npm run test:coverage # カバレッジ付き
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
@@ -187,7 +247,8 @@ src/
 ├── ollama/                # Ollama クライアント & モデルマネージャー
 ├── queue/                 # Promise-based FIFO キュー
 ├── cost/                  # コスト計算 & レポーター
-├── tools/                 # offload_work / compress_context ハンドラ
+├── tools/                 # offload_work / compress_context / recommend_model / preload_model / list_loaded_models / pull_model
+├── model-selector/        # 動的モデルセレクター (レジストリ, 推奨エンジン, VRAM計算, CLAUDE.mdパーサー)
 ├── validators/            # 入力バリデーション & PI 防御
 └── errors.ts              # CTS-XXXX エラー体系
 ```

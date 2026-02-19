@@ -2,7 +2,7 @@
 
 **現在のPhase:** 動的モデルセレクター Phase 1 (MVP)
 **作成日:** 2026-02-15
-**最終更新:** 2026-02-19 (Sprint 7-11 完了)
+**最終更新:** 2026-02-19 (Sprint 7-12 完了, v0.2.0 完成)
 **管理者:** PM / Claude Code (Leader)
 **設計書:** `docs/design/dynamic-model-selector-design.md`
 
@@ -29,7 +29,8 @@
 | Phase 1: モデル推奨基盤 (MVP) | ✅ | 2026-02-19 |
 | Phase 2: セッション固定 & プリロード | ✅ | 2026-02-19 |
 | Phase 3: 自動pull & CLAUDE.md連携 | ✅ | 2026-02-19 |
-| Phase 4: 高度な推奨 | 🔲 | - |
+| Phase 4: 品質保証 & ドキュメント | ✅ | 2026-02-19 |
+| Phase 5: 高度な推奨 (P2) | 🔲 | - |
 
 ---
 
@@ -39,8 +40,8 @@
 |:---|:---:|:---:|
 | ユニットテスト (tests/unit/) | 327 | ✅ 全パス |
 | セキュリティテスト (tests/security/) | 65 | ✅ 全パス |
-| 統合テスト (tests/integration/) | 12 | ✅ 全パス |
-| **合計** | **404** | **✅ 全パス** |
+| 統合テスト (tests/integration/) | 19 | ✅ 全パス |
+| **合計** | **411** | **✅ 全パス** |
 
 ### カバレッジ
 
@@ -57,7 +58,7 @@
 | ビルド (tsup) | ✅ 成功 |
 | lint (ESLint) | ✅ 0エラー, 0警告 |
 | 型チェック (tsc --noEmit) | ✅ 成功 |
-| テスト (404件) | ✅ 全パス |
+| テスト (411件) | ✅ 全パス |
 
 ---
 
@@ -330,38 +331,37 @@
 
 ---
 
-## Sprint 12: 品質保証 & ドキュメント — 🔲 未着手
+## Sprint 12: 品質保証 & ドキュメント — ✅ 完了
 
 > **目的:** 全機能の統合テスト、手動テスト手順の更新、READMEの更新
 
-- [ ] DMS-024: 全体統合テスト (`tests/integration/model-selector.test.ts`)
-  - Agent Team起動シーケンスの模擬テスト:
-    1. recommend_model → 2. pull_model → 3. preload_model → 4. offload_work(model=xxx)
-  - VRAM制約によるフォールバックシナリオ
-  - 既存277テストの回帰テスト確認
+- [x] DMS-024: 全体統合テスト (`tests/integration/model-selector.test.ts`)
+  - I-MS-01: recommend → pull → preload → offload_work(model=xxx) 完全パイプライン
+  - I-MS-02: list_loaded_models でプリロード確認
+  - I-MS-03: VRAM fallback（Tier 1 で coding→general リダイレクト）
+  - I-MS-04: offload_work + category による推奨エンジン連携
+  - I-MS-05: pull_model の already-installed 検出
+  - I-MS-06: CLAUDE.md パーサー → recommend_model パイプライン
+  - I-MS-07: v0.1.0 回帰テスト（model/category なしの既存動作）
+  - **合計7テスト**
   - **担当:** Tester
-  - **依存:** DMS-019, DMS-023
 
-- [ ] DMS-025: 手動テスト手順更新 (`docs/manual-test-ollama.md` 拡張)
-  - recommend_model 手動テスト手順
-  - preload_model / list_loaded_models 手動テスト手順
-  - pull_model 手動テスト手順
-  - offload_work + model指定の手動テスト手順
+- [x] DMS-025: 手動テスト手順更新 (`docs/manual-test-ollama.md` 拡張)
+  - §5.1〜5.6: recommend_model / pull_model / preload_model / list_loaded_models / offload_work+model / offload_work+category
+  - チェックリスト 8→14項目に拡充
   - **担当:** Coder 1 (PM)
-  - **依存:** DMS-024
 
-- [ ] DMS-026: README.md 更新
-  - 新ツール4種（recommend_model, preload_model, list_loaded_models, pull_model）の使い方
-  - 環境変数・設定ファイルの更新
-  - Agent Team連携のセットアップ例
+- [x] DMS-026: README.md 更新
+  - 新ツール4種の使い方ドキュメント
+  - モデルセレクター環境変数4種追加
+  - Agent Team連携ワークフロー例
+  - アーキテクチャ図に model-selector/ 追加
   - **担当:** Coder 1 (PM)
-  - **依存:** DMS-024
 
-- [ ] DMS-027: CLAUDE.md 更新（プロジェクト用）
-  - ロールテーブルに `LLM用途` 列を追加
-  - 設計書一覧にdynamic-model-selector-design.mdを追加
+- [x] DMS-027: CLAUDE.md 更新
+  - ロールテーブルに `LLM用途` 列を追加（Cloud API / coding）
+  - 設計書一覧に `dynamic-model-selector-design.md` (#12) 追加
   - **担当:** Coder 1 (PM)
-  - **依存:** なし
 
 ---
 
