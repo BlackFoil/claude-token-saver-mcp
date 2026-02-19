@@ -104,6 +104,42 @@ function applyEnvOverrides(config: Record<string, unknown>): Record<string, unkn
     result['logLevel'] = process.env['LOG_LEVEL'];
   }
 
+  // Model Selector env overrides (DMS-012)
+  const msEnabled = process.env['MODEL_SELECTOR_ENABLED'];
+  if (msEnabled !== undefined) {
+    const ms = (result['modelSelector'] as Record<string, unknown>) ?? {};
+    ms['enabled'] = msEnabled === 'true';
+    result['modelSelector'] = ms;
+  }
+
+  const msPreferQuality = process.env['MODEL_PREFER_QUALITY'];
+  if (msPreferQuality !== undefined) {
+    const ms = (result['modelSelector'] as Record<string, unknown>) ?? {};
+    ms['preferQuality'] = msPreferQuality === 'true';
+    result['modelSelector'] = ms;
+  }
+
+  const msKeepAlive = process.env['PRELOAD_KEEP_ALIVE'];
+  if (msKeepAlive) {
+    const ms = (result['modelSelector'] as Record<string, unknown>) ?? {};
+    ms['preloadKeepAlive'] = msKeepAlive;
+    result['modelSelector'] = ms;
+  }
+
+  const msMaxModels = process.env['MAX_SIMULTANEOUS_MODELS'];
+  if (msMaxModels) {
+    const ms = (result['modelSelector'] as Record<string, unknown>) ?? {};
+    if (msMaxModels === 'auto') {
+      ms['maxSimultaneousModels'] = 'auto';
+    } else {
+      const val = parseInt(msMaxModels, 10);
+      if (!Number.isNaN(val)) {
+        ms['maxSimultaneousModels'] = val;
+      }
+    }
+    result['modelSelector'] = ms;
+  }
+
   return result;
 }
 

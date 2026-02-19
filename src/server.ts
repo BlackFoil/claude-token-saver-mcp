@@ -19,6 +19,8 @@ import { CostCalculator } from './cost/calculator.js';
 import { loadPricing, DEFAULT_COMPARISON_MODEL } from './cost/pricing.js';
 import { handleOffloadWork, type ToolHandlerContext, type OllamaTaskPayload } from './tools/offload-work.js';
 import { handleCompressContext } from './tools/compress-context.js';
+import { handleRecommendModel, type RecommendModelContext } from './tools/recommend-model.js';
+import { TASK_CATEGORIES } from './model-selector/types.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
 
@@ -136,9 +138,26 @@ async function main(): Promise<void> {
     maxRequestSizeBytes: config.queue.maxRequestSizeBytes,
   };
 
+  // recommend_model context
+  const recommendModelContext: RecommendModelContext = {
+    ollamaClient,
+    tierConfig,
+    config,
+    logger,
+    ollamaHealthy,
+  };
+
   // Tool definitions
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const tools: Array<{
+      name: string;
+      description: string;
+      inputSchema: {
+        type: 'object';
+        properties: Record<string, unknown>;
+        required: string[];
+      };
+    }> = [
       {
         name: 'offload_work',
         description:
@@ -197,8 +216,35 @@ async function main(): Promise<void> {
           required: ['content'],
         },
       },
-    ],
-  }));
+    ];
+
+    // DMS-011: Conditionally expose recommend_model
+    if (config.modelSelector.enabled) {
+      tools.push({
+        name: 'recommend_model',
+        description:
+          'Recommend the best local LLM model for a given task category based on system specs and installed models. ' +
+          'Returns prioritized list with installation status and license info.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            category: {
+              type: 'string',
+              enum: [...TASK_CATEGORIES],
+              description: 'Task category: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general',
+            },
+            prefer_quality: {
+              type: 'boolean' as const,
+              description: 'Prefer quality (true) or speed (false). Default: false',
+            },
+          },
+          required: ['category'],
+        },
+      });
+    }
+
+    return { tools };
+  });
 
   // Tool call handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -209,6 +255,8 @@ async function main(): Promise<void> {
         return handleOffloadWork(args, toolContext);
       case 'compress_context':
         return handleCompressContext(args, toolContext);
+      case 'recommend_model':
+        return handleRecommendModel(args ?? {}, recommendModelContext);
       default:
         return {
           content: [

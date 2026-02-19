@@ -56,4 +56,66 @@ describe('appConfigSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  // DMS-012: modelSelector schema tests
+  it('MS-01: modelSelector defaults are correct', () => {
+    const result = appConfigSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modelSelector.enabled).toBe(true);
+      expect(result.data.modelSelector.preferQuality).toBe(false);
+      expect(result.data.modelSelector.preloadKeepAlive).toBe('-1');
+      expect(result.data.modelSelector.maxSimultaneousModels).toBe('auto');
+      expect(result.data.modelSelector.blockedModels).toEqual(['codestral']);
+      expect(result.data.modelSelector.licenseFilter).toEqual(['Apache-2.0', 'MIT', 'NVIDIA-Open']);
+      expect(result.data.modelSelector.customRecommendations).toEqual({});
+    }
+  });
+
+  it('MS-02: accepts valid modelSelector config', () => {
+    const result = appConfigSchema.safeParse({
+      modelSelector: {
+        enabled: false,
+        preferQuality: true,
+        preloadKeepAlive: '30m',
+        maxSimultaneousModels: 3,
+        blockedModels: ['codestral', 'some-model'],
+        licenseFilter: ['Apache-2.0'],
+        customRecommendations: {
+          coding: { '2': ['my-coder:7b'] },
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modelSelector.enabled).toBe(false);
+      expect(result.data.modelSelector.preferQuality).toBe(true);
+      expect(result.data.modelSelector.preloadKeepAlive).toBe('30m');
+      expect(result.data.modelSelector.maxSimultaneousModels).toBe(3);
+    }
+  });
+
+  it('MS-03: accepts "auto" for maxSimultaneousModels', () => {
+    const result = appConfigSchema.safeParse({
+      modelSelector: { maxSimultaneousModels: 'auto' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.modelSelector.maxSimultaneousModels).toBe('auto');
+    }
+  });
+
+  it('MS-04: rejects invalid maxSimultaneousModels', () => {
+    const result = appConfigSchema.safeParse({
+      modelSelector: { maxSimultaneousModels: 0 },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('MS-05: rejects maxSimultaneousModels > 10', () => {
+    const result = appConfigSchema.safeParse({
+      modelSelector: { maxSimultaneousModels: 11 },
+    });
+    expect(result.success).toBe(false);
+  });
 });

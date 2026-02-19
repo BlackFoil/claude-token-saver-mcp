@@ -298,7 +298,12 @@ describe('OllamaClient.pullModel', () => {
     );
 
     const client = makeClient();
-    await expect(client.pullModel('phi4:latest')).resolves.toBeUndefined();
+    const result = await client.pullModel('phi4:latest');
+    expect(result).toMatchObject({
+      modelName: 'phi4:latest',
+      alreadyUpToDate: false,
+    });
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     stderrSpy.mockRestore();
     fetchSpy.mockRestore();
@@ -437,7 +442,11 @@ describe('OllamaClient.pullModel', () => {
     );
 
     const client = makeClient();
-    await expect(client.pullModel('phi4:latest')).resolves.toBeUndefined();
+    const result = await client.pullModel('phi4:latest');
+    expect(result).toMatchObject({
+      modelName: 'phi4:latest',
+      alreadyUpToDate: false,
+    });
 
     stderrSpy.mockRestore();
     fetchSpy.mockRestore();
@@ -571,6 +580,304 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
     const client = makeClient();
     await expect(client.listModels()).rejects.toThrow(OllamaNotRunningError);
 
+    fetchSpy.mockRestore();
+  });
+});
+
+// ── DMS-005: Tests for Ollama API Extensions ──────────────────
+
+describe('OllamaClient.listModelsFull (DMS-002)', () => {
+  it('returns full tags response with model details', async () => {
+    const tagsResponse = {
+      models: [
+        {
+          name: 'qwen2.5-coder:7b',
+          model: 'qwen2.5-coder:7b',
+          size: 4_700_000_000,
+          digest: 'abc123',
+          modified_at: '2026-01-01T00:00:00Z',
+          details: {
+            parent_model: '',
+            format: 'gguf',
+            family: 'qwen2',
+            families: ['qwen2'],
+            parameter_size: '7.6B',
+            quantization_level: 'Q4_K_M',
+          },
+        },
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 8_500_000_000,
+          digest: 'def456',
+          modified_at: '2026-01-02T00:00:00Z',
+          details: {
+            format: 'gguf',
+            family: 'phi4',
+            parameter_size: '14B',
+            quantization_level: 'Q4_0',
+          },
+        },
+      ],
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(tagsResponse), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listModelsFull();
+
+    expect(result.models).toHaveLength(2);
+    expect(result.models[0]!.name).toBe('qwen2.5-coder:7b');
+    expect(result.models[0]!.details?.quantization_level).toBe('Q4_K_M');
+    expect(result.models[0]!.details?.parameter_size).toBe('7.6B');
+    expect(result.models[0]!.details?.family).toBe('qwen2');
+    expect(result.models[1]!.name).toBe('phi4:latest');
+    expect(result.models[1]!.details?.parameter_size).toBe('14B');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('returns empty models array when no models installed', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ models: [] }), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listModelsFull();
+
+    expect(result.models).toHaveLength(0);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('handles missing models field gracefully', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listModelsFull();
+
+    expect(result.models).toHaveLength(0);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('throws OllamaNotRunningError on connection failure', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
+      new Error('ECONNREFUSED'),
+    );
+
+    const client = makeClient();
+    await expect(client.listModelsFull()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('throws OllamaNotRunningError on non-ok response', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response('', { status: 503 }),
+    );
+
+    const client = makeClient();
+    await expect(client.listModelsFull()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('listModels() delegates to listModelsFull and returns models array', async () => {
+    const tagsResponse = {
+      models: [
+        { name: 'test:latest', size: 1000, digest: 'a', modified_at: '2026-01-01T00:00:00Z' },
+      ],
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(tagsResponse), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const models = await client.listModels();
+
+    expect(Array.isArray(models)).toBe(true);
+    expect(models).toHaveLength(1);
+    expect(models[0]!.name).toBe('test:latest');
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.listRunning (DMS-003)', () => {
+  it('returns running models with VRAM usage', async () => {
+    const psResponse = {
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc123',
+          details: {
+            format: 'gguf',
+            family: 'qwen2',
+            parameter_size: '32B',
+            quantization_level: 'Q4_K_M',
+          },
+          expires_at: '2026-12-31T23:59:59Z',
+          size_vram: 18_500_000_000,
+        },
+        {
+          name: 'qwen3:14b',
+          model: 'qwen3:14b',
+          size: 8_200_000_000,
+          digest: 'def456',
+          details: {
+            format: 'gguf',
+            family: 'qwen3',
+            parameter_size: '14B',
+          },
+          expires_at: '2026-12-31T23:59:59Z',
+          size_vram: 8_200_000_000,
+        },
+      ],
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(psResponse), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listRunning();
+
+    expect(result.models).toHaveLength(2);
+    expect(result.models[0]!.name).toBe('qwen2.5-coder:32b');
+    expect(result.models[0]!.size_vram).toBe(18_500_000_000);
+    expect(result.models[0]!.expires_at).toBe('2026-12-31T23:59:59Z');
+    expect(result.models[1]!.name).toBe('qwen3:14b');
+    expect(result.models[1]!.size_vram).toBe(8_200_000_000);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('returns empty array when no models are loaded', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ models: [] }), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listRunning();
+
+    expect(result.models).toHaveLength(0);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('handles missing models field gracefully', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({}), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.listRunning();
+
+    expect(result.models).toHaveLength(0);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('throws OllamaNotRunningError on connection failure', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
+      new Error('ECONNREFUSED'),
+    );
+
+    const client = makeClient();
+    await expect(client.listRunning()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('throws OllamaNotRunningError on non-ok response', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response('', { status: 500 }),
+    );
+
+    const client = makeClient();
+    await expect(client.listRunning()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.pullModel response (DMS-004)', () => {
+  it('returns size and duration on successful pull', async () => {
+    const lines = [
+      JSON.stringify({ status: 'pulling manifest' }),
+      JSON.stringify({ status: 'downloading', completed: 50, total: 5_000_000_000 }),
+      JSON.stringify({ status: 'downloading', completed: 5_000_000_000, total: 5_000_000_000 }),
+      JSON.stringify({ status: 'success' }),
+    ];
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(ndjsonStream(lines), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.pullModel('qwen2.5-coder:32b');
+
+    expect(result.modelName).toBe('qwen2.5-coder:32b');
+    expect(result.sizeBytes).toBe(5_000_000_000);
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    expect(result.alreadyUpToDate).toBe(false);
+
+    stderrSpy.mockRestore();
+    fetchSpy.mockRestore();
+  });
+
+  it('detects already-up-to-date models', async () => {
+    const lines = [
+      JSON.stringify({ status: 'pulling manifest' }),
+      JSON.stringify({ status: 'pulling abc123... already exists' }),
+      JSON.stringify({ status: 'pulling def456... already exists' }),
+      JSON.stringify({ status: 'success' }),
+    ];
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(ndjsonStream(lines), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.pullModel('qwen2.5-coder:7b');
+
+    expect(result.modelName).toBe('qwen2.5-coder:7b');
+    expect(result.alreadyUpToDate).toBe(true);
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
+
+    stderrSpy.mockRestore();
+    fetchSpy.mockRestore();
+  });
+
+  it('tracks the largest total bytes across chunks', async () => {
+    const lines = [
+      JSON.stringify({ status: 'downloading', completed: 100, total: 1_000_000 }),
+      JSON.stringify({ status: 'downloading', completed: 500, total: 8_000_000_000 }),
+      JSON.stringify({ status: 'downloading', completed: 100, total: 500_000 }),
+      JSON.stringify({ status: 'success' }),
+    ];
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(ndjsonStream(lines), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.pullModel('large-model:32b');
+
+    expect(result.sizeBytes).toBe(8_000_000_000);
+
+    stderrSpy.mockRestore();
     fetchSpy.mockRestore();
   });
 });

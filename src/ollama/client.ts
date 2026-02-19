@@ -56,11 +56,47 @@ export interface OllamaChatResponse {
   model: string;
 }
 
+export interface OllamaModelDetails {
+  parent_model?: string;
+  format?: string;
+  family?: string;
+  families?: string[];
+  parameter_size?: string;
+  quantization_level?: string;
+}
+
 export interface OllamaModelInfo {
   name: string;
+  model?: string;
   size: number;
   digest: string;
   modified_at: string;
+  details?: OllamaModelDetails;
+}
+
+export interface OllamaTagsResponse {
+  models: OllamaModelInfo[];
+}
+
+export interface OllamaRunningModel {
+  name: string;
+  model?: string;
+  size: number;
+  digest: string;
+  details?: OllamaModelDetails;
+  expires_at: string;
+  size_vram: number;
+}
+
+export interface OllamaPsResponse {
+  models: OllamaRunningModel[];
+}
+
+export interface OllamaPullResponse {
+  modelName: string;
+  sizeBytes: number;
+  durationMs: number;
+  alreadyUpToDate: boolean;
 }
 
 interface OllamaChatStreamChunk {
@@ -355,8 +391,18 @@ export class OllamaClient {
 
   /**
    * List locally installed models via GET /api/tags.
+   * Returns model name, size, digest, and details (quantization, parameter_size, family).
    */
   async listModels(): Promise<OllamaModelInfo[]> {
+    const tagsResponse = await this.listModelsFull();
+    return tagsResponse.models;
+  }
+
+  /**
+   * List locally installed models via GET /api/tags (full response).
+   * DMS-002: Returns the complete Ollama tags response including model details.
+   */
+  async listModelsFull(): Promise<OllamaTagsResponse> {
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}/api/tags`);
@@ -372,17 +418,43 @@ export class OllamaClient {
       );
     }
 
-    const data = (await response.json()) as { models: OllamaModelInfo[] };
-    return data.models ?? [];
+    const data = (await response.json()) as OllamaTagsResponse;
+    return { models: data.models ?? [] };
+  }
+
+  /**
+   * List currently loaded (running) models via GET /api/ps.
+   * DMS-003: Returns VRAM usage, keep_alive expiry, and model details.
+   */
+  async listRunning(): Promise<OllamaPsResponse> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/api/ps`);
+    } catch (err: unknown) {
+      throw new OllamaNotRunningError(
+        `Cannot connect to Ollama at ${this.baseUrl}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new OllamaNotRunningError(
+        `Ollama ps endpoint returned HTTP ${response.status}`,
+      );
+    }
+
+    const data = (await response.json()) as OllamaPsResponse;
+    return { models: data.models ?? [] };
   }
 
   /**
    * Pull (download) a model via POST /api/pull with streaming progress.
+   * DMS-004: Returns pull result including size and duration.
    * Logs progress to stderr.
    */
-  async pullModel(name: string): Promise<void> {
+  async pullModel(name: string): Promise<OllamaPullResponse> {
     const abortController = new AbortController();
     let lastProgressTime = Date.now();
+    const startTime = Date.now();
 
     const pullTimer = setTimeout(() => {
       abortController.abort();
@@ -395,6 +467,9 @@ export class OllamaClient {
         abortController.abort();
       }
     }, 10_000);
+
+    let totalBytes = 0;
+    let alreadyUpToDate = false;
 
     try {
       let response: Response;
@@ -455,9 +530,28 @@ export class OllamaClient {
             throw new ModelNotFoundError(`Pull error for "${name}": ${chunk.error}`);
           }
 
+          // Track total bytes from the largest layer
+          if (chunk.total && chunk.total > totalBytes) {
+            totalBytes = chunk.total;
+          }
+
+          // Detect "already up to date"
+          if (chunk.status === 'pulling manifest' || chunk.status?.includes('already exists')) {
+            // If we see "already exists" for all layers, it's already up to date
+            if (chunk.status.includes('already exists')) {
+              alreadyUpToDate = true;
+            }
+          }
+
           if (chunk.status === 'success') {
+            const durationMs = Date.now() - startTime;
             process.stderr.write(`[INFO] Model "${name}" pulled successfully.\n`);
-            return;
+            return {
+              modelName: name,
+              sizeBytes: totalBytes,
+              durationMs,
+              alreadyUpToDate,
+            };
           }
 
           // Log progress

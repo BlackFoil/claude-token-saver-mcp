@@ -21,6 +21,10 @@ describe('loadConfig', () => {
     delete process.env['CLOUD_INPUT_PRICE_PER_MTOKEN'];
     delete process.env['CLOUD_OUTPUT_PRICE_PER_MTOKEN'];
     delete process.env['LOG_LEVEL'];
+    delete process.env['MODEL_SELECTOR_ENABLED'];
+    delete process.env['MODEL_PREFER_QUALITY'];
+    delete process.env['PRELOAD_KEEP_ALIVE'];
+    delete process.env['MAX_SIMULTANEOUS_MODELS'];
   });
 
   afterEach(() => {
@@ -129,6 +133,43 @@ describe('loadConfig', () => {
     process.env['LOG_LEVEL'] = 'debug';
     const config = loadConfig('/nonexistent/path/config.json');
     expect(config.logLevel).toBe('debug');
+  });
+
+  // DMS-012: Model Selector environment variable overrides
+  it('applies MODEL_SELECTOR_ENABLED=false env', () => {
+    process.env['MODEL_SELECTOR_ENABLED'] = 'false';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.enabled).toBe(false);
+  });
+
+  it('applies MODEL_SELECTOR_ENABLED=true env', () => {
+    process.env['MODEL_SELECTOR_ENABLED'] = 'true';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.enabled).toBe(true);
+  });
+
+  it('applies MODEL_PREFER_QUALITY=true env', () => {
+    process.env['MODEL_PREFER_QUALITY'] = 'true';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.preferQuality).toBe(true);
+  });
+
+  it('applies PRELOAD_KEEP_ALIVE env', () => {
+    process.env['PRELOAD_KEEP_ALIVE'] = '30m';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.preloadKeepAlive).toBe('30m');
+  });
+
+  it('applies MAX_SIMULTANEOUS_MODELS=auto env', () => {
+    process.env['MAX_SIMULTANEOUS_MODELS'] = 'auto';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.maxSimultaneousModels).toBe('auto');
+  });
+
+  it('applies MAX_SIMULTANEOUS_MODELS numeric env', () => {
+    process.env['MAX_SIMULTANEOUS_MODELS'] = '3';
+    const config = loadConfig('/nonexistent/path/config.json');
+    expect(config.modelSelector.maxSimultaneousModels).toBe(3);
   });
 
   it('rejects invalid config via Zod schema', () => {

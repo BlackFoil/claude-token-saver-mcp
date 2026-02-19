@@ -52,6 +52,19 @@ const logLevelSchema = z
   .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
   .default('info');
 
+const modelSelectorSchema = z.object({
+  enabled: z.boolean().default(true),
+  preferQuality: z.boolean().default(false),
+  preloadKeepAlive: z.string().default('-1'),
+  maxSimultaneousModels: z.union([z.literal('auto'), z.number().int().min(1).max(10)]).default('auto'),
+  customRecommendations: z.record(
+    z.string(),
+    z.record(z.string(), z.array(z.string())),
+  ).default({}),
+  blockedModels: z.array(z.string()).default(['codestral']),
+  licenseFilter: z.array(z.string()).default(['Apache-2.0', 'MIT', 'NVIDIA-Open']),
+});
+
 export const appConfigSchema = z.object({
   ollama: ollamaConfigSchema.default({}),
   tier: tierOverrideSchema,
@@ -60,6 +73,7 @@ export const appConfigSchema = z.object({
   cost: costConfigSchema.default({}),
   security: securityConfigSchema.default({}),
   logLevel: logLevelSchema,
+  modelSelector: modelSelectorSchema.default({}),
 });
 
 export type AppConfigInput = z.input<typeof appConfigSchema>;
