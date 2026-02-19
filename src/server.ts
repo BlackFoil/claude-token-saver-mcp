@@ -22,6 +22,7 @@ import { handleCompressContext } from './tools/compress-context.js';
 import { handleRecommendModel, type RecommendModelContext } from './tools/recommend-model.js';
 import { handlePreloadModel, type PreloadModelContext } from './tools/preload-model.js';
 import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/list-loaded-models.js';
+import { handlePullModel, type PullModelContext } from './tools/pull-model.js';
 import { TASK_CATEGORIES } from './model-selector/types.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
@@ -162,6 +163,13 @@ async function main(): Promise<void> {
     ollamaClient,
     tierConfig,
     config,
+    logger,
+    ollamaHealthy,
+  };
+
+  // DMS-021: pull_model context
+  const pullModelContext: PullModelContext = {
+    ollamaClient,
     logger,
     ollamaHealthy,
   };
@@ -308,6 +316,24 @@ async function main(): Promise<void> {
           required: [],
         },
       });
+
+      // DMS-021: pull_model
+      tools.push({
+        name: 'pull_model',
+        description:
+          'Download a model from the Ollama registry to local storage. ' +
+          'Use this to install recommended models before preloading them into VRAM.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            model: {
+              type: 'string',
+              description: 'Model name to pull (e.g. "qwen3:14b", "devstral:24b")',
+            },
+          },
+          required: ['model'],
+        },
+      });
     }
 
     return { tools };
@@ -328,6 +354,8 @@ async function main(): Promise<void> {
         return handlePreloadModel(args ?? {}, preloadModelContext);
       case 'list_loaded_models':
         return handleListLoadedModels(args ?? {}, listLoadedModelsContext);
+      case 'pull_model':
+        return handlePullModel(args ?? {}, pullModelContext);
       default:
         return {
           content: [

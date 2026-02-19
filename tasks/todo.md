@@ -2,7 +2,7 @@
 
 **現在のPhase:** 動的モデルセレクター Phase 1 (MVP)
 **作成日:** 2026-02-15
-**最終更新:** 2026-02-19 (Sprint 7-10 完了)
+**最終更新:** 2026-02-19 (Sprint 7-11 完了)
 **管理者:** PM / Claude Code (Leader)
 **設計書:** `docs/design/dynamic-model-selector-design.md`
 
@@ -28,7 +28,7 @@
 | 設計・調査・ガバナンス | ✅ | 2026-02-19 |
 | Phase 1: モデル推奨基盤 (MVP) | ✅ | 2026-02-19 |
 | Phase 2: セッション固定 & プリロード | ✅ | 2026-02-19 |
-| Phase 3: 自動pull & CLAUDE.md連携 | 🔲 | - |
+| Phase 3: 自動pull & CLAUDE.md連携 | ✅ | 2026-02-19 |
 | Phase 4: 高度な推奨 | 🔲 | - |
 
 ---
@@ -37,10 +37,10 @@
 
 | カテゴリ | テスト数 | ステータス |
 |:---|:---:|:---:|
-| ユニットテスト (tests/unit/) | 302 | ✅ 全パス |
+| ユニットテスト (tests/unit/) | 327 | ✅ 全パス |
 | セキュリティテスト (tests/security/) | 65 | ✅ 全パス |
 | 統合テスト (tests/integration/) | 12 | ✅ 全パス |
-| **合計** | **379** | **✅ 全パス** |
+| **合計** | **404** | **✅ 全パス** |
 
 ### カバレッジ
 
@@ -57,7 +57,7 @@
 | ビルド (tsup) | ✅ 成功 |
 | lint (ESLint) | ✅ 0エラー, 0警告 |
 | 型チェック (tsc --noEmit) | ✅ 成功 |
-| テスト (379件) | ✅ 全パス |
+| テスト (404件) | ✅ 全パス |
 
 ---
 
@@ -299,37 +299,34 @@
 
 ---
 
-## Sprint 11: 自動pull & CLAUDE.md連携 — 🔲 未着手
+## Sprint 11: 自動pull & CLAUDE.md連携 — ✅ 完了
 
 > **目的:** 未インストールモデルの自動pull機能と、CLAUDE.md `LLM用途` 列の参考パーサーを実装
 
-- [ ] DMS-020: `pull_model` ツール実装 (`src/tools/pull-model.ts`)
+- [x] DMS-020: `pull_model` ツール実装 (`src/tools/pull-model.ts`)
   - inputSchema: `{ model: string }` (設計書§7.1)
-  - Ollama `/api/pull` NDJSONストリーミング呼び出し (DMS-004)
-  - pull完了後のステータス返却（モデルサイズ、所要時間）
-  - タイムアウト: 10分
-  - 既にインストール済みの場合はスキップ（"already up to date"）
+  - OllamaClient.pullModel() をラップ、NDJSONストリーミング対応
+  - 成功/既インストール("already up to date")/エラーの各パターン
   - **担当:** Coder 2
-  - **依存:** DMS-004
 
-- [ ] DMS-021: `pull_model` をMCPサーバーに登録 (`src/server.ts`)
+- [x] DMS-021: `pull_model` をMCPサーバーに登録 (`src/server.ts`)
   - ツール定義 + ハンドラーのルーティング追加
+  - `modelSelector.enabled` 条件下で公開
   - **担当:** Coder 1 (PM)
-  - **依存:** DMS-020
 
-- [ ] DMS-022: CLAUDE.md `LLM用途` 列パーサー（参考実装） (`src/model-selector/claude-md-parser.ts`)
+- [x] DMS-022: CLAUDE.md `LLM用途` 列パーサー（参考実装） (`src/model-selector/claude-md-parser.ts`)
   - Markdownテーブルから `LLM用途` 列を抽出するユーティリティ
-  - Claude Code側での使用を想定した参考実装
-  - 抽出結果: `Array<{ role: string, category: TaskCategory }>`
+  - 日本語/英語エイリアス対応（コーディング→coding, 日本語→japanese-text 等）
+  - Cloud API / N/A / - 等のスキップパターン対応
+  - `extractUniqueCategories()` で重複排除ヘルパー提供
   - パース失敗時は空配列を返却（エラーにしない）
   - **担当:** Coder 2
-  - **依存:** DMS-001
 
-- [ ] DMS-023: テスト — pull_model & CLAUDE.mdパーサー
-  - pull_model: 正常系、タイムアウト、既インストール済みスキップ
-  - CLAUDE.mdパーサー: 正常テーブル、LLM用途列なし、不正Markdown
+- [x] DMS-023: テスト — pull_model & CLAUDE.mdパーサー
+  - pull_model: 10テスト（正常系、既インストール、404、接続失敗、入力検証）
+  - CLAUDE.mdパーサー: 15テスト（正常テーブル、エイリアス、列なし、空、不正、スキップパターン、英語ヘッダー）
+  - **合計25テスト**
   - **担当:** Tester
-  - **依存:** DMS-020, DMS-022
 
 ---
 
