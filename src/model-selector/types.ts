@@ -50,6 +50,20 @@ export const LICENSE_TYPES: readonly LicenseType[] = [
   'Other',
 ] as const;
 
+// ── Quantization Variants (DMS-031) ──────────────────────────
+
+/** A quantization variant for a model. */
+export interface QuantizationVariant {
+  /** Quantization format (e.g. 'Q4_K_M', 'Q5_K_M', 'Q8_0') */
+  quantization: string;
+  /** VRAM required in GB */
+  vramRequired: number;
+  /** Quality ranking (1 = highest quality) */
+  qualityRank: number;
+  /** Speed ranking (1 = fastest) */
+  speedRank: number;
+}
+
 // ── Model Recommendation ──────────────────────────────────────
 
 /** Benchmark scores for a model (all optional). */
@@ -93,6 +107,8 @@ export interface ModelRecommendation {
   ollamaAvailable: boolean;
   /** Priority within the same category+tier (1 = highest) */
   priority: number;
+  /** Available quantization variants for this model */
+  variants?: QuantizationVariant[];
 }
 
 /**
@@ -106,4 +122,40 @@ export interface RecommendationResult {
   installed: boolean;
   /** Whether the model is currently loaded in VRAM */
   loaded: boolean;
+  /** Recommended quantization variant based on VRAM availability */
+  recommendedQuantization?: string;
+}
+
+// ── Execution Tracking (DMS-029) ─────────────────────────────
+
+/** A single execution record for model performance tracking. */
+export interface ExecutionRecord {
+  /** Unix timestamp in milliseconds */
+  timestamp: number;
+  /** Task category the execution was for */
+  taskCategory: TaskCategory;
+  /** Ollama model ID used */
+  modelId: string;
+  /** Execution time in milliseconds */
+  executionTimeMs: number;
+  /** Number of input tokens */
+  inputTokens: number;
+  /** Number of output tokens */
+  outputTokens: number;
+  /** Whether the execution completed successfully */
+  success: boolean;
+}
+
+/** Aggregated performance metrics for a model within a category. */
+export interface ModelPerformanceMetrics {
+  /** Ollama model ID */
+  modelId: string;
+  /** Task category */
+  category: TaskCategory;
+  /** Average execution time in milliseconds */
+  avgExecutionTimeMs: number;
+  /** Success rate from 0 to 1 */
+  successRate: number;
+  /** Total number of executions */
+  usageCount: number;
 }

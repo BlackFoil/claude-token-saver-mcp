@@ -18,7 +18,7 @@
 
 import type { TaskCategory, RecommendationResult, ModelRecommendation } from './types.js';
 import type { TierLevel } from '../tiering/config.js';
-import { getRecommendations } from './registry.js';
+import { getRecommendations, getFullRegistry } from './registry.js';
 import { calculateVramCapacity } from './vram-calculator.js';
 
 const MAX_RESULTS = 4;
@@ -40,6 +40,8 @@ export interface RecommendInput {
   licenseFilter?: string[];
   /** Override for max simultaneous models */
   maxSimultaneousModels?: number | 'auto';
+  /** Custom recommendation overrides: { [category]: { [tierLevel]: modelId[] } } */
+  customRecommendations?: Record<string, Record<string, string[]>>;
 }
 
 export interface RecommendOutput {
@@ -66,6 +68,7 @@ export function recommendModels(input: RecommendInput): RecommendOutput {
     blockedModels = [],
     licenseFilter,
     maxSimultaneousModels: maxModelsOverride,
+    customRecommendations,
   } = input;
 
   const vramCapacity = calculateVramCapacity(totalRamGB, maxModelsOverride);
@@ -82,16 +85,52 @@ export function recommendModels(input: RecommendInput): RecommendOutput {
     vramFallback = true;
   }
 
-  // 1. Lookup recommendations for (category, tier)
-  let candidates = getRecommendations(effectiveCategory, tier);
+  // 0. Check custom recommendations BEFORE registry lookup
+  const customModelIds = customRecommendations?.[effectiveCategory]?.[String(tier)];
+  let customCandidates: ModelRecommendation[] = [];
 
-  // If no candidates found for this tier, try lower tiers
-  if (candidates.length === 0 && tier > 1) {
+  if (customModelIds && customModelIds.length > 0) {
+    const registry = getFullRegistry();
+    const registryMap = new Map<string, ModelRecommendation>();
+    for (const rec of registry) {
+      registryMap.set(rec.modelId, rec);
+    }
+
+    customCandidates = customModelIds.map((modelId, index) => {
+      const existing = registryMap.get(modelId);
+      if (existing) {
+        return { ...existing, category: effectiveCategory, tier, priority: 100 + index };
+      }
+      return {
+        modelId,
+        displayName: modelId,
+        category: effectiveCategory,
+        tier,
+        minRamGB: 0,
+        parameterSize: 'unknown',
+        quantization: 'default',
+        vramRequired: 0,
+        license: 'Other' as const,
+        benchmarks: {},
+        ollamaAvailable: true,
+        priority: 100 + index,
+      };
+    });
+  }
+
+  // 1. Lookup recommendations for (category, tier)
+  let registryCandidates = getRecommendations(effectiveCategory, tier);
+
+  // If no registry candidates found for this tier, try lower tiers
+  if (registryCandidates.length === 0 && tier > 1) {
     for (let t = (tier - 1) as TierLevel; t >= 1; t = (t - 1) as TierLevel) {
-      candidates = getRecommendations(effectiveCategory, t);
-      if (candidates.length > 0) break;
+      registryCandidates = getRecommendations(effectiveCategory, t);
+      if (registryCandidates.length > 0) break;
     }
   }
+
+  // Combine: custom models first, then registry models
+  let candidates = [...customCandidates, ...registryCandidates];
 
   // 2. Apply blocked model filter
   const blockedSet = new Set(blockedModels.map((m) => m.toLowerCase()));

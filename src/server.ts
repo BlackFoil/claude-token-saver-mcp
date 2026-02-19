@@ -23,11 +23,12 @@ import { handleRecommendModel, type RecommendModelContext } from './tools/recomm
 import { handlePreloadModel, type PreloadModelContext } from './tools/preload-model.js';
 import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/list-loaded-models.js';
 import { handlePullModel, type PullModelContext } from './tools/pull-model.js';
+import { handleConfigureModelSelector, type ConfigureModelSelectorContext } from './tools/configure-model-selector.js';
 import { TASK_CATEGORIES } from './model-selector/types.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
 
-const PACKAGE_VERSION = '0.1.0';
+const PACKAGE_VERSION = '0.2.0';
 
 async function main(): Promise<void> {
   // 1. Load config
@@ -172,6 +173,12 @@ async function main(): Promise<void> {
     ollamaClient,
     logger,
     ollamaHealthy,
+  };
+
+  // DMS-032: configure_model_selector context
+  const configureModelSelectorContext: ConfigureModelSelectorContext = {
+    config,
+    logger,
   };
 
   // Tool definitions
@@ -334,6 +341,39 @@ async function main(): Promise<void> {
           required: ['model'],
         },
       });
+
+      // DMS-032: configure_model_selector
+      tools.push({
+        name: 'configure_model_selector',
+        description:
+          'View or modify model selector settings at runtime. ' +
+          'Manage blocked models, license filters, and custom model recommendations.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            setting: {
+              type: 'string',
+              enum: ['blocked_models', 'license_filter', 'custom_recommendations'],
+              description: 'Which setting to manage',
+            },
+            action: {
+              type: 'string',
+              enum: ['get', 'set', 'add', 'remove'],
+              description: 'Action to perform. "add"/"remove" for blocked_models/license_filter only.',
+            },
+            values: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Values for set/add/remove (for blocked_models and license_filter)',
+            },
+            custom_config: {
+              type: 'object',
+              description: 'Custom recommendations config for "set" action on custom_recommendations. Format: { category: { tier: [modelId, ...] } }',
+            },
+          },
+          required: ['setting', 'action'],
+        },
+      });
     }
 
     return { tools };
@@ -356,6 +396,8 @@ async function main(): Promise<void> {
         return handleListLoadedModels(args ?? {}, listLoadedModelsContext);
       case 'pull_model':
         return handlePullModel(args ?? {}, pullModelContext);
+      case 'configure_model_selector':
+        return handleConfigureModelSelector(args ?? {}, configureModelSelectorContext);
       default:
         return {
           content: [

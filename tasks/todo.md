@@ -2,7 +2,7 @@
 
 **現在のPhase:** 動的モデルセレクター Phase 1 (MVP)
 **作成日:** 2026-02-15
-**最終更新:** 2026-02-19 (Sprint 7-12 完了, v0.2.0 完成)
+**最終更新:** 2026-02-19 (Sprint 7-13 完了, v0.2.0 + 高度な推奨機能)
 **管理者:** PM / Claude Code (Leader)
 **設計書:** `docs/design/dynamic-model-selector-design.md`
 
@@ -30,7 +30,7 @@
 | Phase 2: セッション固定 & プリロード | ✅ | 2026-02-19 |
 | Phase 3: 自動pull & CLAUDE.md連携 | ✅ | 2026-02-19 |
 | Phase 4: 品質保証 & ドキュメント | ✅ | 2026-02-19 |
-| Phase 5: 高度な推奨 (P2) | 🔲 | - |
+| Phase 5: 高度な推奨 (P2) | ✅ | 2026-02-19 |
 
 ---
 
@@ -38,10 +38,10 @@
 
 | カテゴリ | テスト数 | ステータス |
 |:---|:---:|:---:|
-| ユニットテスト (tests/unit/) | 327 | ✅ 全パス |
+| ユニットテスト (tests/unit/) | 378 | ✅ 全パス |
 | セキュリティテスト (tests/security/) | 65 | ✅ 全パス |
 | 統合テスト (tests/integration/) | 19 | ✅ 全パス |
-| **合計** | **411** | **✅ 全パス** |
+| **合計** | **462** | **✅ 全パス** |
 
 ### カバレッジ
 
@@ -58,7 +58,7 @@
 | ビルド (tsup) | ✅ 成功 |
 | lint (ESLint) | ✅ 0エラー, 0警告 |
 | 型チェック (tsc --noEmit) | ✅ 成功 |
-| テスト (411件) | ✅ 全パス |
+| テスト (462件) | ✅ 全パス |
 
 ---
 
@@ -365,15 +365,47 @@
 
 ---
 
-## Sprint 13: 高度な推奨（P2 / 将来） — 🔲 未着手
+## Sprint 13: 高度な推奨（P2） — ✅ 完了
 
-> **目的:** 推奨精度の向上とカスタマイズ性の拡充。MVP完了後に着手。
+> **目的:** 推奨精度の向上とカスタマイズ性の拡充。
+> **チーム体制:** PM (team-lead) + coder-algo + coder-integration + tester
 
-- [ ] DMS-028: ベンチマークデータベース（定期更新機構）
-- [ ] DMS-029: 実行履歴に基づく推奨精度向上
-- [ ] DMS-030: カスタム推奨テーブルの設定対応
-- [ ] DMS-031: 量子化バリアント自動選択
-- [ ] DMS-032: ブロックリスト・ライセンスフィルタの設定UI
+- [x] DMS-028: ベンチマークデータ管理モジュール (`src/model-selector/benchmark-db.ts`)
+  - `BenchmarkStore` クラス: インメモリ + JSONファイル永続化
+  - レジストリからのファクトリ生成、merge-update、ファイル読み書き
+  - **担当:** coder-algo
+
+- [x] DMS-029: 実行履歴トラッカー (`src/model-selector/execution-tracker.ts`)
+  - `ExecutionTracker` クラス: 循環バッファ (最大1000件)
+  - パフォーマンスメトリクス集計、推奨ブースト計算 (successRate × 1/normalizedTime)
+  - JSONファイル永続化対応
+  - **担当:** coder-integration
+
+- [x] DMS-030: カスタム推奨テーブル推奨エンジン統合 (`src/model-selector/recommender.ts` 拡張)
+  - `RecommendInput.customRecommendations` フィールド追加
+  - カスタムモデル → レジストリ照合 → フィルタ適用 → 結合返却
+  - 部分オーバーライド対応、後方互換性維持
+  - **担当:** coder-integration
+
+- [x] DMS-031: 量子化バリアント自動選択 (`src/model-selector/quantization-selector.ts`)
+  - `QuantizationVariant` 型、`selectQuantization()` 関数
+  - preferQuality/速度優先切り替え、VRAM制約フォールバック
+  - レジストリ6モデルにバリアントデータ追加
+  - **担当:** coder-algo
+
+- [x] DMS-032: 設定管理MCPツール (`src/tools/configure-model-selector.ts`)
+  - `configure_model_selector` ツール: get/set/add/remove アクション
+  - blocked_models / license_filter / custom_recommendations のランタイム管理
+  - ライセンスタイプバリデーション、server.ts 登録
+  - **担当:** PM (team-lead)
+
+- [x] DMS-033: Sprint 13 全テスト実装 (51テスト追加, 462テスト合計)
+  - `tests/unit/benchmark-db.test.ts` (11テスト)
+  - `tests/unit/execution-tracker.test.ts` (12テスト)
+  - `tests/unit/custom-recommendations.test.ts` (8テスト)
+  - `tests/unit/quantization-selector.test.ts` (10テスト)
+  - `tests/unit/configure-model-selector.test.ts` (10テスト)
+  - **担当:** tester
 
 ---
 

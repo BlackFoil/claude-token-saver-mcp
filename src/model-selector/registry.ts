@@ -8,8 +8,57 @@
  * Static recommendation table: category × tier → prioritized model list.
  */
 
-import type { ModelRecommendation, TaskCategory } from './types.js';
+import type { ModelRecommendation, QuantizationVariant, TaskCategory } from './types.js';
 import type { TierLevel } from '../tiering/config.js';
+
+// ── Shared Quantization Variants (DMS-031) ───────────────────
+// Defined once and referenced by multiple registry entries.
+
+const QWEN25_CODER_7B_VARIANTS: QuantizationVariant[] = [
+  { quantization: 'Q4_K_M', vramRequired: 4.5, qualityRank: 3, speedRank: 1 },
+  { quantization: 'Q5_K_M', vramRequired: 5.5, qualityRank: 2, speedRank: 2 },
+  { quantization: 'Q8_0', vramRequired: 8.0, qualityRank: 1, speedRank: 3 },
+];
+
+const QWEN25_CODER_32B_VARIANTS: QuantizationVariant[] = [
+  { quantization: 'Q4_K_M', vramRequired: 18.5, qualityRank: 3, speedRank: 1 },
+  { quantization: 'Q5_K_M', vramRequired: 22.0, qualityRank: 2, speedRank: 2 },
+  { quantization: 'Q8_0', vramRequired: 34.0, qualityRank: 1, speedRank: 3 },
+];
+
+const QWEN3_8B_VARIANTS: QuantizationVariant[] = [
+  { quantization: 'Q4_K_M', vramRequired: 5.5, qualityRank: 3, speedRank: 1 },
+  { quantization: 'Q5_K_M', vramRequired: 6.5, qualityRank: 2, speedRank: 2 },
+  { quantization: 'Q8_0', vramRequired: 9.0, qualityRank: 1, speedRank: 3 },
+];
+
+const QWEN3_14B_VARIANTS: QuantizationVariant[] = [
+  { quantization: 'Q4_K_M', vramRequired: 8.5, qualityRank: 3, speedRank: 1 },
+  { quantization: 'Q5_K_M', vramRequired: 10.5, qualityRank: 2, speedRank: 2 },
+  { quantization: 'Q8_0', vramRequired: 15.0, qualityRank: 1, speedRank: 3 },
+];
+
+const QWEN3_32B_VARIANTS: QuantizationVariant[] = [
+  { quantization: 'Q4_K_M', vramRequired: 18.0, qualityRank: 3, speedRank: 1 },
+  { quantization: 'Q5_K_M', vramRequired: 22.0, qualityRank: 2, speedRank: 2 },
+  { quantization: 'Q8_0', vramRequired: 34.0, qualityRank: 1, speedRank: 3 },
+];
+
+const PHI4_VARIANTS: QuantizationVariant[] = [
+  { quantization: 'Q4_K_M', vramRequired: 8.5, qualityRank: 3, speedRank: 1 },
+  { quantization: 'Q5_K_M', vramRequired: 10.0, qualityRank: 2, speedRank: 2 },
+  { quantization: 'Q8_0', vramRequired: 15.0, qualityRank: 1, speedRank: 3 },
+];
+
+// Re-export variant arrays for external use (e.g. tests)
+export {
+  QWEN25_CODER_7B_VARIANTS,
+  QWEN25_CODER_32B_VARIANTS,
+  QWEN3_8B_VARIANTS,
+  QWEN3_14B_VARIANTS,
+  QWEN3_32B_VARIANTS,
+  PHI4_VARIANTS,
+};
 
 /**
  * Full registry of recommended models.
@@ -21,80 +70,80 @@ const REGISTRY: readonly ModelRecommendation[] = [
   { modelId: 'qwen2.5-coder:3b', displayName: 'Qwen2.5-Coder 3B', category: 'coding', tier: 1, minRamGB: 4, parameterSize: '3B', quantization: 'Q4_K_M', vramRequired: 2.5, license: 'Apache-2.0', benchmarks: { humanEval: 75.2 }, ollamaAvailable: true, priority: 1 },
   { modelId: 'qwen2.5-coder:1.5b', displayName: 'Qwen2.5-Coder 1.5B', category: 'coding', tier: 1, minRamGB: 2, parameterSize: '1.5B', quantization: 'Q4_K_M', vramRequired: 1.5, license: 'Apache-2.0', benchmarks: { humanEval: 61.6 }, ollamaAvailable: true, priority: 2 },
   // Tier 2
-  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'coding', tier: 2, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'coding', tier: 2, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4 }, ollamaAvailable: true, priority: 1, variants: QWEN25_CODER_7B_VARIANTS },
   { modelId: 'deepseek-coder-v2:16b', displayName: 'DeepSeek Coder V2 16B', category: 'coding', tier: 2, minRamGB: 12, parameterSize: '16B', quantization: 'Q4_K_M', vramRequired: 10.0, license: 'MIT', benchmarks: { humanEval: 85.0 }, ollamaAvailable: true, priority: 2 },
   { modelId: 'qwen2.5-coder:14b', displayName: 'Qwen2.5-Coder 14B', category: 'coding', tier: 2, minRamGB: 12, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 9.0, license: 'Apache-2.0', benchmarks: { humanEval: 89.3 }, ollamaAvailable: true, priority: 3 },
   // Tier 3
-  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'coding', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'coding', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7 }, ollamaAvailable: true, priority: 1, variants: QWEN25_CODER_32B_VARIANTS },
   { modelId: 'qwen3-coder:30b', displayName: 'Qwen3-Coder 30B', category: 'coding', tier: 3, minRamGB: 22, parameterSize: '30B', quantization: 'Q4_K_M', vramRequired: 17.5, license: 'Apache-2.0', benchmarks: { sweBench: 70.6 }, ollamaAvailable: true, priority: 2 },
   { modelId: 'devstral:24b', displayName: 'Devstral 24B', category: 'coding', tier: 3, minRamGB: 18, parameterSize: '24B', quantization: 'Q4_K_M', vramRequired: 14.0, license: 'Apache-2.0', benchmarks: { sweBench: 68.0 }, ollamaAvailable: true, priority: 3 },
 
   // ── Coding Agent (§3.4) ────────────────────────────────────
   // Tier 1
-  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'coding-agent', tier: 1, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4, sweBench: 36.0 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'coding-agent', tier: 1, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4, sweBench: 36.0 }, ollamaAvailable: true, priority: 1, variants: QWEN25_CODER_7B_VARIANTS },
   // Tier 2
   { modelId: 'qwen3-coder:30b', displayName: 'Qwen3-Coder 30B', category: 'coding-agent', tier: 2, minRamGB: 22, parameterSize: '30B', quantization: 'Q4_K_M', vramRequired: 17.5, license: 'Apache-2.0', benchmarks: { sweBench: 70.6 }, ollamaAvailable: true, priority: 1 },
   { modelId: 'devstral:24b', displayName: 'Devstral 24B', category: 'coding-agent', tier: 2, minRamGB: 18, parameterSize: '24B', quantization: 'Q4_K_M', vramRequired: 14.0, license: 'Apache-2.0', benchmarks: { sweBench: 68.0 }, ollamaAvailable: true, priority: 2 },
   { modelId: 'qwen2.5-coder:14b', displayName: 'Qwen2.5-Coder 14B', category: 'coding-agent', tier: 2, minRamGB: 12, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 9.0, license: 'Apache-2.0', benchmarks: { humanEval: 89.3 }, ollamaAvailable: true, priority: 3 },
   // Tier 3
-  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'coding-agent', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7, sweBench: 52.0 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'coding-agent', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7, sweBench: 52.0 }, ollamaAvailable: true, priority: 1, variants: QWEN25_CODER_32B_VARIANTS },
   { modelId: 'qwen3-coder:30b', displayName: 'Qwen3-Coder 30B (Q8)', category: 'coding-agent', tier: 3, minRamGB: 32, parameterSize: '30B', quantization: 'Q8_0', vramRequired: 32.0, license: 'Apache-2.0', benchmarks: { sweBench: 70.6 }, ollamaAvailable: true, priority: 2 },
   { modelId: 'devstral:24b', displayName: 'Devstral 24B (Q8)', category: 'coding-agent', tier: 3, minRamGB: 26, parameterSize: '24B', quantization: 'Q8_0', vramRequired: 26.0, license: 'Apache-2.0', benchmarks: { sweBench: 68.0 }, ollamaAvailable: true, priority: 3 },
 
   // ── Japanese Text (§3.3) ───────────────────────────────────
   // Tier 1
-  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'japanese-text', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'japanese-text', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1, variants: QWEN3_8B_VARIANTS },
   { modelId: 'gemma3:4b', displayName: 'Gemma3 4B', category: 'japanese-text', tier: 1, minRamGB: 4, parameterSize: '4B', quantization: 'Q4_K_M', vramRequired: 3.0, license: 'MIT', benchmarks: { japaneseMTBench: 6.5 }, ollamaAvailable: true, priority: 2 },
   // Tier 2
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'japanese-text', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'japanese-text', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1, variants: QWEN3_14B_VARIANTS },
   { modelId: 'nemotron-3-nano', displayName: 'Nemotron 3 Nano', category: 'japanese-text', tier: 2, minRamGB: 8, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'NVIDIA-Open', benchmarks: { japaneseMTBench: 7.8 }, ollamaAvailable: true, priority: 2 },
   { modelId: 'gemma3:12b', displayName: 'Gemma3 12B', category: 'japanese-text', tier: 2, minRamGB: 10, parameterSize: '12B', quantization: 'Q4_K_M', vramRequired: 7.5, license: 'MIT', benchmarks: { japaneseMTBench: 7.5 }, ollamaAvailable: true, priority: 3 },
   // Tier 3
-  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'japanese-text', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1 },
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B (Q8)', category: 'japanese-text', tier: 3, minRamGB: 16, parameterSize: '14B', quantization: 'Q8_0', vramRequired: 15.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.3 }, ollamaAvailable: true, priority: 2 },
+  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'japanese-text', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1, variants: QWEN3_32B_VARIANTS },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B (Q8)', category: 'japanese-text', tier: 3, minRamGB: 16, parameterSize: '14B', quantization: 'Q8_0', vramRequired: 15.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.3 }, ollamaAvailable: true, priority: 2, variants: QWEN3_14B_VARIANTS },
   { modelId: 'gemma3:27b', displayName: 'Gemma3 27B', category: 'japanese-text', tier: 3, minRamGB: 20, parameterSize: '27B', quantization: 'Q4_K_M', vramRequired: 16.0, license: 'MIT', benchmarks: { japaneseMTBench: 8.0 }, ollamaAvailable: true, priority: 3 },
 
   // ── Japanese Coding ────────────────────────────────────────
   // (Japanese text + coding hybrid: same as coding but with Japanese-aware models)
   // Tier 1
-  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'japanese-coding', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { humanEval: 72.0, japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'japanese-coding', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { humanEval: 72.0, japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1, variants: QWEN3_8B_VARIANTS },
   { modelId: 'qwen2.5-coder:3b', displayName: 'Qwen2.5-Coder 3B', category: 'japanese-coding', tier: 1, minRamGB: 4, parameterSize: '3B', quantization: 'Q4_K_M', vramRequired: 2.5, license: 'Apache-2.0', benchmarks: { humanEval: 75.2 }, ollamaAvailable: true, priority: 2 },
   // Tier 2
-  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'japanese-coding', tier: 2, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4 }, ollamaAvailable: true, priority: 1 },
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'japanese-coding', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 2 },
+  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'japanese-coding', tier: 2, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4 }, ollamaAvailable: true, priority: 1, variants: QWEN25_CODER_7B_VARIANTS },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'japanese-coding', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 2, variants: QWEN3_14B_VARIANTS },
   // Tier 3
-  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'japanese-coding', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7 }, ollamaAvailable: true, priority: 1 },
-  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'japanese-coding', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 2 },
+  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'japanese-coding', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7 }, ollamaAvailable: true, priority: 1, variants: QWEN25_CODER_32B_VARIANTS },
+  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'japanese-coding', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 2, variants: QWEN3_32B_VARIANTS },
 
   // ── Translation (§3.5) ────────────────────────────────────
   // Tier 1
-  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'translation', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'translation', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1, variants: QWEN3_8B_VARIANTS },
   { modelId: 'gemma3:4b', displayName: 'Gemma3 4B', category: 'translation', tier: 1, minRamGB: 4, parameterSize: '4B', quantization: 'Q4_K_M', vramRequired: 3.0, license: 'MIT', benchmarks: { japaneseMTBench: 6.5 }, ollamaAvailable: true, priority: 2 },
   // Tier 2
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'translation', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'translation', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1, variants: QWEN3_14B_VARIANTS },
   { modelId: 'nemotron-3-nano', displayName: 'Nemotron 3 Nano', category: 'translation', tier: 2, minRamGB: 8, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'NVIDIA-Open', benchmarks: { japaneseMTBench: 7.8 }, ollamaAvailable: true, priority: 2 },
   // Tier 3
-  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'translation', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1 },
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B (Q8)', category: 'translation', tier: 3, minRamGB: 16, parameterSize: '14B', quantization: 'Q8_0', vramRequired: 15.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.3 }, ollamaAvailable: true, priority: 2 },
+  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'translation', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1, variants: QWEN3_32B_VARIANTS },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B (Q8)', category: 'translation', tier: 3, minRamGB: 16, parameterSize: '14B', quantization: 'Q8_0', vramRequired: 15.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.3 }, ollamaAvailable: true, priority: 2, variants: QWEN3_14B_VARIANTS },
 
   // ── Summarization (§3.6) ──────────────────────────────────
   // Tier 1
-  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'summarization', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'summarization', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1, variants: QWEN3_8B_VARIANTS },
   { modelId: 'qwen2.5-coder:3b', displayName: 'Qwen2.5-Coder 3B', category: 'summarization', tier: 1, minRamGB: 4, parameterSize: '3B', quantization: 'Q4_K_M', vramRequired: 2.5, license: 'Apache-2.0', benchmarks: { humanEval: 75.2 }, ollamaAvailable: true, priority: 2 },
   // Tier 2
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'summarization', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1 },
-  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'summarization', tier: 2, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4 }, ollamaAvailable: true, priority: 2 },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'summarization', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1, variants: QWEN3_14B_VARIANTS },
+  { modelId: 'qwen2.5-coder:7b', displayName: 'Qwen2.5-Coder 7B', category: 'summarization', tier: 2, minRamGB: 8, parameterSize: '7B', quantization: 'Q4_K_M', vramRequired: 5.0, license: 'Apache-2.0', benchmarks: { humanEval: 88.4 }, ollamaAvailable: true, priority: 2, variants: QWEN25_CODER_7B_VARIANTS },
   // Tier 3
-  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'summarization', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1 },
-  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'summarization', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7 }, ollamaAvailable: true, priority: 2 },
+  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'summarization', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1, variants: QWEN3_32B_VARIANTS },
+  { modelId: 'qwen2.5-coder:32b', displayName: 'Qwen2.5-Coder 32B', category: 'summarization', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.5, license: 'Apache-2.0', benchmarks: { humanEval: 92.7 }, ollamaAvailable: true, priority: 2, variants: QWEN25_CODER_32B_VARIANTS },
 
   // ── General (§3.7) ────────────────────────────────────────
   // Tier 1
-  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'general', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { humanEval: 72.0, japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:8b', displayName: 'Qwen3 8B', category: 'general', tier: 1, minRamGB: 6, parameterSize: '8B', quantization: 'Q4_K_M', vramRequired: 5.5, license: 'Apache-2.0', benchmarks: { humanEval: 72.0, japaneseMTBench: 7.2 }, ollamaAvailable: true, priority: 1, variants: QWEN3_8B_VARIANTS },
   // Tier 2
-  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'general', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { humanEval: 78.0, japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:14b', displayName: 'Qwen3 14B', category: 'general', tier: 2, minRamGB: 10, parameterSize: '14B', quantization: 'Q4_K_M', vramRequired: 8.5, license: 'Apache-2.0', benchmarks: { humanEval: 78.0, japaneseMTBench: 8.1 }, ollamaAvailable: true, priority: 1, variants: QWEN3_14B_VARIANTS },
   // Tier 3
-  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'general', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { humanEval: 85.0, japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1 },
+  { modelId: 'qwen3:32b', displayName: 'Qwen3 32B', category: 'general', tier: 3, minRamGB: 24, parameterSize: '32B', quantization: 'Q4_K_M', vramRequired: 18.0, license: 'Apache-2.0', benchmarks: { humanEval: 85.0, japaneseMTBench: 8.8 }, ollamaAvailable: true, priority: 1, variants: QWEN3_32B_VARIANTS },
 ];
 
 /**
