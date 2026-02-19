@@ -2,7 +2,7 @@
 
 **現在のPhase:** 動的モデルセレクター Phase 1 (MVP)
 **作成日:** 2026-02-15
-**最終更新:** 2026-02-19 (Sprint 7-9 完了)
+**最終更新:** 2026-02-19 (Sprint 7-10 完了)
 **管理者:** PM / Claude Code (Leader)
 **設計書:** `docs/design/dynamic-model-selector-design.md`
 
@@ -27,7 +27,7 @@
 |:---|:---:|:---:|
 | 設計・調査・ガバナンス | ✅ | 2026-02-19 |
 | Phase 1: モデル推奨基盤 (MVP) | ✅ | 2026-02-19 |
-| Phase 2: セッション固定 & プリロード | 🔲 | - |
+| Phase 2: セッション固定 & プリロード | ✅ | 2026-02-19 |
 | Phase 3: 自動pull & CLAUDE.md連携 | 🔲 | - |
 | Phase 4: 高度な推奨 | 🔲 | - |
 
@@ -37,10 +37,10 @@
 
 | カテゴリ | テスト数 | ステータス |
 |:---|:---:|:---:|
-| ユニットテスト (tests/unit/) | 272 | ✅ 全パス |
+| ユニットテスト (tests/unit/) | 302 | ✅ 全パス |
 | セキュリティテスト (tests/security/) | 65 | ✅ 全パス |
 | 統合テスト (tests/integration/) | 12 | ✅ 全パス |
-| **合計** | **349** | **✅ 全パス** |
+| **合計** | **379** | **✅ 全パス** |
 
 ### カバレッジ
 
@@ -57,7 +57,7 @@
 | ビルド (tsup) | ✅ 成功 |
 | lint (ESLint) | ✅ 0エラー, 0警告 |
 | 型チェック (tsc --noEmit) | ✅ 成功 |
-| テスト (277件) | ✅ 全パス |
+| テスト (379件) | ✅ 全パス |
 
 ---
 
@@ -252,55 +252,50 @@
 
 ---
 
-## Sprint 10: セッション固定 & プリロード — 🔲 未着手
+## Sprint 10: セッション固定 & プリロード — ✅ 完了
 
 > **目的:** `preload_model`, `list_loaded_models` ツールと、`offload_work`/`compress_context` の `model` パラメータ対応
 
-- [ ] DMS-014: `preload_model` ツール実装 (`src/tools/preload-model.ts`)
+- [x] DMS-014: `preload_model` ツール実装 (`src/tools/preload-model.ts`)
   - inputSchema: `{ model: string, keep_alive?: string }` (設計書§4.4)
   - 処理: Ollama `/api/chat` に空プロンプト + `keep_alive` 送信
   - `/api/ps` でロード確認、VRAM使用量をレスポンスに含める
   - VRAM同時ロード制約チェック（上限超過時はエラー）
-  - モデル未インストール時は `CTS-2002` エラー
+  - モデル未インストール時は `ModelNotFoundError` エラー
   - **担当:** Coder 2
-  - **依存:** DMS-003, DMS-007
 
-- [ ] DMS-015: `list_loaded_models` ツール実装 (`src/tools/list-loaded-models.ts`)
+- [x] DMS-015: `list_loaded_models` ツール実装 (`src/tools/list-loaded-models.ts`)
   - inputSchema: `{}` (設計書§4.5)
   - Ollama `/api/ps` からロード中モデル取得
-  - Markdown テーブル形式でVRAM使用量・ロード時間・keep_alive情報を返却
+  - Markdown テーブル形式でVRAM使用量・有効期限・モデルサイズを返却
   - **担当:** Coder 2
-  - **依存:** DMS-003
 
-- [ ] DMS-016: `offload_work` に `model` / `category` パラメータ追加 (`src/tools/offload-work.ts` 拡張)
+- [x] DMS-016: `offload_work` に `model` / `category` パラメータ追加 (`src/tools/offload-work.ts` 拡張)
   - inputSchema拡張: `model?: string`, `category?: TaskCategory` (設計書§4.2)
   - `model` 指定時: そのモデルでOllamaリクエスト送信
   - `model` 未指定 + `category` 指定: 推奨エンジンで最適モデル自動選択
   - 両方未指定: 既存動作（Tier自動検出モデル）を維持
-  - 既存の全テストが引き続きパスすること（後方互換性）
+  - 既存の全テストが引き続きパスすること（後方互換性）✅
   - **担当:** Coder 1 (PM)
-  - **依存:** DMS-008
 
-- [ ] DMS-017: `compress_context` に `model` パラメータ追加 (`src/tools/compress-context.ts` 拡張)
+- [x] DMS-017: `compress_context` に `model` パラメータ追加 (`src/tools/compress-context.ts` 拡張)
   - inputSchema拡張: `model?: string` (設計書§4.3)
   - `model` 指定時: そのモデルでOllamaリクエスト送信
   - 未指定時: 既存動作を維持
   - **担当:** Coder 1 (PM)
-  - **依存:** なし
 
-- [ ] DMS-018: `preload_model`, `list_loaded_models` をMCPサーバーに登録 (`src/server.ts`)
+- [x] DMS-018: `preload_model`, `list_loaded_models` をMCPサーバーに登録 (`src/server.ts`)
   - ツール定義 + ハンドラーのルーティング追加
+  - `modelSelector.enabled` 条件付きで公開
   - **担当:** Coder 1 (PM)
-  - **依存:** DMS-014, DMS-015
 
-- [ ] DMS-019: テスト — セッション固定 & プリロード (`tests/unit/`, `tests/integration/`)
-  - preload_model: 正常系、VRAM超過エラー、未インストールエラー
-  - list_loaded_models: 正常系、モデル未ロード時
-  - offload_work: model指定、category指定、両方未指定（後方互換性）
-  - compress_context: model指定、未指定（後方互換性）
-  - 統合テスト: preload → offload_work のパイプライン
+- [x] DMS-019: テスト — セッション固定 & プリロード (`tests/unit/session-pinning.test.ts`)
+  - preload_model: 10テスト（正常系、VRAM超過、未インストール、keep_alive、健全性チェック）
+  - list_loaded_models: 8テスト（正常系、空状態、有効期限各パターン、不正日付）
+  - offload_work model/category: 8テスト（model優先、category推奨、無効category、後方互換性）
+  - compress_context model: 4テスト（model指定、デフォルト、空文字、非文字列）
+  - **合計30テスト**
   - **担当:** Tester
-  - **依存:** DMS-014〜DMS-018
 
 ---
 

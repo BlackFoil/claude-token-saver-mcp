@@ -20,6 +20,8 @@ import { loadPricing, DEFAULT_COMPARISON_MODEL } from './cost/pricing.js';
 import { handleOffloadWork, type ToolHandlerContext, type OllamaTaskPayload } from './tools/offload-work.js';
 import { handleCompressContext } from './tools/compress-context.js';
 import { handleRecommendModel, type RecommendModelContext } from './tools/recommend-model.js';
+import { handlePreloadModel, type PreloadModelContext } from './tools/preload-model.js';
+import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/list-loaded-models.js';
 import { TASK_CATEGORIES } from './model-selector/types.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
@@ -136,10 +138,27 @@ async function main(): Promise<void> {
     logger,
     ollamaHealthy,
     maxRequestSizeBytes: config.queue.maxRequestSizeBytes,
+    config, // DMS-016: model selector integration
   };
 
   // recommend_model context
   const recommendModelContext: RecommendModelContext = {
+    ollamaClient,
+    tierConfig,
+    config,
+    logger,
+    ollamaHealthy,
+  };
+
+  // DMS-018: preload_model / list_loaded_models context
+  const preloadModelContext: PreloadModelContext = {
+    ollamaClient,
+    tierConfig,
+    config,
+    logger,
+    ollamaHealthy,
+  };
+  const listLoadedModelsContext: ListLoadedModelsContext = {
     ollamaClient,
     tierConfig,
     config,
@@ -188,6 +207,15 @@ async function main(): Promise<void> {
               enum: ['code', 'diff', 'explanation', 'raw'],
               description: 'Output format (optional, default: code)',
             },
+            model: {
+              type: 'string',
+              description: 'Override the Ollama model to use (optional). Takes precedence over category-based selection.',
+            },
+            category: {
+              type: 'string',
+              enum: [...TASK_CATEGORIES],
+              description: 'Task category for automatic model selection (optional). Ignored if model is specified.',
+            },
           },
           required: ['task'],
         },
@@ -211,6 +239,10 @@ async function main(): Promise<void> {
             max_length: {
               type: 'number',
               description: 'Target max length of the summary in chars (optional, 100-10000, default: 2000)',
+            },
+            model: {
+              type: 'string',
+              description: 'Override the Ollama model to use (optional).',
             },
           },
           required: ['content'],
@@ -241,6 +273,41 @@ async function main(): Promise<void> {
           required: ['category'],
         },
       });
+
+      // DMS-018: preload_model
+      tools.push({
+        name: 'preload_model',
+        description:
+          'Preload a model into VRAM for warm inference. ' +
+          'Sends an empty chat request with keep_alive to keep the model loaded during the session.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            model: {
+              type: 'string',
+              description: 'The model name to preload (must be already installed via pull_model)',
+            },
+            keep_alive: {
+              type: 'string',
+              description: 'Duration to keep the model loaded (optional, default: "-1" = permanent). Examples: "5m", "1h", "-1"',
+            },
+          },
+          required: ['model'],
+        },
+      });
+
+      // DMS-018: list_loaded_models
+      tools.push({
+        name: 'list_loaded_models',
+        description:
+          'List all models currently loaded in VRAM with usage details. ' +
+          'Shows VRAM usage, expiry time, and available slots.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {},
+          required: [],
+        },
+      });
     }
 
     return { tools };
@@ -257,6 +324,10 @@ async function main(): Promise<void> {
         return handleCompressContext(args, toolContext);
       case 'recommend_model':
         return handleRecommendModel(args ?? {}, recommendModelContext);
+      case 'preload_model':
+        return handlePreloadModel(args ?? {}, preloadModelContext);
+      case 'list_loaded_models':
+        return handleListLoadedModels(args ?? {}, listLoadedModelsContext);
       default:
         return {
           content: [

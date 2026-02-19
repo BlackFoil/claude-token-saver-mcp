@@ -104,6 +104,16 @@ export async function handleCompressContext(
       };
     }
 
+    // DMS-017: Resolve model override
+    const rawArgs = typeof rawInput === 'object' && rawInput !== null
+      ? rawInput as Record<string, unknown> : {};
+    const modelOverride = typeof rawArgs['model'] === 'string' && rawArgs['model'].trim()
+      ? rawArgs['model'].trim() : undefined;
+    const effectiveModel = modelOverride ?? tierConfig.primaryModel;
+    if (modelOverride) {
+      logger.info({ model: effectiveModel }, 'compress_context: using explicit model override');
+    }
+
     // Step 4: Context truncation if needed
     let processedContent = input.content;
     let truncated = false;
@@ -135,7 +145,7 @@ export async function handleCompressContext(
     // Step 7: Enqueue and process
     const payload: OllamaTaskPayload = {
       request: {
-        model: tierConfig.primaryModel,
+        model: effectiveModel,
         messages,
         stream: true as const,
         options: {

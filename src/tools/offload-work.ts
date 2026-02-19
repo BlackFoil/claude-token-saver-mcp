@@ -11,6 +11,9 @@ import { detectPromptInjection, sanitizeOutput } from '../validators/prompt-guar
 import { ctsErrorToCallToolResult, CTSError } from '../errors.js';
 import { reportCost } from '../cost/reporter.js';
 import { SYSTEM_PROMPT } from '../ollama/client.js';
+import type { AppConfig } from '../config/schema.js';
+import { recommendModels } from '../model-selector/recommender.js';
+import { TASK_CATEGORIES, type TaskCategory } from '../model-selector/types.js';
 import type { Logger } from 'pino';
 
 export interface ToolHandlerContext {
@@ -21,6 +24,7 @@ export interface ToolHandlerContext {
   logger: Logger;
   ollamaHealthy: boolean;
   maxRequestSizeBytes: number;
+  config?: AppConfig; // DMS-016: model selector integration
 }
 
 export interface OllamaTaskPayload {
@@ -95,6 +99,60 @@ export async function handleOffloadWork(
       };
     }
 
+    // DMS-016: Resolve model override (model > category > default)
+    const rawArgs = typeof rawInput === 'object' && rawInput !== null
+      ? rawInput as Record<string, unknown> : {};
+    const modelOverride = typeof rawArgs['model'] === 'string' && rawArgs['model'].trim()
+      ? rawArgs['model'].trim() : undefined;
+    const categoryOverride = typeof rawArgs['category'] === 'string' && rawArgs['category'].trim()
+      ? rawArgs['category'].trim() : undefined;
+
+    let effectiveModel = tierConfig.primaryModel;
+    if (modelOverride) {
+      effectiveModel = modelOverride;
+      logger.info({ model: effectiveModel }, 'offload_work: using explicit model override');
+    } else if (
+      categoryOverride &&
+      (TASK_CATEGORIES as readonly string[]).includes(categoryOverride) &&
+      context.config?.modelSelector.enabled
+    ) {
+      try {
+        const totalRamGB = getRamFromTier(tierConfig);
+        let installedModels: string[] = [];
+        let loadedModels: string[] = [];
+        try {
+          const tags = await ollamaClient.listModelsFull();
+          installedModels = tags.models.map((m) => m.name);
+          const ps = await ollamaClient.listRunning();
+          loadedModels = ps.models.map((m) => m.name);
+        } catch { /* proceed without install info */ }
+
+        const rec = recommendModels({
+          category: categoryOverride as TaskCategory,
+          totalRamGB,
+          installedModels,
+          loadedModels,
+          blockedModels: context.config.modelSelector.blockedModels,
+          licenseFilter: context.config.modelSelector.licenseFilter,
+          preferQuality: context.config.modelSelector.preferQuality,
+          maxSimultaneousModels: context.config.modelSelector.maxSimultaneousModels,
+        });
+        if (rec.recommendations.length > 0) {
+          effectiveModel = rec.recommendations[0]!.recommendation.modelId;
+          logger.info({
+            category: categoryOverride,
+            selectedModel: effectiveModel,
+            installed: rec.recommendations[0]!.installed,
+          }, 'offload_work: model selected by category');
+        }
+      } catch (recErr) {
+        logger.warn(
+          { error: recErr instanceof Error ? recErr.message : String(recErr) },
+          'Model recommendation failed, using default',
+        );
+      }
+    }
+
     // Step 5: Build chat messages
     const messages = [
       { role: 'system' as const, content: SYSTEM_PROMPT },
@@ -104,7 +162,7 @@ export async function handleOffloadWork(
     // Step 6-7: Enqueue and process
     const payload: OllamaTaskPayload = {
       request: {
-        model: tierConfig.primaryModel,
+        model: effectiveModel,
         messages,
         stream: true as const,
         options: {
@@ -187,4 +245,10 @@ export async function handleOffloadWork(
     }
     return ctsErrorToCallToolResult(error);
   }
+}
+
+function getRamFromTier(tierConfig: TierConfig): number {
+  const { min, max } = tierConfig.ramRange;
+  if (max === Infinity) return Math.max(min, 64);
+  return (min + max) / 2;
 }
