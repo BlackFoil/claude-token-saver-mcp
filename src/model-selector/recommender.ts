@@ -18,8 +18,10 @@
 
 import type { TaskCategory, RecommendationResult, ModelRecommendation } from './types.js';
 import type { TierLevel } from '../tiering/config.js';
+import type { BenchmarkStore } from './benchmark-db.js';
 import { getRecommendations, getFullRegistry } from './registry.js';
 import { calculateVramCapacity } from './vram-calculator.js';
+import { selectQuantization } from './quantization-selector.js';
 
 const MAX_RESULTS = 4;
 
@@ -42,6 +44,10 @@ export interface RecommendInput {
   maxSimultaneousModels?: number | 'auto';
   /** Custom recommendation overrides: { [category]: { [tierLevel]: modelId[] } } */
   customRecommendations?: Record<string, Record<string, string[]>>;
+  /** External benchmark store for enriching model data (DMS-028) */
+  benchmarkStore?: BenchmarkStore;
+  /** Available VRAM in GB for quantization selection (DMS-031) */
+  availableVramGB?: number;
 }
 
 export interface RecommendOutput {
@@ -132,6 +138,17 @@ export function recommendModels(input: RecommendInput): RecommendOutput {
   // Combine: custom models first, then registry models
   let candidates = [...customCandidates, ...registryCandidates];
 
+  // DMS-028: Enrich candidates with external benchmark data
+  if (input.benchmarkStore) {
+    candidates = candidates.map((c) => {
+      const stored = input.benchmarkStore!.getBenchmarks(c.modelId);
+      if (stored) {
+        return { ...c, benchmarks: { ...c.benchmarks, ...stored } };
+      }
+      return c;
+    });
+  }
+
   // 2. Apply blocked model filter
   const blockedSet = new Set(blockedModels.map((m) => m.toLowerCase()));
   candidates = candidates.filter(
@@ -156,11 +173,30 @@ export function recommendModels(input: RecommendInput): RecommendOutput {
   const installedSet = new Set(installedModels);
   const loadedSet = new Set(loadedModels);
 
-  const results: RecommendationResult[] = candidates.map((rec) => ({
-    recommendation: rec,
-    installed: installedSet.has(rec.modelId),
-    loaded: loadedSet.has(rec.modelId),
-  }));
+  // DMS-031: Estimate available VRAM for quantization selection
+  const estimatedVram = input.availableVramGB ?? totalRamGB * 0.7;
+
+  const results: RecommendationResult[] = candidates.map((rec) => {
+    const result: RecommendationResult = {
+      recommendation: rec,
+      installed: installedSet.has(rec.modelId),
+      loaded: loadedSet.has(rec.modelId),
+    };
+
+    // DMS-031: Auto-select quantization variant
+    if (rec.variants && rec.variants.length > 0) {
+      const qResult = selectQuantization({
+        variants: rec.variants,
+        availableVramGB: estimatedVram,
+        preferQuality,
+      });
+      if (qResult) {
+        result.recommendedQuantization = qResult.variant.quantization;
+      }
+    }
+
+    return result;
+  });
 
   // 6. Sort: installed first, then not installed
   results.sort((a, b) => {
@@ -217,8 +253,11 @@ export function formatRecommendationMarkdown(
       const rec = r.recommendation;
       const benchStr = formatBenchmarks(rec);
       const loadedStr = r.loaded ? ' [LOADED]' : '';
+      const quantStr = r.recommendedQuantization && r.recommendedQuantization !== rec.quantization
+        ? `${rec.quantization} → ${r.recommendedQuantization}`
+        : rec.quantization;
       lines.push(
-        `${i + 1}. ✅ **${rec.modelId}** (${rec.quantization})${loadedStr} — ${benchStr} | License: ${rec.license}`,
+        `${i + 1}. ✅ **${rec.modelId}** (${quantStr})${loadedStr} — ${benchStr} | License: ${rec.license}`,
       );
     }
   }

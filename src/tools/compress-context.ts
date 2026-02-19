@@ -8,6 +8,7 @@ import { detectPromptInjection, sanitizeOutput } from '../validators/prompt-guar
 import { ctsErrorToCallToolResult, CTSError } from '../errors.js';
 import { reportCost } from '../cost/reporter.js';
 import { SYSTEM_PROMPT } from '../ollama/client.js';
+import type { TaskCategory } from '../model-selector/types.js';
 import type { ToolHandlerContext, OllamaTaskPayload } from './offload-work.js';
 
 function estimateTokenCount(text: string): number {
@@ -67,6 +68,7 @@ export async function handleCompressContext(
 ): Promise<CallToolResult> {
   const { ollamaClient, queue, tierConfig, costCalculator, logger, maxRequestSizeBytes } = context;
 
+  const startTime = Date.now();
   try {
     // Step 1: Ollama availability check
     if (!context.ollamaHealthy) {
@@ -169,6 +171,18 @@ export async function handleCompressContext(
       throw queueError;
     }
 
+    // DMS-029: Record successful execution
+    if (context.executionTracker) {
+      context.executionTracker.recordExecution({
+        taskCategory: 'summarization' as TaskCategory,
+        modelId: effectiveModel,
+        executionTimeMs: Date.now() - startTime,
+        inputTokens: ollamaResponse.inputTokens ?? 0,
+        outputTokens: ollamaResponse.outputTokens ?? 0,
+        success: true,
+      });
+    }
+
     // Step 9: Cost calculation
     const costResult = costCalculator.calculateSavings({
       inputTokens: ollamaResponse.inputTokens,
@@ -228,6 +242,18 @@ export async function handleCompressContext(
       ],
     };
   } catch (error) {
+    // DMS-029: Record failed execution
+    if (context.executionTracker) {
+      context.executionTracker.recordExecution({
+        taskCategory: 'summarization' as TaskCategory,
+        modelId: tierConfig.primaryModel,
+        executionTimeMs: Date.now() - startTime,
+        inputTokens: 0,
+        outputTokens: 0,
+        success: false,
+      });
+    }
+
     if (error instanceof CTSError) {
       if (error.fallbackToCloud) {
         return createFallbackResponse('ERROR', error.message);

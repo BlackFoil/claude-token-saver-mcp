@@ -24,6 +24,9 @@ import { handlePreloadModel, type PreloadModelContext } from './tools/preload-mo
 import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/list-loaded-models.js';
 import { handlePullModel, type PullModelContext } from './tools/pull-model.js';
 import { handleConfigureModelSelector, type ConfigureModelSelectorContext } from './tools/configure-model-selector.js';
+import { ExecutionTracker } from './model-selector/execution-tracker.js';
+import { BenchmarkStore } from './model-selector/benchmark-db.js';
+import { getFullRegistry } from './model-selector/registry.js';
 import { TASK_CATEGORIES } from './model-selector/types.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
@@ -119,6 +122,12 @@ async function main(): Promise<void> {
     }, 'Cost history restored');
   }
 
+  // 5b. Create ExecutionTracker
+  const executionTracker = new ExecutionTracker();
+
+  // 5c. Create BenchmarkStore (DMS-028)
+  const benchmarkStore = BenchmarkStore.createFromRegistry([...getFullRegistry()]);
+
   // 6. Create MCP Server and register tools
   const server = new Server(
     {
@@ -141,6 +150,7 @@ async function main(): Promise<void> {
     ollamaHealthy,
     maxRequestSizeBytes: config.queue.maxRequestSizeBytes,
     config, // DMS-016: model selector integration
+    executionTracker, // DMS-029: execution tracking
   };
 
   // recommend_model context
@@ -150,6 +160,7 @@ async function main(): Promise<void> {
     config,
     logger,
     ollamaHealthy,
+    benchmarkStore,
   };
 
   // DMS-018: preload_model / list_loaded_models context

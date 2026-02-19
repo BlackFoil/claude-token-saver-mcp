@@ -10,6 +10,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { OllamaClient } from '../ollama/client.js';
 import type { TierConfig } from '../tiering/config.js';
 import type { AppConfig } from '../config/schema.js';
+import type { BenchmarkStore } from '../model-selector/benchmark-db.js';
 import type { Logger } from 'pino';
 import { TASK_CATEGORIES, type TaskCategory } from '../model-selector/types.js';
 import { recommendModels, formatRecommendationMarkdown } from '../model-selector/recommender.js';
@@ -21,6 +22,7 @@ export interface RecommendModelContext {
   config: AppConfig;
   logger: Logger;
   ollamaHealthy: boolean;
+  benchmarkStore?: BenchmarkStore;
 }
 
 interface RecommendModelInput {
@@ -100,6 +102,7 @@ export async function handleRecommendModel(
       blockedModels: ctx.config.modelSelector.blockedModels,
       licenseFilter: ctx.config.modelSelector.licenseFilter,
       maxSimultaneousModels: ctx.config.modelSelector.maxSimultaneousModels,
+      benchmarkStore: ctx.benchmarkStore,
     });
 
     // Format as Markdown

@@ -14,6 +14,7 @@ import { SYSTEM_PROMPT } from '../ollama/client.js';
 import type { AppConfig } from '../config/schema.js';
 import { recommendModels } from '../model-selector/recommender.js';
 import { TASK_CATEGORIES, type TaskCategory } from '../model-selector/types.js';
+import type { ExecutionTracker } from '../model-selector/execution-tracker.js';
 import type { Logger } from 'pino';
 
 export interface ToolHandlerContext {
@@ -25,6 +26,7 @@ export interface ToolHandlerContext {
   ollamaHealthy: boolean;
   maxRequestSizeBytes: number;
   config?: AppConfig; // DMS-016: model selector integration
+  executionTracker?: ExecutionTracker; // DMS-029: execution tracking
 }
 
 export interface OllamaTaskPayload {
@@ -62,6 +64,7 @@ export async function handleOffloadWork(
 ): Promise<CallToolResult> {
   const { ollamaClient, queue, tierConfig, costCalculator, logger, maxRequestSizeBytes } = context;
 
+  const startTime = Date.now();
   try {
     // Step 1: Ollama availability check
     if (!context.ollamaHealthy) {
@@ -190,6 +193,19 @@ export async function handleOffloadWork(
       throw queueError;
     }
 
+    // DMS-029: Record successful execution
+    if (context.executionTracker) {
+      const categoryValue = (typeof rawArgs['category'] === 'string' ? rawArgs['category'] : 'general') as TaskCategory;
+      context.executionTracker.recordExecution({
+        taskCategory: categoryValue,
+        modelId: effectiveModel,
+        executionTimeMs: Date.now() - startTime,
+        inputTokens: ollamaResponse.inputTokens ?? 0,
+        outputTokens: ollamaResponse.outputTokens ?? 0,
+        success: true,
+      });
+    }
+
     // Step 8: Cost calculation
     const costResult = costCalculator.calculateSavings({
       inputTokens: ollamaResponse.inputTokens,
@@ -234,6 +250,18 @@ export async function handleOffloadWork(
       ],
     };
   } catch (error) {
+    // DMS-029: Record failed execution
+    if (context.executionTracker) {
+      context.executionTracker.recordExecution({
+        taskCategory: 'general',
+        modelId: tierConfig.primaryModel,
+        executionTimeMs: Date.now() - startTime,
+        inputTokens: 0,
+        outputTokens: 0,
+        success: false,
+      });
+    }
+
     if (error instanceof CTSError) {
       if (error.fallbackToCloud) {
         const task = typeof rawInput === 'object' && rawInput !== null && 'task' in rawInput
