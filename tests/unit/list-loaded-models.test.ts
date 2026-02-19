@@ -245,6 +245,29 @@ describe('handleListLoadedModels (DMS-015)', () => {
     expect(text).toContain('CTS-0000');
   });
 
+  it('shows "unknown" when expires_at getter throws', async () => {
+    const model = {
+      name: 'model-a',
+      size: 5_000_000_000,
+      digest: 'abc',
+      size_vram: 4_000_000_000,
+      get expires_at(): string { throw new TypeError('getter failed'); },
+    };
+    const ctx = createMockContext({
+      ollamaClient: {
+        healthCheck: vi.fn().mockResolvedValue(true),
+        listRunning: vi.fn().mockResolvedValue({
+          models: [model],
+        }),
+      } as unknown as ListLoadedModelsContext['ollamaClient'],
+    });
+
+    const result = await handleListLoadedModels({}, ctx);
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('unknown');
+  });
+
   it('getRamFromTier handles Infinity max (Tier 3)', async () => {
     const tier3Config: TierConfig = {
       level: 3,

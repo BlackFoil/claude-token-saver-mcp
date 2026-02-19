@@ -243,4 +243,13 @@ describe('ExecutionTracker (DMS-029)', () => {
     const boost = tracker.getRecommendationBoost('qwen3:8b', 'coding');
     expect(boost).toBe(0);
   });
+
+  it('getRecommendationBoost returns 0 when target model has 0ms but others are non-zero', () => {
+    // Target model with 0ms, another model with positive time
+    // This triggers normalizedTime <= 0 branch
+    tracker.recordExecution(makeRecord({ modelId: 'qwen3:8b', executionTimeMs: 0 }));
+    tracker.recordExecution(makeRecord({ modelId: 'phi4:latest', executionTimeMs: 500 }));
+    const boost = tracker.getRecommendationBoost('qwen3:8b', 'coding');
+    expect(boost).toBe(0);
+  });
 });

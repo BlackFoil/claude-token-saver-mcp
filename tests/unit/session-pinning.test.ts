@@ -237,6 +237,21 @@ describe('handlePreloadModel (DMS-014)', () => {
     const text = (result.content[0] as { type: 'text'; text: string }).text;
     expect(text).toContain('permanent');
   });
+
+  it('returns CTS-0000 for non-CTSError in catch', async () => {
+    const ctx = makePreloadContext(3);
+    vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
+      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01T00:00:00Z' }],
+    });
+    vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
+    // Make chat throw a non-CTSError
+    vi.spyOn(ctx.ollamaClient, 'chat').mockRejectedValueOnce(new TypeError('unexpected crash'));
+
+    const result = await handlePreloadModel({ model: 'qwen2.5-coder:32b' }, ctx);
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { type: 'text'; text: string }).text;
+    expect(text).toContain('CTS-0000');
+  });
 });
 
 // ── DMS-015: list_loaded_models Tests ───────────────────────

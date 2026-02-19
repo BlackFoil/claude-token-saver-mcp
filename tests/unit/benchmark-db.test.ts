@@ -181,4 +181,17 @@ describe('BenchmarkStore (DMS-028)', () => {
     expect(writtenData.lastUpdated).toBeDefined();
     expect(writtenData.benchmarks['save-model']).toEqual({ humanEval: 95.0 });
   });
+
+  it('saveToFile uses current date when lastUpdated is null', async () => {
+    const { writeFile } = await import('node:fs/promises');
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+
+    // Fresh store without any updates — lastUpdated is undefined
+    const emptyStore = new BenchmarkStore();
+    await emptyStore.saveToFile('/tmp/empty.json');
+
+    const writtenData = JSON.parse(vi.mocked(writeFile).mock.calls[0]![1] as string);
+    expect(writtenData.lastUpdated).toBeDefined();
+    expect(writtenData.benchmarks).toEqual({});
+  });
 });

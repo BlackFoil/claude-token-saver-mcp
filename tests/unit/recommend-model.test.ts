@@ -217,6 +217,22 @@ describe('handleRecommendModel (DMS-010/013)', () => {
     expect(text).toContain('Must be a boolean');
   });
 
+  it('handles non-Error throw from Ollama query gracefully', async () => {
+    const ctx = makeContext(3, undefined, true);
+
+    vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockRejectedValueOnce(
+      'string error',
+    );
+    vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
+      models: [],
+    });
+
+    const result = await handleRecommendModel({ category: 'coding' }, ctx);
+    expect(result.isError).toBeUndefined();
+    const text = (result.content[0] as { type: 'text'; text: string }).text;
+    expect(text).toContain('## Model Recommendation');
+  });
+
   it('returns error for non-CTSError from unknown error', async () => {
     // Create a context that triggers a non-CTSError
     const ctx = makeContext(3);

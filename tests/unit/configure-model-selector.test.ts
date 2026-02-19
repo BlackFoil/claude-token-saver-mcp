@@ -359,6 +359,30 @@ describe('handleConfigureModelSelector (DMS-032)', () => {
     expect(text).toContain('cleared');
   });
 
+  it('set blocked_models without values returns error', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'blocked_models', action: 'set' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('requires values array');
+  });
+
+  it('set license_filter without values returns error', async () => {
+    const ctx = createMockContext();
+    const result = await handleConfigureModelSelector(
+      { setting: 'license_filter', action: 'set' },
+      ctx,
+    );
+
+    expect(result.isError).toBe(true);
+    const text = (result.content[0] as { text: string }).text;
+    expect(text).toContain('requires values array');
+  });
+
   it('non-CTSError in handler returns CTS-0000 error', async () => {
     const ctx = createMockContext();
     // Force a generic error by providing a non-object custom_config that passes validation but fails later

@@ -949,6 +949,222 @@ describe('OllamaClient.chat - non-done content in remaining buffer', () => {
   });
 });
 
+describe('OllamaClient - non-Error throws in fetch catch', () => {
+  it('listModelsFull handles non-Error throw', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce('string error');
+
+    const client = makeClient();
+    await expect(client.listModelsFull()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('listRunning handles non-Error throw', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce('string error');
+
+    const client = makeClient();
+    await expect(client.listRunning()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('pullModel handles non-Error throw', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce('string error');
+
+    const client = makeClient();
+    await expect(client.pullModel('test')).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('chat handles non-Error throw from fetch', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce('string error');
+
+    const client = makeClient();
+    await expect(
+      client.chat({
+        model: 'phi4:latest',
+        messages: [{ role: 'user', content: 'Hi' }],
+        stream: true,
+      }),
+    ).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.getVersion - compareVersions edge cases', () => {
+  it('accepts version equal to minimum (0.1.34)', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ version: '0.1.34' }), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const version = await client.getVersion();
+    expect(version).toBe('0.1.34');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('accepts version with fewer parts (e.g., 0.2)', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ version: '0.2' }), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const version = await client.getVersion();
+    expect(version).toBe('0.2');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('accepts version with more parts (e.g., 1.0.0.0)', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ version: '1.0.0.0' }), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const version = await client.getVersion();
+    expect(version).toBe('1.0.0.0');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('throws for non-Error rejection in getVersion fetch', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce('string error');
+
+    const client = makeClient();
+    await expect(client.getVersion()).rejects.toThrow(OllamaNotRunningError);
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.chat - multiple chunk reads with heartbeat', () => {
+  it('resets heartbeat on subsequent chunks after first token', async () => {
+    const encoder = new TextEncoder();
+    const chunk1 = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:00Z',
+      message: { role: 'assistant', content: 'A' },
+      done: false,
+    });
+    const chunk2 = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:01Z',
+      message: { role: 'assistant', content: 'B' },
+      done: false,
+    });
+    const finalChunk = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:02Z',
+      message: { role: 'assistant', content: '' },
+      done: true,
+      total_duration: 500_000_000,
+      load_duration: 50_000_000,
+      prompt_eval_count: 5,
+      prompt_eval_duration: 200_000_000,
+      eval_count: 3,
+      eval_duration: 100_000_000,
+    });
+
+    // Send chunks in separate reads to trigger heartbeat reset branch
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(chunk1 + '\n'));
+        controller.enqueue(encoder.encode(chunk2 + '\n'));
+        controller.enqueue(encoder.encode(finalChunk + '\n'));
+        controller.close();
+      },
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(stream, { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.chat({
+      model: 'phi4:latest',
+      messages: [{ role: 'user', content: 'Hi' }],
+      stream: true,
+    });
+
+    expect(result.text).toBe('AB');
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.chat - empty lines in NDJSON', () => {
+  it('skips empty lines in NDJSON stream', async () => {
+    const chunk1 = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:00Z',
+      message: { role: 'assistant', content: 'Hello' },
+      done: false,
+    });
+    const finalChunk = JSON.stringify({
+      model: 'phi4:latest',
+      created_at: '2026-01-01T00:00:01Z',
+      message: { role: 'assistant', content: '' },
+      done: true,
+      total_duration: 500_000_000,
+      load_duration: 50_000_000,
+      prompt_eval_count: 5,
+      prompt_eval_duration: 200_000_000,
+      eval_count: 1,
+      eval_duration: 100_000_000,
+    });
+
+    const encoder = new TextEncoder();
+    // Include empty lines between chunks
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(chunk1 + '\n\n\n' + finalChunk + '\n'));
+        controller.close();
+      },
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(stream, { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.chat({
+      model: 'phi4:latest',
+      messages: [{ role: 'user', content: 'Hi' }],
+      stream: true,
+    });
+
+    expect(result.text).toBe('Hello');
+
+    fetchSpy.mockRestore();
+  });
+});
+
+describe('OllamaClient.pullModel - empty lines in stream', () => {
+  it('skips empty lines during pull', async () => {
+    const lines = [
+      '',
+      JSON.stringify({ status: 'downloading', completed: 50, total: 100 }),
+      '',
+      JSON.stringify({ status: 'success' }),
+    ];
+
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(ndjsonStream(lines), { status: 200 }),
+    );
+
+    const client = makeClient();
+    const result = await client.pullModel('test:latest');
+    expect(result.alreadyUpToDate).toBe(false);
+
+    stderrSpy.mockRestore();
+    fetchSpy.mockRestore();
+  });
+});
+
 // NOTE: client.ts timeout callbacks (requestTimeout, firstTokenTimeout, heartbeatTimeout)
 // and stall detection in pullModel use AbortController.abort() which doesn't interrupt
 // ReadableStream.read() in Node.js test environment. These paths are exercised in
