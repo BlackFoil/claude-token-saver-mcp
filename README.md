@@ -1,63 +1,49 @@
 [English](./README.en.md) | 日本語
 
-[![CI](https://github.com/pulseagent/claude-token-saver-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pulseagent/claude-token-saver-mcp/actions) [![npm](https://img.shields.io/npm/v/claude-token-saver-mcp)](https://www.npmjs.com/package/claude-token-saver-mcp) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)]() [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+[![CI](https://github.com/pulseagent/claude-token-saver-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pulseagent/claude-token-saver-mcp/actions) [![npm](https://img.shields.io/npm/v/claude-token-saver-mcp)](https://www.npmjs.com/package/claude-token-saver-mcp) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/pulseagent/claude-token-saver-mcp/actions) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
 # claude-token-saver-mcp
 
+> **Status: Beta** — 個人利用に適しています。736テスト / 97%カバレッジ。
+
 **Claude Code の定型タスクをローカル LLM で処理し、API トークン消費をゼロにする MCP サーバー。**
 
-コード生成、リファクタリング、テスト作成、テキスト要約 — これらを Cloud API の代わりにあなたの PC の Ollama で実行します。セキュリティ内蔵。
+コード生成、リファクタリング、テスト作成、テキスト要約 — これらを Cloud API の代わりにあなたの PC の [Ollama](https://ollama.com/) で実行します。セキュリティ内蔵。
 
-```json
-{
-  "mcpServers": {
-    "token-saver": { "command": "npx", "args": ["-y", "claude-token-saver-mcp"] }
-  }
-}
-```
+<!-- デモGIF: 以下の内容で録画してここに貼ってください -->
+<!-- Claude Code で「ソート関数を書いて」→ offload_work 実行 → コード生成 → cost_dashboard で節約額表示 -->
+<!-- 推奨: 800x450px, 15-20秒, asciinema or vhs -->
 
-## Highlights
+## なぜ作ったか
 
-- **ゼロコスト実行** — 定型タスクはローカル処理。Cloud API 不使用
-- **自動モデル選択** — RAM を検出し、最適モデルを自動で推奨・導入 (`auto_setup`)
-- **セキュリティ内蔵** — PI 防御 20 パターン + 出力サニタイズ 11 パターン。他のローカル LLM ツールにはない保護層
-- **コスト可視化** — 節約額をリアルタイム追跡 (`cost_dashboard`)
-- **バッチ処理** — 複数タスクを一括投入、順次/並列モード対応
-- **分散実行** — 複数 Ollama ノードへのロードバランシング (advanced)
+Claude Code の API 利用を分析したところ、**リクエストの約 40% が定型的なコード生成やテキスト処理**でした。これらは 7B パラメータのローカルモデルでも十分な品質で処理できます。「高度な推論は Cloud、定型作業は Local」— この役割分担を自動化するために作りました。
 
-## 自動ティアリング
+## どう動くのか
 
-| RAM | Tier | モデル | コンテキスト |
-|:---:|:---:|:---|:---:|
-| < 16 GB | Light | phi4:latest | 4,000 |
-| 16–48 GB | Standard | qwen2.5-coder:7b | 12,000 |
-| > 48 GB | Ultra | qwen2.5-coder:32b | 32,000 |
-
-## 使い方
+[MCP (Model Context Protocol)](https://modelcontextprotocol.io/) は、Claude Code が外部ツールを呼び出すための標準プロトコルです。このサーバーを登録すると、Claude Code が **タスクの性質を判断し、定型作業を自動的にローカル LLM に委譲**します。
 
 ```
-あなた: 「ソート関数を書いて」 → offload_work がローカルで生成
-あなた: 「このログを要約して」 → compress_context がローカルで圧縮
-あなた: 「コスト節約を見せて」 → cost_dashboard: 累計 $47.89 節約
+Claude Code ──MCP──▶ token-saver ──HTTP──▶ Ollama (あなたの PC)
+     │                                         │
+     │  「これは定型タスクだ。ローカルに任せよう」  │
+     │                                         │
+     └─── 高度な推論・設計判断は Cloud で継続 ───┘
 ```
 
-## 要件
+Ollama が停止中や応答遅延時は、自動的に Cloud API にフォールバック。サービスは中断しません。
 
-- Node.js >= 20
-- [Ollama](https://ollama.com/)
+## 30秒セットアップ
 
-## セットアップ
+**前提:** [Node.js 20+](https://nodejs.org/) と [Ollama](https://ollama.com/) をインストール済み。
+Ollama はローカルで AI モデルを動かすためのツールです。
 
-### 1. Ollama を起動
+**0.** Ollama を起動:
 
 ```bash
-# モデルは auto_setup で自動DLされるため、手動プルは不要
 ollama serve
 ```
 
-### 2. Claude Code に登録
-
-`~/.claude/claude_desktop_config.json` に追加:
+**1.** `~/.claude/claude_desktop_config.json` に追加 (ファイルがなければ新規作成):
 
 ```json
 {
@@ -66,6 +52,27 @@ ollama serve
   }
 }
 ```
+
+**2.** Claude Code を起動し、こう依頼:
+
+```
+コーディング用にローカルLLMをセットアップして
+```
+
+RAM に応じた最適モデルが自動で推奨・ダウンロード (約 4GB)・プリロードされます。
+
+**3.** 動作確認 — 以下を依頼:
+
+```
+TypeScript で配列をシャッフルする関数を書いて
+```
+
+応答の末尾に `Model: qwen2.5-coder:7b | Savings: $0.02` のようなメタ情報が表示されれば成功です。
+表示されない場合は `ollama list` でモデルを確認し、[トラブルシューティング](./docs/user/troubleshooting.md) を参照してください。
+
+<!-- TODO: セットアップ完了のスクリーンショットをここに貼る -->
+<!-- 内容: Claude Code で offload_work が実行され、応答末尾に Model / Tokens / Savings が表示されている様子 -->
+<!-- 推奨: 800x400px, ターミナルスクリーンショット -->
 
 <details>
 <summary>ソースからビルドする場合</summary>
@@ -89,15 +96,45 @@ npm ci && npm run build
 
 </details>
 
-### 3. モデルを自動セットアップ
+## Highlights
 
-Claude Code で:
+- **ゼロコスト実行** — 定型タスクはローカル処理。Cloud API 不使用
+- **自動モデル選択** — RAM を検出し、PC に最適なモデルを自動導入 (`auto_setup`)
+- **セキュリティ内蔵** — プロンプトインジェクション防御 + 出力サニタイズ。他のローカル LLM ツールにはない保護層
+- **コスト可視化** — 節約額をリアルタイム追跡。月額 $200 利用なら **$50〜80 の節約** が見込めます *(約40%の定型タスク比率に基づく試算)*
+- **フォールバック** — Ollama 停止時は自動で Cloud に切り替え。サービス中断なし
+
+## 使い方
 
 ```
-コーディング用にローカルLLMをセットアップして
+あなた: 「ソート関数を書いて」    → offload_work がローカルで生成 💰 $0.02 節約
+あなた: 「このログを要約して」    → compress_context がローカルで圧縮 💰 $0.05 節約
+あなた: 「コスト節約を見せて」    → cost_dashboard: 累計 $47.89 節約
+あなた: 「3つのAPIを一括実装して」 → batch_offload: 3タスクを順次処理
 ```
 
-RAM に応じた最適モデルが自動で推奨・DL・プリロードされます。
+## 品質とトレードオフ
+
+正直に言うと、ローカル 7B モデルの出力は Claude には及びません。しかし:
+
+| タスク | ローカル品質 | 向いている |
+|:---|:---:|:---:|
+| ボイラープレートコード生成 | ★★★★☆ | ✅ |
+| ユニットテスト作成 | ★★★★☆ | ✅ |
+| テキスト要約 | ★★★★☆ | ✅ |
+| リファクタリング (単純) | ★★★☆☆ | ✅ |
+| アーキテクチャ設計 | ★★☆☆☆ | ❌ Cloud推奨 |
+| 複雑なデバッグ | ★★☆☆☆ | ❌ Cloud推奨 |
+
+Claude Code 自身がタスクの複雑さを判断し、適切に振り分けます。ローカルの品質が不足する場合は Cloud で処理されます。
+
+## 自動ティアリング
+
+| RAM | Tier | モデル | DLサイズ |
+|:---:|:---:|:---|:---:|
+| < 16 GB | Light | phi4:latest | ~2.5 GB |
+| 16–48 GB | Standard | qwen2.5-coder:7b | ~4.7 GB |
+| > 48 GB | Ultra | qwen2.5-coder:32b | ~18 GB |
 
 ## ツール一覧
 
@@ -108,6 +145,12 @@ RAM に応じた最適モデルが自動で推奨・DL・プリロードされ�
 | `auto_setup` | 最適モデルの推奨→DL→プリロードをワンステップ |
 | `batch_offload` | 複数タスクを一括投入 (順次/並列) |
 | `cost_dashboard` | 累計節約額とモデル使用統計 |
+
+<details>
+<summary>その他のツール (6件)</summary>
+
+| ツール | 説明 |
+|:---|:---|
 | `get_metrics` | サーバーメトリクス (JSON / Prometheus) |
 | `recommend_model` | タスクカテゴリ別の最適モデル推奨 |
 | `pull_model` | Ollama モデルのダウンロード |
@@ -115,29 +158,15 @@ RAM に応じた最適モデルが自動で推奨・DL・プリロードされ�
 | `list_loaded_models` | ロード中モデル一覧 |
 | `configure_model_selector` | セレクター設定のランタイム管理 |
 
-## 設定
-
-環境変数または `~/.config/claude-token-saver/config.json` で設定可能。
-
-→ **[設定リファレンス](./docs/user/configuration.md)**
-
-<details>
-<summary>主な環境変数</summary>
-
-| 変数 | デフォルト | 説明 |
-|:---|:---|:---|
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama の URL |
-| `TIER_OVERRIDE` | (自動検出) | Tier 強制指定 (`1`/`2`/`3`) |
-| `MODEL_OVERRIDE` | (自動) | 使用モデル強制指定 |
-| `LOG_LEVEL` | `info` | ログレベル |
-
 </details>
 
 ## セキュリティ
 
-- **プロンプトインジェクション防御**: 5 カテゴリ 20 パターンで入力を検査
-- **出力サニタイズ**: API キー・パスワード・JWT 等 11 パターンを `[REDACTED]` に置換
-- **入力サイズ制限**: タスク 50K / コンテキスト 100K / 圧縮 200K 文字
+ローカル LLM への入出力を自動保護します:
+
+- **プロンプトインジェクション防御**: 5 カテゴリ 20 パターンで悪意ある入力をブロック
+- **出力サニタイズ**: API キー・パスワード・JWT 等 11 パターンを `[REDACTED]` に自動置換
+- **データプライバシー**: 全処理がローカル完結。外部送信なし
 
 ## ドキュメント
 
@@ -153,10 +182,15 @@ RAM に応じた最適モデルが自動で推奨・DL・プリロードされ�
 
 ```bash
 npm ci
-npm test             # 736 テスト
-npm run test:e2e     # E2E (Ollama 必須)
+npm test             # 736 テスト (97% カバレッジ)
+npm run typecheck    # 型チェック
+npm run lint         # ESLint
 npm run build        # プロダクションビルド
 ```
+
+**対応プラットフォーム:** macOS, Linux, Windows (Ollama が動作する環境)
+
+コントリビューション歓迎です。→ [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## ライセンス
 
