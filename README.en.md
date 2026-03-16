@@ -20,7 +20,7 @@ After analyzing Claude Code API usage, I found that **~40% of requests were rout
 
 ## Vision
 
-Local LLM performance is improving rapidly. From Llama 3 in 2024 to Qwen3 in 2025, coding benchmarks (HumanEval) jumped from **60% to 85%** in just one year.
+Local LLM performance is improving rapidly. From Llama 3 in 2024 to Qwen3 in 2025, the industry-standard code generation test ([HumanEval](https://arxiv.org/abs/2107.03374)) jumped from **60% to 85%** in just one year.
 
 At this pace, local LLMs will soon become a standard part of Agent Teams. claude-token-saver-mcp provides a **"Cloud × Local hybrid execution platform"** ahead of that future.
 
@@ -183,6 +183,25 @@ All input/output to the local LLM is automatically protected:
 | [Configuration](./docs/user/configuration.md) | All settings |
 | [FAQ](./docs/user/faq.md) | Common questions |
 | [Troubleshooting](./docs/user/troubleshooting.md) | Error resolution |
+
+## Architecture
+
+```text
+src/
+├── server.ts          # MCP entry point (11 tools registered)
+├── tools/             # offload_work, compress_context, auto_setup, batch_offload, etc.
+├── ollama/            # Ollama client & multi-node load balancer
+├── queue/             # FIFO queue & priority queue (URGENT/HIGH/NORMAL/LOW)
+├── model-selector/    # Model recommendation engine, benchmark DB, execution tracker
+├── validators/        # Input validation & prompt injection defense
+├── cost/              # Cost calculation & reporter
+├── metrics/           # Prometheus metrics collector
+├── persistence/       # ExecutionTracker / BenchmarkStore file persistence
+├── config/            # Zod config schema & loader
+├── tiering/           # RAM-based auto tiering
+├── logging/           # Structured logging helpers
+└── errors.ts          # CTS-XXXX error system
+```
 
 ## Development
 

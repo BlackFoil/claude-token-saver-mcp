@@ -20,7 +20,7 @@ Claude Code の API 利用を分析したところ、**リクエストの約 40%
 
 ## ビジョン
 
-ローカル LLM の性能は急速に向上しています。2024年の Llama 3 から 2025年の Qwen3 まで、わずか1年でコーディングベンチマーク (HumanEval) は **60% → 85%** に到達しました。
+ローカル LLM の性能は急速に向上しています。2024年の Llama 3 から 2025年の Qwen3 まで、わずか1年でコード生成精度の業界標準テスト ([HumanEval](https://arxiv.org/abs/2107.03374)) は **60% → 85%** に到達しました。
 
 この流れが続けば、Agent Teams の中にローカル LLM が標準的に組み込まれる日は近いでしょう。claude-token-saver-mcp は、その未来に先行して **「Cloud × Local のハイブリッド実行基盤」** を提供します。
 
@@ -183,6 +183,25 @@ Claude Code 自身がタスクの複雑さを判断し、適切に振り分け�
 | [設定リファレンス](./docs/user/configuration.md) | 全設定項目 |
 | [FAQ](./docs/user/faq.md) | よくある質問 |
 | [トラブルシューティング](./docs/user/troubleshooting.md) | エラー対応 |
+
+## アーキテクチャ
+
+```text
+src/
+├── server.ts          # MCP エントリポイント (11 ツール登録)
+├── tools/             # offload_work, compress_context, auto_setup, batch_offload 等
+├── ollama/            # Ollama クライアント & マルチノードロードバランサー
+├── queue/             # FIFO キュー & 優先度キュー (URGENT/HIGH/NORMAL/LOW)
+├── model-selector/    # モデル推奨エンジン, ベンチマーク DB, 実行トラッカー
+├── validators/        # 入力バリデーション & プロンプトインジェクション防御
+├── cost/              # コスト計算 & レポーター
+├── metrics/           # Prometheus メトリクス収集
+├── persistence/       # ExecutionTracker / BenchmarkStore ファイル永続化
+├── config/            # Zod 設定スキーマ & ローダー
+├── tiering/           # RAM ベース自動ティアリング
+├── logging/           # 構造化ログヘルパー
+└── errors.ts          # CTS-XXXX エラー体系
+```
 
 ## 開発
 
