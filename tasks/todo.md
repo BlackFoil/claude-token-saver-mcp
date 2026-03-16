@@ -28,17 +28,20 @@ CI改善 (format:check追加, カバレッジアーティファクト保存)。
 ### v0.3.0 P4-P6 全実装 — ✅ 完了 (2026-03-16)
 
 #### P4: インフラ・公開準備 (4件)
+
 - [x] P4-001: npm公開ワークフロー (`publish.yml`) — provenance付きnpm publish
 - [x] P4-002: `.env.example` 更新 — v0.2.0環境変数を全追加
 - [x] P4-003: `.npmrc` 作成 — registry, access, provenance設定
 - [x] P4-004: `.prettierrc` 明示化 — `endOfLine: "lf"` 追加
 
 #### P5: 運用・可観測性 (3件)
+
 - [x] P5-001: Prometheusメトリクスエクスポート — `MetricsCollector` + `get_metrics` MCPツール (28テスト)
 - [x] P5-002: ExecutionTracker / BenchmarkStore ファイル永続化 — `PersistenceManager` (自動保存5分間隔, 10テスト)
 - [x] P5-003: 構造化ログ — `createToolLogContext`, `createRequestId` (8テスト)
 
 #### P6: 機能拡張 (4件)
+
 - [x] P6-001: バッチタスクサブミッション — `batch_offload` MCPツール (17テスト)
 - [x] P6-002: 優先度付きキュー — `PriorityQueue` (URGENT/HIGH/NORMAL/LOW, 15テスト)
 - [x] P6-003: モデルレジストリ自動更新 — `RegistryUpdater` (9パターン分類, 33テスト)

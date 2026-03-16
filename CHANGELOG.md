@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-03-16
 
 ### Added
+
 - npm公開ワークフロー (`publish.yml`) — provenance付き自動publish
 - `.env.example` 更新 — v0.2.0+の全環境変数を網羅
 - `.npmrc` 作成 — registry/access/provenance設定
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config Schema拡張: `distributed` / `persistence` / `registryUpdater` セクション
 
 ### Changed
+
 - テスト: 592 → 736 (+144テスト, 39ファイル)
 - MCPツール: 8 → 11
 - lint / typecheck / build 全パス
@@ -30,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-02-19
 
 ### Added
+
 - Dynamic Model Selector with 7 task categories × 3 performance tiers
 - `recommend_model` MCP tool — AI-powered model recommendations based on system specs
 - `preload_model` MCP tool — VRAM warm-start for faster inference
@@ -47,12 +50,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - English README (README.en.md)
 
 ### Changed
+
 - Version bump from 0.1.0 to 0.2.0
 - Enhanced recommendation engine with benchmark enrichment and performance-based reranking
 
 ## [0.1.0] - 2026-02-15
 
 ### Added
+
 - Initial MCP server with stdio transport
 - `offload_work` tool — delegate coding tasks to local Ollama LLM
 - `compress_context` tool — summarize large text via local LLM

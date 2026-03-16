@@ -22,7 +22,7 @@ Claude Code の API 利用を分析したところ、**リクエストの約 40%
 
 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) は、Claude Code が外部ツールを呼び出すための標準プロトコルです。このサーバーを登録すると、Claude Code が **タスクの性質を判断し、定型作業を自動的にローカル LLM に委譲**します。
 
-```
+```text
 Claude Code ──MCP──▶ token-saver ──HTTP──▶ Ollama (あなたの PC)
      │                                         │
      │  「これは定型タスクだ。ローカルに任せよう」  │
@@ -55,7 +55,7 @@ ollama serve
 
 **2.** Claude Code を起動し、こう依頼:
 
-```
+```text
 コーディング用にローカルLLMをセットアップして
 ```
 
@@ -63,7 +63,7 @@ RAM に応じた最適モデルが自動で推奨・ダウンロード (約 4GB)
 
 **3.** 動作確認 — 以下を依頼:
 
-```
+```text
 TypeScript で配列をシャッフルする関数を書いて
 ```
 
@@ -106,7 +106,7 @@ npm ci && npm run build
 
 ## 使い方
 
-```
+```text
 あなた: 「ソート関数を書いて」    → offload_work がローカルで生成 💰 $0.02 節約
 あなた: 「このログを要約して」    → compress_context がローカルで圧縮 💰 $0.05 節約
 あなた: 「コスト節約を見せて」    → cost_dashboard: 累計 $47.89 節約

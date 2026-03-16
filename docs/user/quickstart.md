@@ -102,13 +102,13 @@ Claude Code に「コーディング用にローカルLLMをセットアップ�
 
 2. stderr に以下のようなログが出ることを確認します。
 
-   ```
+   ```text
    [claude-token-saver-mcp v0.3.0] Tier 2 (Standard) — qwen2.5-coder:7b
    ```
 
 3. 試しに以下のように依頼してみます。
 
-   ```
+   ```text
    TypeScript で Hello World を書いて
    ```
 

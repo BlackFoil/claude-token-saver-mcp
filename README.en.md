@@ -22,7 +22,7 @@ After analyzing Claude Code API usage, I found that **~40% of requests were rout
 
 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) is the standard protocol for Claude Code to call external tools. Once registered, Claude Code **evaluates each task and automatically delegates routine work to your local LLM**.
 
-```
+```text
 Claude Code ──MCP──▶ token-saver ──HTTP──▶ Ollama (your PC)
      │                                         │
      │  "This is a routine task. Delegate it."  │
@@ -55,7 +55,7 @@ ollama serve
 
 **2.** Launch Claude Code and ask:
 
-```
+```text
 Set up a local LLM for coding tasks
 ```
 
@@ -63,7 +63,7 @@ The best model for your RAM is automatically recommended, downloaded (~4GB), and
 
 **3.** Verify — ask Claude Code:
 
-```
+```text
 Write a TypeScript function to shuffle an array
 ```
 
@@ -106,7 +106,7 @@ npm ci && npm run build
 
 ## How It Looks
 
-```
+```text
 You: "Write a sort function"       → offload_work generates locally  💰 $0.02 saved
 You: "Summarize this log"          → compress_context compresses     💰 $0.05 saved
 You: "Show me cost savings"        → cost_dashboard: $47.89 total saved

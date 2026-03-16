@@ -30,7 +30,7 @@ npm run lint      # ESLint
 
 ## アーキテクチャ
 
-```
+```text
 src/
 ├── server.ts          # エントリポイント (全ツール登録)
 ├── config/            # Zod 設定スキーマ

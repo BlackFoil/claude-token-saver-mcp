@@ -36,7 +36,7 @@ claude-token-saver-mcp の全設定項目を解説します。
 
 ### 設定ファイルの場所
 
-```
+```text
 ~/.config/claude-token-saver/config.json
 ```
 
