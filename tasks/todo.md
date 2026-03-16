@@ -1,6 +1,6 @@
 # claude-token-saver-mcp 実装タスクリスト
 
-**現在のPhase:** v0.3.0 計画・タスク化
+**現在のPhase:** v0.3.0 完了
 **作成日:** 2026-02-15
 **最終更新:** 2026-03-16
 **管理者:** PM / Claude Code (Leader)
@@ -25,86 +25,55 @@ recommend_model, preload_model, list_loaded_models, pull_model, configure_model_
 E2Eテスト13件追加 (Ollama実サーバー統合 + 3層タイムアウト検証)。
 CI改善 (format:check追加, カバレッジアーティファクト保存)。
 
+### v0.3.0 P4-P6 全実装 — ✅ 完了 (2026-03-16)
+
+#### P4: インフラ・公開準備 (4件)
+- [x] P4-001: npm公開ワークフロー (`publish.yml`) — provenance付きnpm publish
+- [x] P4-002: `.env.example` 更新 — v0.2.0環境変数を全追加
+- [x] P4-003: `.npmrc` 作成 — registry, access, provenance設定
+- [x] P4-004: `.prettierrc` 明示化 — `endOfLine: "lf"` 追加
+
+#### P5: 運用・可観測性 (3件)
+- [x] P5-001: Prometheusメトリクスエクスポート — `MetricsCollector` + `get_metrics` MCPツール (28テスト)
+- [x] P5-002: ExecutionTracker / BenchmarkStore ファイル永続化 — `PersistenceManager` (自動保存5分間隔, 10テスト)
+- [x] P5-003: 構造化ログ — `createToolLogContext`, `createRequestId` (8テスト)
+
+#### P6: 機能拡張 (4件)
+- [x] P6-001: バッチタスクサブミッション — `batch_offload` MCPツール (17テスト)
+- [x] P6-002: 優先度付きキュー — `PriorityQueue` (URGENT/HIGH/NORMAL/LOW, 15テスト)
+- [x] P6-003: モデルレジストリ自動更新 — `RegistryUpdater` (9パターン分類, 33テスト)
+- [x] P6-004: 分散実行 (マルチノードOllama) — `OllamaLoadBalancer` (3戦略+フェイルオーバー, 18テスト)
+
 ### 現在の品質指標
 
 | 指標 | 値 |
 |:---|:---:|
-| テスト合計 | 592 (unit: 490, security: 65, integration: 19, E2E: 13*) |
-| ステートメントカバレッジ | 98.37% |
-| ブランチカバレッジ | 95.35% |
-| 関数カバレッジ | 100% |
-| MCPツール数 | 8 |
+| テスト合計 | 721 (unit: 588, security: 65, integration: 19, E2E: 13*) |
+| テストファイル | 38 |
+| MCPツール数 | 10 (offload_work, compress_context, cost_dashboard, batch_offload, get_metrics + recommend_model, preload_model, list_loaded_models, pull_model, configure_model_selector) |
 | ビルド / lint / typecheck | ✅ 全パス |
+| バージョン | v0.3.0 |
 
 *E2E はOllama起動時のみ実行
+
+### 新規ファイル一覧 (v0.3.0)
+
+| ファイル | 内容 |
+|:---|:---|
+| `.github/workflows/publish.yml` | npm公開ワークフロー |
+| `.npmrc` | npm設定 |
+| `src/metrics/collector.ts` | Prometheusメトリクス収集 |
+| `src/tools/get-metrics.ts` | メトリクスMCPツール |
+| `src/tools/batch-offload.ts` | バッチオフロードツール |
+| `src/persistence/manager.ts` | 永続化マネージャー |
+| `src/logging/structured.ts` | 構造化ログヘルパー |
+| `src/queue/priority-queue.ts` | 優先度付きキュー |
+| `src/model-selector/registry-updater.ts` | レジストリ自動更新 |
+| `src/ollama/load-balancer.ts` | マルチノードロードバランサー |
 
 ---
 
 ## 残タスク一覧
-
-### P4: インフラ・公開準備
-
-> **目的:** 設計書に定義済みだが未実装のインフラ整備と npm 公開ワークフロー
-
-- [ ] P4-001: npm公開ワークフロー (`.github/workflows/publish.yml`)
-  - GitHubリリース作成時に npm publish --provenance を自動実行
-  - 設計書: `docs/design/infrastructure-design.md` §publish.yml
-  - **担当:** PM
-
-- [ ] P4-002: `.env.example` 作成
-  - 全環境変数 (OLLAMA_BASE_URL, TIER_OVERRIDE, MODEL_OVERRIDE 等) のテンプレート
-  - **担当:** PM
-
-- [ ] P4-003: `.npmrc` 作成
-  - npm公開設定 (registry, access=public)
-  - **担当:** PM
-
-- [ ] P4-004: `.eslintrc.cjs` / `.prettierrc` の明示的設定ファイル作成
-  - 現在は暗黙のデフォルト設定に依存。明示化して再現性を確保
-  - **担当:** PM
-
----
-
-### P5: 運用・可観測性
-
-> **目的:** 本番運用に必要なメトリクスエクスポートと監視機能
-
-- [ ] P5-001: Prometheusメトリクスエクスポート
-  - リクエスト数, レイテンシ, キュー長, コスト節約額をメトリクスとして公開
-  - **担当:** Coder 2
-
-- [ ] P5-002: ExecutionTracker / BenchmarkStore のファイル永続化接続
-  - 現在はインメモリのみ。サーバー再起動時にデータを復元可能にする
-  - **担当:** Coder 2
-
-- [ ] P5-003: 構造化ログの拡充
-  - tool_name, model, category, duration_ms, tokens をログフィールドに統一
-  - **担当:** Coder 2
-
----
-
-### P6: 機能拡張
-
-> **目的:** ユーザー要望に基づく機能追加
-
-- [ ] P6-001: バッチタスクサブミッション
-  - 複数タスクを一括でキューに投入する `batch_offload` ツール
-  - **担当:** Coder 2
-
-- [ ] P6-002: 優先度付きキュー
-  - エージェントロール別の優先度スケジューリング (PM > Coder > Tester)
-  - 既存FIFOQueueの拡張
-  - **担当:** Coder 2
-
-- [ ] P6-003: モデルレジストリの自動更新
-  - Ollama ライブラリから新規モデルを定期的にフェッチしてレジストリに反映
-  - **担当:** Coder 2
-
-- [ ] P6-004: 分散実行 (マルチノードOllama)
-  - 複数のOllamaインスタンスへのロードバランシング
-  - **担当:** Architect + Coder 2
-
----
 
 ### P7: Webダッシュボード (webapp)
 
@@ -133,22 +102,3 @@ CI改善 (format:check追加, カバレッジアーティファクト保存)。
 - [ ] P7-005: モデル管理UI
   - インストール済みモデル一覧、プリロード/アンロード操作、推奨モデル表示
   - **担当:** PM
-
----
-
-## 優先度マトリクス
-
-| 優先度 | カテゴリ | タスク | 工数目安 | 依存 |
-|:---:|:---|:---|:---:|:---:|
-| **高** | P4 インフラ | P4-001 publish.yml | 小 | なし |
-| **高** | P4 インフラ | P4-002 .env.example | 小 | なし |
-| **高** | P4 インフラ | P4-003 .npmrc | 小 | なし |
-| **中** | P4 インフラ | P4-004 lint/prettier設定 | 小 | なし |
-| **中** | P5 運用 | P5-002 永続化接続 | 中 | なし |
-| **中** | P5 運用 | P5-003 構造化ログ | 小 | なし |
-| **低** | P5 運用 | P5-001 Prometheus | 大 | なし |
-| **低** | P6 機能 | P6-001 バッチ | 中 | なし |
-| **低** | P6 機能 | P6-002 優先度キュー | 中 | なし |
-| **低** | P6 機能 | P6-003 レジストリ自動更新 | 中 | なし |
-| **低** | P6 機能 | P6-004 分散実行 | 大 | なし |
-| **将来** | P7 Web | P7-001〜005 | 特大 | P7-001 |

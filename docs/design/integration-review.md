@@ -1,6 +1,6 @@
 # Phase 2 横断レビュー結果
 
-**レビュー日:** 2026-02-15
+**レビュー日:** 2026-02-15（初版） / 2026-03-16（v0.3.0更新）
 **レビュー者:** PM / Claude Code (Leader)
 **対象設計書:** 5件
 
@@ -31,6 +31,17 @@
 | キュー最大長 | **OK** | 全設計書で10件 |
 | MCPレスポンス形式 | **OK** | `CallToolResult` の `content[]` + `isError` で統一 |
 | プロジェクト名 | **P1修正** | 「PulseAgent」と「claude-token-saver-mcp」が混在。設計書タイトルを統一する |
+
+#### v0.3.0 追加コンポーネント名
+
+| コンポーネント名 | ファイル | 説明 |
+|:---|:---|:---|
+| PriorityQueue | `src/queue/priority-queue.ts` | 優先度付きキュー |
+| MetricsCollector | `src/metrics/collector.ts` | メトリクス収集 |
+| PersistenceManager | `src/persistence/manager.ts` | 永続化管理 |
+| RegistryUpdater | `src/model-selector/registry-updater.ts` | レジストリ自動更新 |
+| OllamaLoadBalancer | `src/ollama/load-balancer.ts` | ロードバランサー |
+| ToolLogContext | `src/logging/structured.ts` | 構造化ログコンテキスト |
 
 ### 2.2 エラーコード体系の一貫性
 
@@ -78,6 +89,19 @@
 
 **判定: OK** — 全モジュールが少なくとも1テストレイヤーでカバー。
 
+#### v0.3.0 テスト実績
+
+| 指標 | 値 |
+|:---|:---|
+| 総テスト数 | 721 tests / 38 test files |
+| ユニットテスト | ~588 tests |
+| セキュリティテスト | 65 tests |
+| 統合テスト | 19 tests |
+| E2Eテスト | 13 tests（Ollama必須） |
+| Statement coverage | 97.58% |
+| Branch coverage | 93.8% |
+| Function coverage | 100% |
+
 ### 2.5 インフラ設計とMCPサーバー設計の整合性
 
 | チェック項目 | ステータス | 詳細 |
@@ -90,7 +114,26 @@
 | stderr出力 | **OK** | pinoロガー→stderr、MCPツール→stdout(stdio)で分離が全設計書で統一 |
 | DB設計 | **OK** | MVP: インメモリ累計。v0.2.0以降でbetter-sqlite3追加（infra/mcp-server一致） |
 
-### 2.6 Phase 1 決定事項の反映確認
+### 2.6 v0.3.0 モジュール整合性
+
+| インターフェース | ステータス | 詳細 |
+|:---|:---:|:---|
+| MetricsCollector ↔ server.ts | **OK** | ヘルスチェック時にメトリクス更新 ✅ |
+| PersistenceManager ↔ server.ts | **OK** | 起動時loadAll、終了時saveAll、auto-save ✅ |
+| RegistryUpdater ↔ registry.ts | **OK** | getAllRegisteredModelIds()で重複排除 ✅ |
+| OllamaLoadBalancer ↔ OllamaClient | **OK** | 同一インターフェース（chat, healthCheck, listModels） ✅ |
+| PriorityQueue ↔ FIFOQueue | **OK** | 同一エラー型（QueueFullError, RateLimitError） ✅ |
+| batch_offload ↔ offload_work | **OK** | 同一ToolHandlerContext、同一バリデーション・PI検知 ✅ |
+
+### 2.7 v0.3.0 設定スキーマ整合性
+
+| 設定セクション | ステータス | 詳細 |
+|:---|:---:|:---|
+| distributed | **OK** | Zod validated, nodes配列, strategy enum ✅ |
+| persistence | **OK** | Zod validated, dataDir optional, autoSaveIntervalMs with min ✅ |
+| registryUpdater | **OK** | Zod validated, updateIntervalMs with min ✅ |
+
+### 2.8 Phase 1 決定事項の反映確認
 
 | Phase 1 決定事項 | 反映先 | ステータス |
 |:---|:---|:---:|
@@ -157,6 +200,19 @@ P0-1（Ollamaバージョン統一）は即座に修正し、P1項目はPhase 3�
 | 1 | `docs/design/mcp-server-design.md` | ~1000 | MCPツール定義、Ollamaクライアント、ティアリング、キュー、コスト計算 |
 | 2 | `docs/design/infrastructure-design.md` | ~1120 | ディレクトリ構造、package.json、Docker、CI/CD |
 | 3 | `docs/design/security-design.md` | ~1000 | STRIDE脅威モデル、4層PI防御、DoS対策、35項目チェックリスト |
-| 4 | `docs/design/test-strategy.md` | ~800 | 141テストケース（Unit 85/Integration 19/Security 29/Perf 8） |
+| 4 | `docs/design/test-strategy.md` | ~800 | 721テスト / 38ファイル（Unit ~588/Integration 19/Security 65/E2E 13） |
 | 5 | `docs/design/data-flow-design.md` | ~985 | Mermaid図8枚、エラークラス階層、CTS-XXXXコード体系、ロギング設計 |
 | 6 | `docs/design/integration-review.md` | — | 本横断レビュー結果 |
+
+---
+
+## 6. v0.3.0 統合ステータス
+
+**更新日:** 2026-03-16
+
+| チェック項目 | ステータス |
+|:---|:---:|
+| 新規10モジュール全てがserver.tsに統合済み | **OK** |
+| 全721テストがパス | **OK** |
+| lint / typecheck / build 全パス | **OK** |
+| 既存テストに破壊的変更なし | **OK** |

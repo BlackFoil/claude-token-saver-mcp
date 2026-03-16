@@ -1,7 +1,7 @@
 # MCPサーバー基本設計書
 
 **プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
-**バージョン:** v1.0
+**バージョン:** v0.3.0
 **作成日:** 2026-02-15
 **作成者:** Architect Agent
 **フェーズ:** Phase 2 — 基本設計
@@ -20,6 +20,7 @@
 8. [フォールバック設計](#8-フォールバック設計)
 9. [初回起動フロー](#9-初回起動フロー)
 10. [設定ファイル仕様](#10-設定ファイル仕様)
+11. [メトリクス & 永続化](#11-メトリクス--永続化)
 
 ---
 
@@ -249,6 +250,320 @@ function truncateToContextLimit(content: string, tier: TierConfig): {
 }
 ```
 
+### 1.3 recommend_model
+
+タスクカテゴリに最適なOllamaモデルを推薦するツール。インストール済みモデル・VRAM状態・ベンチマークスコアを考慮して推薦リストを生成する。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Recommends the best local LLM model for a given task category.
+Analyzes installed models, VRAM capacity, and benchmark scores to suggest
+the optimal model for coding, general, or specialized tasks.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Task category for model recommendation.",
+      "enum": ["coding", "coding-agent", "general", "japanese"]
+    },
+    "prefer_quality": {
+      "type": "boolean",
+      "description": "If true, prefer higher quality models over speed.",
+      "default": false
+    }
+  },
+  "required": ["category"]
+}
+```
+
+### 1.4 preload_model
+
+モデルをVRAMにプリロードし、推論時のコールドスタートを回避するツール。空のchatリクエストを送信してモデルをメモリに載せる。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Preloads a model into VRAM for warm inference.
+Use this tool to pre-warm a model before running tasks, avoiding cold start delays.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "Model name to preload (e.g., 'qwen2.5-coder:7b')."
+    },
+    "keep_alive": {
+      "type": "string",
+      "description": "How long to keep the model loaded (e.g., '5m', '1h', '-1' for permanent).",
+      "default": "5m"
+    }
+  },
+  "required": ["model"]
+}
+```
+
+### 1.5 list_loaded_models
+
+現在VRAMにロードされているモデルの一覧をVRAM使用量・有効期限付きで表示するツール。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Lists models currently loaded in VRAM with usage details.
+Shows VRAM consumption, expiry time, and available model slots.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {},
+  "required": []
+}
+```
+
+### 1.6 pull_model
+
+Ollamaレジストリからモデルをダウンロードするツール。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Downloads a model from the Ollama registry to local storage.
+Use this tool to install new models for local inference.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "string",
+      "description": "Model name to pull (e.g., 'qwen2.5-coder:7b')."
+    }
+  },
+  "required": ["model"]
+}
+```
+
+### 1.7 batch_offload
+
+複数タスクを一括でキューに投入するツール。1〜10タスクをsequential（逐次）またはparallel（並列）モードで処理する。タスクはPriority.LOWで実行され、部分失敗時も残タスクを継続する。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Batch-submits multiple tasks to the local LLM queue.
+Supports 1-10 tasks in sequential or parallel mode. Tasks run at LOW priority.
+Partial failures do not abort remaining tasks.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "description": "List of tasks to process (1-10).",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "Task description.",
+            "maxLength": 50000
+          },
+          "language": { "type": "string" },
+          "context": { "type": "string", "maxLength": 100000 },
+          "output_format": {
+            "type": "string",
+            "enum": ["code", "diff", "explanation", "raw"]
+          },
+          "model": { "type": "string" },
+          "category": { "type": "string" }
+        },
+        "required": ["task"]
+      }
+    },
+    "sequential": {
+      "type": "boolean",
+      "description": "If true, tasks run sequentially with previous result as context. If false (default), tasks run in parallel.",
+      "default": false
+    }
+  },
+  "required": ["tasks"]
+}
+```
+
+#### レスポンス形式
+
+**成功時（部分失敗含む）:**
+```
+## Batch Results: 3/4 succeeded
+(1 failed)
+
+### Task 1
+<生成結果>
+
+### Task 2
+ERROR: [CTS-5001] ...
+
+### Task 3
+<生成結果>
+
+### Task 4
+<生成結果>
+
+---
+Total tokens: 3200 in / 1800 out | Total savings: $0.0312 | Mode: parallel
+```
+
+### 1.8 get_metrics
+
+Prometheus text形式またはJSONでサーバーメトリクスを返すツール。リクエスト数、レイテンシ（p50/p95/p99）、キュー状態、コスト節約額、Ollama健全性を含む。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Returns server metrics in Prometheus text or JSON format.
+Includes request counts, latency percentiles, queue status, cost savings, and Ollama health.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "string",
+      "description": "Output format.",
+      "enum": ["prometheus", "json"],
+      "default": "json"
+    }
+  },
+  "required": []
+}
+```
+
+#### レスポンス形式
+
+**JSON形式:**
+```json
+{
+  "requestsTotal": 42,
+  "requestsByTool": { "offload_work": 30, "compress_context": 12 },
+  "errorsTotal": 2,
+  "errorsByCode": { "TIMEOUT_REQUEST": 1, "QUEUE_FULL": 1 },
+  "queueLength": 0,
+  "ollamaHealthy": true,
+  "loadedModelsCount": 2,
+  "latencyQuantiles": { "p50": 3200, "p95": 8500, "p99": 12000 },
+  "totalSavingsUsd": 0.4523,
+  "totalInputTokens": 52000,
+  "totalOutputTokens": 28000,
+  "uptimeMs": 3600000
+}
+```
+
+### 1.9 configure_model_selector
+
+ランタイムでモデルセレクターの設定を管理するツール。ブロックモデル・ライセンスフィルタ・カスタム推奨を動的に変更できる。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Manages model selector settings at runtime.
+Configure blocked models, license filters, and custom model recommendations
+without restarting the server.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "setting": {
+      "type": "string",
+      "description": "Which setting to manage.",
+      "enum": ["blocked_models", "license_filter", "custom_recommendations"]
+    },
+    "action": {
+      "type": "string",
+      "description": "Action to perform.",
+      "enum": ["get", "set", "add", "remove"]
+    },
+    "values": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Values for set/add/remove actions."
+    },
+    "custom_config": {
+      "type": "object",
+      "description": "Custom recommendations config for 'set' action on custom_recommendations. Structure: { category: { tier: modelId[] } }"
+    }
+  },
+  "required": ["setting", "action"]
+}
+```
+
+### 1.10 cost_dashboard
+
+累計コスト節約額とモデル使用統計を表示するツール。ExecutionTrackerのデータからカテゴリ別・モデル別の成功率・平均処理時間を集計する。
+
+#### Claudeへの提示テキスト
+
+```
+(Cost-Saver) Displays cumulative cost savings and model usage statistics.
+Shows total savings, token counts, and per-model performance metrics.
+```
+
+#### inputSchema (JSON Schema)
+
+```json
+{
+  "type": "object",
+  "properties": {},
+  "required": []
+}
+```
+
+#### レスポンス形式
+
+```
+## Cost Savings Dashboard
+
+**Total Savings:** $0.4523
+**Total Requests:** 42
+**Total Tokens:** 52000 input / 28000 output
+
+### Model Usage Statistics
+| Model | Category | Requests | Avg Time | Success Rate |
+|:---|:---|:---:|:---:|:---:|
+| qwen2.5-coder:7b | coding | 30 | 3.2s | 96.7% |
+| phi4:latest | general | 12 | 2.1s | 100.0% |
+```
+
 ---
 
 ## 2. Ollamaクライアント設計
@@ -446,6 +761,80 @@ async function streamWithHeartbeat(
   };
 }
 ```
+
+### 2.5 OllamaLoadBalancer（マルチノード対応）
+
+複数のOllamaインスタンスへのロードバランシングを提供するモジュール。分散実行により処理能力を水平スケールする。
+
+#### 設計方針
+
+- **マルチノード対応:** 複数Ollamaインスタンスを束ねて単一のクライアントとして利用可能
+- **3戦略:** `round-robin`, `least-connections`, `model-affinity`（デフォルト）
+- **自動フェイルオーバー:** 選択ノード失敗時、次の健全ノードに自動切り替え
+- **ヘルスチェック:** 定期的にノード状態を更新（デフォルト30秒間隔）
+- **有効化:** 設定ファイルの `distributed` セクションで有効化
+
+#### TypeScriptインターフェース
+
+```typescript
+interface OllamaNode {
+  id: string;
+  baseUrl: string;
+  label?: string;
+  weight?: number;  // デフォルト: 1
+}
+
+type LoadBalancerStrategy = 'round-robin' | 'least-connections' | 'model-affinity';
+
+interface LoadBalancerConfig {
+  nodes: OllamaNode[];
+  strategy: LoadBalancerStrategy;
+  healthCheckIntervalMs?: number;  // デフォルト: 30000
+  clientConfig: Omit<OllamaClientConfig, 'baseUrl'>;
+}
+
+interface NodeStatus {
+  id: string;
+  baseUrl: string;
+  healthy: boolean;
+  activeConnections: number;
+  loadedModels: string[];
+}
+
+class OllamaLoadBalancer {
+  /** リクエストに最適なノードを戦略に基づいて選択 */
+  selectNode(request: OllamaChatRequest): NodeState | null;
+
+  /** 自動フェイルオーバー付きchatリクエスト */
+  async chat(request: OllamaChatRequest): Promise<OllamaChatResponse>;
+
+  /** 全ノードのヘルスチェック（少なくとも1つ健全ならtrue） */
+  async healthCheck(): Promise<boolean>;
+
+  /** 定期ヘルスチェック開始（デフォルト30秒間隔） */
+  startHealthChecks(): void;
+
+  /** 定期ヘルスチェック停止 */
+  stopHealthChecks(): void;
+
+  /** 全ノードのステータスを取得 */
+  getNodesStatus(): NodeStatus[];
+
+  /** 全健全ノードから重複排除したモデル一覧を取得 */
+  async listModels(): Promise<OllamaModelInfo[]>;
+
+  /** 特定ノードまたは全健全ノードでモデルをpull */
+  async pullModel(name: string, nodeId?: string): Promise<void>;
+}
+```
+
+#### 戦略詳細
+
+| 戦略 | 動作 | ユースケース |
+|:---|:---|:---|
+| `round-robin` | ノードを順番に選択 | 均等な負荷分散 |
+| `least-connections` | アクティブ接続数が最少のノードを選択（weight考慮） | 不均一な処理時間のタスク |
+| `model-affinity` | 対象モデルがロード済みのノードを優先し、なければleast-connectionsにフォールバック | コールドスタート回避（**デフォルト**） |
 
 ---
 
@@ -805,6 +1194,67 @@ class RateLimiter {
     this.windows.set(agentId, timestamps);
     return true;
   }
+}
+```
+
+### 4.5 PriorityQueue
+
+FIFOQueueを拡張し、優先度付きキューイングを提供する。既存のFIFOQueueは互換性のため維持する。
+
+#### Priority enum
+
+| Priority | 値 | 用途 |
+|:---|:---:|:---|
+| **URGENT** | 0 | 緊急タスク（将来拡張用） |
+| **HIGH** | 1 | 高優先度タスク |
+| **NORMAL** | 2 | 通常のoffload_work/compress_context（デフォルト） |
+| **LOW** | 3 | batch_offloadのタスク |
+
+#### 設計方針
+
+- 同一優先度内はFIFO順（先入れ先出し）を維持
+- `getStatus()` に `byPriority` 統計を追加（優先度別のpending/processed数）
+- concurrency=1、最大キュー長・レートリミットはFIFOQueueと同一仕様
+
+#### TypeScriptインターフェース
+
+```typescript
+enum Priority {
+  URGENT = 0,
+  HIGH = 1,
+  NORMAL = 2,
+  LOW = 3,
+}
+
+interface PriorityQueueStats {
+  currentLength: number;
+  isProcessing: boolean;
+  totalProcessed: number;
+  totalRejected: number;
+  averageWaitMs: number;
+  averageProcessingMs: number;
+  byPriority: Record<Priority, { pending: number; processed: number }>;
+}
+
+class PriorityQueue<T, R> {
+  constructor(
+    config: PriorityQueueConfig,
+    processor: (item: T) => Promise<R>,
+    rateLimiter?: RateLimiter,
+  );
+
+  /**
+   * 優先度付きでキューに追加。
+   * 同一優先度内はFIFO順を維持し、高優先度アイテムは前方に挿入される。
+   */
+  async enqueue(
+    payload: T,
+    requestSizeBytes: number,
+    options?: { priority?: Priority; agentId?: string },
+  ): Promise<R>;
+
+  /** 優先度別統計を含むキュー状態を返す */
+  getStatus(): PriorityQueueStats;
 }
 ```
 
@@ -1714,6 +2164,227 @@ function loadConfig(configPath?: string): ServerConfig {
 }
 ```
 
+### 10.5 distributed（分散実行設定）
+
+```json
+{
+  "distributed": {
+    "enabled": false,
+    "nodes": [
+      {
+        "id": "node-1",
+        "baseUrl": "http://192.168.1.10:11434",
+        "label": "GPU Server",
+        "weight": 2
+      },
+      {
+        "id": "node-2",
+        "baseUrl": "http://192.168.1.11:11434",
+        "label": "CPU Server",
+        "weight": 1
+      }
+    ],
+    "strategy": "model-affinity",
+    "healthCheckIntervalMs": 30000
+  }
+}
+```
+
+| プロパティ | 型 | デフォルト | 説明 |
+|:---|:---|:---|:---|
+| `enabled` | boolean | `false` | 分散実行の有効/無効 |
+| `nodes` | OllamaNode[] | `[]` | Ollamaノード一覧 |
+| `strategy` | string | `"model-affinity"` | ロードバランシング戦略 |
+| `healthCheckIntervalMs` | number | `30000` | ヘルスチェック間隔（ms） |
+
+### 10.6 persistence（永続化設定）
+
+```json
+{
+  "persistence": {
+    "enabled": true,
+    "dataDir": "~/.config/claude-token-saver/",
+    "autoSaveIntervalMs": 300000
+  }
+}
+```
+
+| プロパティ | 型 | デフォルト | 説明 |
+|:---|:---|:---|:---|
+| `enabled` | boolean | `true` | 永続化の有効/無効 |
+| `dataDir` | string | `"~/.config/claude-token-saver/"` | データ保存ディレクトリ |
+| `autoSaveIntervalMs` | number | `300000` | 自動保存間隔（ms、5分） |
+
+### 10.7 registryUpdater（レジストリ自動更新設定）
+
+```json
+{
+  "registryUpdater": {
+    "enabled": false,
+    "updateIntervalMs": 1800000
+  }
+}
+```
+
+| プロパティ | 型 | デフォルト | 説明 |
+|:---|:---|:---|:---|
+| `enabled` | boolean | `false` | 自動更新の有効/無効 |
+| `updateIntervalMs` | number | `1800000` | 更新間隔（ms、30分） |
+
+---
+
+## 11. メトリクス & 永続化
+
+### 11.1 MetricsCollector
+
+Prometheus互換のメトリクス収集モジュール。全リクエストのパフォーマンスデータを収集し、`get_metrics` ツールで公開する。
+
+#### 収集メトリクス
+
+| 種別 | メトリクス名 | 型 | 説明 |
+|:---|:---|:---|:---|
+| カウンター | `cts_requests_total` | counter | ツール別リクエスト総数 |
+| カウンター | `cts_errors_total` | counter | エラーコード別エラー総数 |
+| カウンター | `cts_savings_usd_total` | counter | コスト節約累計（USD） |
+| カウンター | `cts_tokens_total` | counter | 入出力トークン累計 |
+| ゲージ | `cts_queue_length` | gauge | 現在のキュー長 |
+| ゲージ | `cts_ollama_healthy` | gauge | Ollama健全性（0/1） |
+| ゲージ | `cts_loaded_models_count` | gauge | ロード中モデル数 |
+| ヒストグラム | `cts_request_duration_ms` | summary | レイテンシ p50/p95/p99 |
+
+#### TypeScriptインターフェース
+
+```typescript
+interface MetricsSnapshot {
+  requestsTotal: number;
+  requestsByTool: Record<string, number>;
+  errorsTotal: number;
+  errorsByCode: Record<string, number>;
+  queueLength: number;
+  ollamaHealthy: boolean;
+  loadedModelsCount: number;
+  latencyQuantiles: { p50: number; p95: number; p99: number };
+  totalSavingsUsd: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  uptimeMs: number;
+}
+
+class MetricsCollector {
+  /** リクエスト記録（ツール名、処理時間、成否、エラーコード） */
+  recordRequest(toolName: string, durationMs: number, success: boolean, errorCode?: string): void;
+
+  /** トークン使用量記録 */
+  recordTokens(inputTokens: number, outputTokens: number): void;
+
+  /** コスト節約額記録 */
+  recordSavings(savingsUsd: number): void;
+
+  /** ゲージ更新 */
+  updateQueueLength(length: number): void;
+  updateOllamaHealth(healthy: boolean): void;
+  updateLoadedModels(count: number): void;
+
+  /** Prometheus text exposition形式でエクスポート */
+  toPrometheusText(): string;
+
+  /** JSONスナップショットでエクスポート */
+  toJSON(): MetricsSnapshot;
+}
+```
+
+### 11.2 PersistenceManager
+
+ExecutionTrackerとBenchmarkStoreのファイルI/Oを管理するモジュール。サーバー起動時にデータをロードし、5分間隔で自動保存する。
+
+#### 設計方針
+
+- **保存対象:** `execution-history.json`（実行履歴）、`benchmark-data.json`（ベンチマークデータ）
+- **保存先:** `~/.config/claude-token-saver/`（`persistence.dataDir` で変更可能）
+- **auto-save:** デフォルト5分間隔（`persistence.autoSaveIntervalMs` で変更可能）
+- **起動時ロード:** 初回起動時はファイル不在でもエラーにせず、空状態で開始
+- **シャットダウン時:** `saveAll()` で最終保存を実行
+
+#### TypeScriptインターフェース
+
+```typescript
+interface PersistenceManagerConfig {
+  dataDir?: string;            // デフォルト: ~/.config/claude-token-saver/
+  autoSaveIntervalMs?: number; // デフォルト: 300000 (5分)
+}
+
+class PersistenceManager {
+  /** コンポーネント登録 */
+  register(components: {
+    executionTracker?: ExecutionTracker;
+    benchmarkStore?: BenchmarkStore;
+    logger?: Logger;
+  }): void;
+
+  /** 起動時: ディスクからデータをロード */
+  async loadAll(): Promise<void>;
+
+  /** シャットダウン時: ディスクにデータを保存 */
+  async saveAll(): Promise<void>;
+
+  /** auto-saveタイマー開始 */
+  startAutoSave(): void;
+
+  /** auto-saveタイマー停止 */
+  stopAutoSave(): void;
+}
+```
+
+### 11.3 RegistryUpdater
+
+30分間隔でOllamaにインストール済みモデルを問い合わせ、静的レジストリに未登録のモデルを自動分類するモジュール。
+
+#### 分類パターン（9パターン）
+
+| パターン | カテゴリ | ライセンス |
+|:---|:---|:---|
+| `qwen.*coder` | coding | Apache-2.0 |
+| `deepseek.*coder` | coding | MIT |
+| `codellama` | coding | Meta-Community |
+| `devstral` | coding-agent | Apache-2.0 |
+| `qwen3` | general | Apache-2.0 |
+| `qwen2.5` | general | Apache-2.0 |
+| `gemma` | general | MIT |
+| `phi` | general | MIT |
+| `llama` | general | Meta-Community |
+
+#### 自動推定
+
+- **Tier推定:** パラメータ数から判定（≤8B→Tier1, ≤16B→Tier2, >16B→Tier3）
+- **VRAM推定:** ファイルサイズ * 1.2（ランタイムオーバーヘッド）
+- **最小RAM推定:** VRAM + 2GB（バッファ）
+
+#### TypeScriptインターフェース
+
+```typescript
+interface RegistryUpdaterConfig {
+  updateIntervalMs?: number; // デフォルト: 1800000 (30分)
+  enabled?: boolean;         // デフォルト: false
+}
+
+class RegistryUpdater {
+  /** 定期更新開始（即時実行 + interval） */
+  start(): void;
+
+  /** 定期更新停止 */
+  stop(): void;
+
+  /** 単一更新サイクル実行: 新規発見モデルを返す */
+  async update(): Promise<ModelRecommendation[]>;
+
+  /** 発見済みモデル一覧を取得 */
+  getDiscoveredModels(): ModelRecommendation[];
+
+  /** モデルをパターンマッチで分類 */
+  classifyModel(model: OllamaModelInfo): ModelRecommendation | null;
+}
+```
+
 ---
 
 ## 付録A: モジュール構成
@@ -1725,25 +2396,47 @@ packages/mcp-server/
 │   ├── server.ts                 # MCPサーバー定義（ツール登録）
 │   ├── tools/
 │   │   ├── offload-work.ts       # offload_workツール実装
-│   │   └── compress-context.ts   # compress_contextツール実装
+│   │   ├── compress-context.ts   # compress_contextツール実装
+│   │   ├── recommend-model.ts    # recommend_modelツール実装
+│   │   ├── preload-model.ts      # preload_modelツール実装
+│   │   ├── list-loaded-models.ts # list_loaded_modelsツール実装
+│   │   ├── pull-model.ts         # pull_modelツール実装
+│   │   ├── batch-offload.ts      # batch_offloadツール実装
+│   │   ├── get-metrics.ts        # get_metricsツール実装
+│   │   ├── configure-model-selector.ts # configure_model_selectorツール実装
+│   │   └── cost-dashboard.ts     # cost_dashboardツール実装
 │   ├── ollama/
 │   │   ├── client.ts             # Ollamaクライアント
-│   │   └── streaming.ts          # ストリーミングパーサー
+│   │   ├── streaming.ts          # ストリーミングパーサー
+│   │   └── load-balancer.ts      # マルチノードロードバランサー
 │   ├── tiering/
 │   │   ├── detector.ts           # RAM検出 & Tier判定
 │   │   ├── gpu.ts                # GPU検出 & Metal最適化
 │   │   └── types.ts              # Tier型定義
 │   ├── queue/
 │   │   ├── fifo.ts               # FIFOキュー実装
+│   │   ├── priority-queue.ts     # 優先度付きキュー実装
 │   │   └── rate-limiter.ts       # レートリミッター
 │   ├── cost/
 │   │   ├── calculator.ts         # コスト計算
 │   │   ├── pricing.ts            # 価格テーブル
 │   │   └── history.ts            # 累計記録の永続化
+│   ├── metrics/
+│   │   └── collector.ts          # Prometheus互換メトリクス収集
+│   ├── persistence/
+│   │   └── manager.ts            # ExecutionTracker/BenchmarkStore永続化
+│   ├── model-selector/
+│   │   ├── registry.ts           # 静的モデルレジストリ
+│   │   ├── registry-updater.ts   # モデル自動分類・更新
+│   │   ├── recommender.ts        # モデル推薦エンジン
+│   │   ├── execution-tracker.ts  # 実行履歴トラッカー
+│   │   ├── benchmark-db.ts       # ベンチマークストア
+│   │   └── vram-calculator.ts    # VRAM容量計算
 │   ├── security/
 │   │   └── input-sanitizer.ts    # プロンプトインジェクション対策
 │   ├── config/
-│   │   └── loader.ts             # 設定ファイル読み込み
+│   │   ├── loader.ts             # 設定ファイル読み込み
+│   │   └── schema.ts             # Zodスキーマ定義
 │   └── startup.ts                # 初回起動シーケンス
 ├── tests/
 │   ├── tools/
@@ -1751,6 +2444,9 @@ packages/mcp-server/
 │   ├── tiering/
 │   ├── queue/
 │   ├── cost/
+│   ├── metrics/
+│   ├── persistence/
+│   ├── model-selector/
 │   └── security/
 ├── package.json
 └── tsconfig.json

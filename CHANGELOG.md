@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-16
+
+### Added
+- npm公開ワークフロー (`publish.yml`) — provenance付き自動publish
+- `.env.example` 更新 — v0.2.0+の全環境変数を網羅
+- `.npmrc` 作成 — registry/access/provenance設定
+- `.prettierrc` 明示化 — `endOfLine: "lf"` 追加
+- Prometheusメトリクスエクスポート — `MetricsCollector` + `get_metrics` MCPツール
+- ExecutionTracker / BenchmarkStore ファイル永続化 — `PersistenceManager` (自動保存5分間隔)
+- 構造化ログヘルパー — `createToolLogContext`, `createRequestId`
+- バッチタスクサブミッション — `batch_offload` MCPツール (1-10タスク, 順次/並列)
+- 優先度付きキュー — `PriorityQueue` (URGENT/HIGH/NORMAL/LOW)
+- モデルレジストリ自動更新 — `RegistryUpdater` (9パターン自動分類)
+- 分散実行 — `OllamaLoadBalancer` (round-robin/least-connections/model-affinity + フェイルオーバー)
+- Config Schema拡張: `distributed` / `persistence` / `registryUpdater` セクション
+
+### Changed
+- テスト: 592 → 721 (+129テスト, 38ファイル)
+- MCPツール: 8 → 10
+- lint / typecheck / build 全パス
+
 ## [0.2.0] - 2026-02-19
 
 ### Added

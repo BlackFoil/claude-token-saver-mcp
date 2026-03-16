@@ -983,3 +983,69 @@ flowchart LR
 | Claude Input価格 | `CTS_CLAUDE_INPUT_PRICE` | `0.003` | Claude Sonnet入力 $/1Kトークン |
 | Claude Output価格 | `CTS_CLAUDE_OUTPUT_PRICE` | `0.015` | Claude Sonnet出力 $/1Kトークン |
 | Ollama必須バージョン | — | `0.1.34` | セキュリティ要件(CVE対応)の最低バージョン |
+
+---
+
+## 7. v0.3.0 追加データフロー
+
+### 7.1 batch_offload データフロー
+
+```
+1. クライアント → batch_offload(tasks, sequential?)
+2. Zod バリデーション (1-10タスク)
+3. Ollama 健全性チェック (不健全 → FALLBACK_TO_CLOUD)
+4. [parallel] 全タスクを同時にキュー投入
+   └→ 各タスク: 入力バリデーション → PI検知 → モデル解決 → enqueue
+   └→ キュー concurrency=1 で順次処理
+5. [sequential] 1件ずつ処理
+   └→ タスクN の結果を タスクN+1 の context として渡す
+6. 結果集約: 各タスクの成功/失敗/コスト → 合計表示
+```
+
+### 7.2 分散実行データフロー (OllamaLoadBalancer)
+
+```
+1. chat(request) 呼び出し
+2. selectNode(request) — 戦略に基づきノード選択
+   ├→ round-robin: 循環インデックスで次ノード
+   ├→ least-connections: activeConnections/weight 最小ノード
+   └→ model-affinity: request.model がloadedModelsに含まれるノード優先
+3. 選択ノードの client.chat(request) 実行
+4. 失敗時: 残りの健全ノードを順次試行 (フェイルオーバー)
+5. 全ノード失敗: OllamaNotRunningError throw
+
+ヘルスチェック (定期):
+1. 全ノードの client.healthCheck() 実行
+2. 健全ノード: client.listRunning() でloadedModels更新
+3. 不健全ノード: healthy=false にマーク
+```
+
+### 7.3 メトリクス収集フロー
+
+```
+1. ツール実行完了時:
+   └→ metricsCollector.recordRequest(toolName, durationMs, success, errorCode?)
+   └→ metricsCollector.recordTokens(inputTokens, outputTokens)
+   └→ metricsCollector.recordSavings(savingsUsd)
+2. ヘルスチェック時:
+   └→ metricsCollector.updateOllamaHealth(healthy)
+   └→ metricsCollector.updateQueueLength(queue.getStatus().currentLength)
+3. get_metrics ツール呼び出し:
+   └→ format=json: metricsCollector.toJSON()
+   └→ format=prometheus: metricsCollector.toPrometheusText()
+```
+
+### 7.4 永続化データフロー
+
+```
+起動時: PersistenceManager.loadAll()
+  └→ execution-history.json → ExecutionTracker.loadFromFile()
+  └→ benchmark-data.json → BenchmarkStore.loadFromFile()
+
+運用中: 5分間隔 auto-save
+  └→ ExecutionTracker.saveToFile() → execution-history.json
+  └→ BenchmarkStore.saveToFile() → benchmark-data.json
+
+終了時: PersistenceManager.saveAll()
+  └→ 最終データを書き込み
+```

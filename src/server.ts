@@ -25,14 +25,19 @@ import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/li
 import { handlePullModel, type PullModelContext } from './tools/pull-model.js';
 import { handleConfigureModelSelector, type ConfigureModelSelectorContext } from './tools/configure-model-selector.js';
 import { handleCostDashboard, type CostDashboardContext } from './tools/cost-dashboard.js';
+import { handleBatchOffload } from './tools/batch-offload.js';
+import { handleGetMetrics, type GetMetricsContext } from './tools/get-metrics.js';
 import { ExecutionTracker } from './model-selector/execution-tracker.js';
 import { BenchmarkStore } from './model-selector/benchmark-db.js';
 import { getFullRegistry } from './model-selector/registry.js';
 import { TASK_CATEGORIES } from './model-selector/types.js';
+import { MetricsCollector } from './metrics/collector.js';
+import { PersistenceManager } from './persistence/manager.js';
+import { RegistryUpdater } from './model-selector/registry-updater.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
 
-const PACKAGE_VERSION = '0.2.0';
+const PACKAGE_VERSION = '0.3.0';
 
 async function main(): Promise<void> {
   // 1. Load config
@@ -129,6 +134,32 @@ async function main(): Promise<void> {
   // 5c. Create BenchmarkStore (DMS-028)
   const benchmarkStore = BenchmarkStore.createFromRegistry([...getFullRegistry()]);
 
+  // 5d. Create MetricsCollector (P5-001)
+  const metricsCollector = new MetricsCollector();
+  metricsCollector.updateOllamaHealth(ollamaHealthy);
+
+  // 5e. Setup PersistenceManager (P5-002)
+  const persistenceManager = new PersistenceManager({
+    dataDir: config.persistence.dataDir,
+    autoSaveIntervalMs: config.persistence.autoSaveIntervalMs,
+  });
+  persistenceManager.register({ executionTracker, benchmarkStore, logger });
+
+  if (config.persistence.enabled) {
+    await persistenceManager.loadAll();
+    persistenceManager.startAutoSave();
+    logger.info('Persistence manager started');
+  }
+
+  // 5f. Create RegistryUpdater (P6-003)
+  const registryUpdater = new RegistryUpdater(ollamaClient, logger, {
+    enabled: config.registryUpdater.enabled,
+    updateIntervalMs: config.registryUpdater.updateIntervalMs,
+  });
+  if (config.registryUpdater.enabled && ollamaHealthy) {
+    registryUpdater.start();
+  }
+
   // 6. Create MCP Server and register tools
   const server = new Server(
     {
@@ -197,6 +228,12 @@ async function main(): Promise<void> {
   const costDashboardContext: CostDashboardContext = {
     costCalculator,
     executionTracker,
+    logger,
+  };
+
+  // P5-001: get_metrics context
+  const getMetricsContext: GetMetricsContext = {
+    metricsCollector,
     logger,
   };
 
@@ -288,6 +325,57 @@ async function main(): Promise<void> {
         inputSchema: {
           type: 'object' as const,
           properties: {},
+          required: [],
+        },
+      },
+      // P6-001: batch_offload
+      {
+        name: 'batch_offload',
+        description:
+          'Submit multiple coding tasks as a batch to the local LLM. ' +
+          'Tasks are processed sequentially or in parallel. Supports partial failure.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            tasks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  task: { type: 'string', description: 'The task to perform' },
+                  language: { type: 'string', description: 'Programming language (optional)' },
+                  context: { type: 'string', description: 'Additional context (optional)' },
+                  output_format: { type: 'string', enum: ['code', 'diff', 'explanation', 'raw'] },
+                  model: { type: 'string', description: 'Model override (optional)' },
+                  category: { type: 'string', enum: [...TASK_CATEGORIES] },
+                },
+                required: ['task'],
+              },
+              description: 'Array of tasks (1-10)',
+            },
+            sequential: {
+              type: 'boolean',
+              description: 'Process tasks sequentially, passing previous result as context (default: false)',
+            },
+          },
+          required: ['tasks'],
+        },
+      },
+      // P5-001: get_metrics
+      {
+        name: 'get_metrics',
+        description:
+          'Get server metrics in Prometheus text format or JSON. ' +
+          'Includes request counts, latency, queue stats, cost savings, and health status.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            format: {
+              type: 'string',
+              enum: ['json', 'prometheus'],
+              description: 'Output format (default: json)',
+            },
+          },
           required: [],
         },
       },
@@ -428,6 +516,10 @@ async function main(): Promise<void> {
         return handleConfigureModelSelector(args ?? {}, configureModelSelectorContext);
       case 'cost_dashboard':
         return handleCostDashboard(args ?? {}, costDashboardContext);
+      case 'batch_offload':
+        return handleBatchOffload(args, toolContext);
+      case 'get_metrics':
+        return handleGetMetrics(args ?? {}, getMetricsContext);
       default:
         return {
           content: [
@@ -461,6 +553,13 @@ async function main(): Promise<void> {
       clearInterval(healthCheckTimer);
     }
 
+    // P6-003: Stop registry updater
+    registryUpdater.stop();
+
+    // P5-002: Save persistence data and stop auto-save
+    persistenceManager.stopAutoSave();
+    await persistenceManager.saveAll();
+
     try {
       saveCostHistory(cumulative);
     } catch (err) {
@@ -489,6 +588,10 @@ async function main(): Promise<void> {
         preloadModelContext.ollamaHealthy = healthy;
         listLoadedModelsContext.ollamaHealthy = healthy;
         pullModelContext.ollamaHealthy = healthy;
+
+        // P5-001: Update metrics
+        metricsCollector.updateOllamaHealth(healthy);
+        metricsCollector.updateQueueLength(queue.getStatus().currentLength);
 
         if (healthy !== wasHealthy) {
           logger.info(

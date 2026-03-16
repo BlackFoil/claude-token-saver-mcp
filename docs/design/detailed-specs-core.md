@@ -1,7 +1,7 @@
 # コアモジュール詳細関数仕様書
 
 **プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
-**バージョン:** v1.0
+**バージョン:** v1.1
 **作成日:** 2026-02-15
 **作成者:** Architect Agent
 **フェーズ:** Phase 3 -- 詳細設計
@@ -16,9 +16,13 @@
 4. [src/ollama/client.ts -- OllamaClient](#4-srcollamaclientts--ollamaclient)
 5. [src/tiering/detector.ts -- Tier判定](#5-srctieringdetectorts--tier判定)
 6. [src/queue/fifo-queue.ts -- FIFOQueue](#6-srcqueuefifo-queuets--fifoqueue)
-7. [型定義一覧](#7-型定義一覧)
-8. [エラーコード対応表](#8-エラーコード対応表)
-9. [モジュール依存関係図](#9-モジュール依存関係図)
+7. [server.ts 初期化フロー (v0.3.0追加)](#7-serverts-初期化フロー-v030追加)
+8. [src/tools/batch-offload.ts (P6-001)](#8-srctoolsbatch-offloadts-p6-001)
+9. [src/queue/priority-queue.ts (P6-002)](#9-srcqueuepriority-queuets-p6-002)
+10. [src/ollama/load-balancer.ts (P6-004)](#10-srcollamaload-balancerts-p6-004)
+11. [型定義一覧](#11-型定義一覧)
+12. [エラーコード対応表](#12-エラーコード対応表)
+13. [モジュール依存関係図](#13-モジュール依存関係図)
 
 ---
 
@@ -1038,11 +1042,288 @@ interface QueueStats {
 
 ---
 
-## 7. 型定義一覧
+## 7. server.ts 初期化フロー (v0.3.0追加)
+
+v0.3.0で追加されたモジュール群に伴う、`main()` 初期化シーケンスの拡張。既存のStep 1〜5（設定読み込み、Tier判定、OllamaClient生成、FIFOQueue生成、CostCalculator生成）に続く追加ステップ。
+
+### 7.1 追加初期化ステップ
+
+```
+Step 5d: MetricsCollector作成、ollamaHealthy初期値設定
+  ├─ MetricsCollector インスタンスを生成
+  └─ metricsCollector.updateOllamaHealth(ollamaHealthy) で初期状態を反映
+
+Step 5e: PersistenceManager作成・register・loadAll・startAutoSave
+  ├─ PersistenceManager インスタンスを生成（dataDir, autoSaveIntervalMs は設定から取得）
+  ├─ persistenceManager.register() で ExecutionTracker, BenchmarkStore, Logger を登録
+  ├─ await persistenceManager.loadAll() で永続化データを読み込み
+  └─ persistenceManager.startAutoSave() で自動保存タイマーを開始
+
+Step 5f: RegistryUpdater作成、ollamaHealthy時にstart()
+  ├─ RegistryUpdater インスタンスを生成
+  └─ ollamaHealthy === true の場合のみ registryUpdater.start() を呼び出し
+```
+
+### 7.2 シャットダウン拡張
+
+既存の `handleShutdown()` に以下の処理を追加:
+
+```
+シグナル受信時（既存処理に追加）:
+  a. registryUpdater.stop() -- 定期更新タイマーを停止
+  b. persistenceManager.stopAutoSave() -- 自動保存タイマーを停止
+  c. await persistenceManager.saveAll() -- 全データを即時永続化
+  d. （既存）costCalculator の累計データ永続化
+  e. （既存）server.close()
+  f. （既存）process.exit(0)
+```
+
+### 7.3 ヘルスチェック連携
+
+ツール呼び出し時にメトリクスを更新:
+
+```
+各リクエスト処理時:
+  ├─ metricsCollector.updateOllamaHealth(healthCheckResult) -- Ollama可用性状態を更新
+  └─ metricsCollector.updateQueueLength(queue.getStatus().currentLength) -- キュー長を更新
+```
+
+---
+
+## 8. src/tools/batch-offload.ts (P6-001)
+
+複数タスクを一括でローカルLLMにオフロードするバッチ処理ツール。
+
+### 8.1 入力スキーマ
+
+```typescript
+interface BatchOffloadInput {
+  tasks: Array<{
+    task: string;              // 必須。タスク内容
+    language?: string;         // 任意。プログラミング言語
+    context?: string;          // 任意。コンテキスト情報
+    output_format?: string;    // 任意。出力フォーマット
+    model?: string;            // 任意。使用モデル指定
+    category?: string;         // 任意。タスクカテゴリ
+  }>;                          // 1〜10件
+  sequential: boolean;         // default false
+}
+```
+
+### 8.2 処理フロー
+
+```
+1. Zod バリデーション (1-10タスク)
+   └─ tasks配列の要素数が1未満または10超 → CTS-5002 エラーレスポンス
+
+2. Ollama健全性チェック
+   └─ ollamaHealthy === false → 再チェック → 失敗時はフォールバック
+
+3. 各タスク: 入力バリデーション → PI検知 → モデル解決 → キュー投入
+   ├─ バリデーション失敗 → 該当タスクをスキップ（部分失敗）
+   ├─ PI検出 → 該当タスクをスキップ + セキュリティログ
+   └─ モデル解決 → TierConfig or タスク指定modelから決定
+
+4. parallel (sequential === false):
+   └─ 全タスクを同時にキュー投入 (concurrency=1で順次処理)
+
+5. sequential (sequential === true):
+   └─ 1件ずつ処理、前の結果をcontextとして次に渡す
+
+6. 部分失敗: 失敗タスクをスキップし残りを継続
+   └─ 失敗タスクのエラー情報はレスポンスに含める
+
+7. コスト: 各タスクのsavingsを個別計算、合計を表示
+
+8. 全タスク失敗時のみ isError: true
+   └─ 1件以上成功 → isError: false（部分成功レスポンス）
+```
+
+### 8.3 レスポンス構造
+
+各タスクの結果を配列で返却。成功・失敗の混在を許容する。
+
+```
+{
+  content: [{
+    type: 'text',
+    text: JSON.stringify({
+      results: [
+        { index: 0, status: 'success', text: '...', savings: 0.0012 },
+        { index: 1, status: 'error', error: 'CTS-5001', message: '...' },
+        ...
+      ],
+      summary: {
+        total: 5,
+        succeeded: 4,
+        failed: 1,
+        totalSavingsUsd: 0.0048,
+        totalDurationMs: 12345
+      }
+    })
+  }],
+  isError: false  // 全タスク失敗時のみ true
+}
+```
+
+---
+
+## 9. src/queue/priority-queue.ts (P6-002)
+
+優先度付きキュー。FIFOQueueを拡張し、タスクの優先度に基づいた処理順序を提供する。
+
+### 9.1 Priority enum
+
+```typescript
+enum Priority {
+  URGENT = 0,
+  HIGH = 1,
+  NORMAL = 2,
+  LOW = 3,
+}
+```
+
+### 9.2 動作仕様
+
+```
+挿入: 優先度順にソート、同一優先度内はFIFO
+  └─ enqueue時にPriorityを指定、配列内の適切な位置に挿入
+
+処理: concurrency=1、processNext()で最高優先度アイテムを取得
+  └─ queue[0] が常に最高優先度（数値が小さい方が高優先度）
+
+統計: byPriority[priority].pending / .processed
+  └─ 各優先度レベルごとの待機中・処理済みカウントを提供
+
+タイムアウト・レート制限: FIFOQueueと同一仕様
+  └─ QueueConfig, RateLimiter をそのまま適用
+```
+
+### 9.3 クラス設計
+
+```typescript
+class PriorityQueue<T, R> {
+  constructor(
+    config: QueueConfig,
+    processor: (item: T) => Promise<R>,
+    logger: Logger,
+    rateLimiter?: RateLimiter,
+  );
+
+  async enqueue(
+    payload: T,
+    requestSizeBytes: number,
+    priority?: Priority,    // デフォルト: Priority.NORMAL
+    agentId?: string,
+  ): Promise<R>;
+
+  getStatus(): PriorityQueueStats;
+}
+
+interface PriorityQueueStats extends QueueStats {
+  byPriority: Record<Priority, {
+    pending: number;
+    processed: number;
+  }>;
+}
+```
+
+---
+
+## 10. src/ollama/load-balancer.ts (P6-004)
+
+複数Ollamaノードへの負荷分散を行うロードバランサー。
+
+### 10.1 NodeState
+
+```typescript
+interface OllamaNode {
+  url: string;          // 例: 'http://192.168.1.10:11434'
+  weight?: number;      // デフォルト: 1
+  name?: string;        // 表示名
+}
+
+interface NodeState {
+  client: OllamaClient;
+  node: OllamaNode;
+  healthy: boolean;
+  activeConnections: number;
+  loadedModels: Set<string>;
+}
+```
+
+### 10.2 負荷分散戦略
+
+```
+round-robin:
+  └─ 循環インデックスで健全ノードを順次選択
+
+least-connections:
+  └─ activeConnections / weight で最小のノードを選択
+
+model-affinity:
+  ├─ request.model がloadedModelsに含まれるノードを優先
+  └─ 該当ノードがない場合はleast-connections戦略にフォールバック
+```
+
+### 10.3 フェイルオーバー
+
+```
+選択ノード失敗 → 残りの健全ノードを順次試行
+  ├─ 失敗ノードを unhealthy にマーク
+  ├─ 次の健全ノードでリクエストを再試行
+  └─ 全健全ノードが失敗 → OllamaNotRunningError をスロー
+```
+
+### 10.4 ヘルスチェック
+
+```
+healthCheck():
+  ├─ 各ノードに対して client.healthCheck() を実行
+  ├─ listRunning() で現在ロード中のモデル一覧を取得
+  └─ loadedModels を更新
+```
+
+### 10.5 モデル操作
+
+```
+listModels():
+  ├─ 全健全ノードから client.listModels() を呼び出し
+  └─ 重複排除してマージした結果を返却
+
+pullModel(name: string, targetNode?: string):
+  ├─ targetNode 指定あり → 指定ノードでのみ pull 実行
+  └─ targetNode 指定なし → 全健全ノードで pull 実行
+```
+
+### 10.6 クラス設計
+
+```typescript
+type LoadBalanceStrategy = 'round-robin' | 'least-connections' | 'model-affinity';
+
+class LoadBalancer {
+  constructor(
+    nodes: OllamaNode[],
+    strategy: LoadBalanceStrategy,
+    logger: Logger,
+  );
+
+  async selectNode(request?: { model?: string }): Promise<NodeState>;
+  async chat(request: OllamaChatRequest): Promise<OllamaChatResponse>;
+  async healthCheck(): Promise<void>;
+  async listModels(): Promise<OllamaModelInfo[]>;
+  async pullModel(name: string, targetNode?: string): Promise<void>;
+  getNodeStates(): ReadonlyArray<Readonly<NodeState>>;
+}
+```
+
+---
+
+## 11. 型定義一覧
 
 全モジュールで共有される型定義をまとめる。実際の配置先は `src/types.ts` または各モジュールの型定義ファイル。
 
-### 7.1 MCPツール入出力型
+### 11.1 MCPツール入出力型
 
 ```typescript
 // --- offload_work ---
@@ -1070,7 +1351,7 @@ interface CompressContextInput {
 // { content: Array<{ type: 'text'; text: string }>; isError?: boolean; }
 ```
 
-### 7.2 Ollamaストリーミング型
+### 11.2 Ollamaストリーミング型
 
 ```typescript
 interface OllamaChatStreamChunk {
@@ -1100,7 +1381,7 @@ interface OllamaChatStreamFinal {
 }
 ```
 
-### 7.3 キュー内部型
+### 11.3 キュー内部型
 
 ```typescript
 interface QueueItem<T> {
@@ -1120,7 +1401,7 @@ interface QueueInternalStats {
 }
 ```
 
-### 7.4 Ollamaタスクペイロード型
+### 11.4 Ollamaタスクペイロード型
 
 ```typescript
 interface OllamaTaskPayload {
@@ -1129,7 +1410,7 @@ interface OllamaTaskPayload {
 }
 ```
 
-### 7.5 コスト関連型
+### 11.5 コスト関連型
 
 ```typescript
 interface CostRecord {
@@ -1158,7 +1439,7 @@ interface CostHistory {
 
 ---
 
-## 8. エラーコード対応表
+## 12. エラーコード対応表
 
 各関数がスローまたは返却するエラーコードと、対応するフォールバック動作の一覧。
 
@@ -1177,7 +1458,7 @@ interface CostHistory {
 
 ---
 
-## 9. モジュール依存関係図
+## 13. モジュール依存関係図
 
 ```
 src/server.ts (エントリポイント)

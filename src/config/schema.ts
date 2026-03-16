@@ -65,6 +65,31 @@ const modelSelectorSchema = z.object({
   licenseFilter: z.array(z.string()).default(['Apache-2.0', 'MIT', 'NVIDIA-Open']),
 });
 
+const ollamaNodeSchema = z.object({
+  id: z.string().min(1),
+  baseUrl: z.string().url(),
+  label: z.string().optional(),
+  weight: z.number().int().min(1).max(100).default(1),
+});
+
+const distributedSchema = z.object({
+  enabled: z.boolean().default(false),
+  nodes: z.array(ollamaNodeSchema).default([]),
+  strategy: z.enum(['round-robin', 'least-connections', 'model-affinity']).default('model-affinity'),
+  healthCheckIntervalMs: z.number().int().min(5_000).default(30_000),
+});
+
+const persistenceSchema = z.object({
+  enabled: z.boolean().default(true),
+  dataDir: z.string().optional(),
+  autoSaveIntervalMs: z.number().int().min(10_000).default(5 * 60 * 1_000),
+});
+
+const registryUpdaterSchema = z.object({
+  enabled: z.boolean().default(false),
+  updateIntervalMs: z.number().int().min(60_000).default(30 * 60 * 1_000),
+});
+
 export const appConfigSchema = z.object({
   ollama: ollamaConfigSchema.default({}),
   tier: tierOverrideSchema,
@@ -74,6 +99,9 @@ export const appConfigSchema = z.object({
   security: securityConfigSchema.default({}),
   logLevel: logLevelSchema,
   modelSelector: modelSelectorSchema.default({}),
+  distributed: distributedSchema.default({}),
+  persistence: persistenceSchema.default({}),
+  registryUpdater: registryUpdaterSchema.default({}),
 });
 
 export type AppConfigInput = z.input<typeof appConfigSchema>;

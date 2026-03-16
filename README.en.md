@@ -11,14 +11,16 @@ Claude Code  ──MCP──▶  claude-token-saver-mcp  ──HTTP──▶  Ol
                               │
                               ├─ Prompt injection detection
                               ├─ Input validation
-                              ├─ FIFO queue control
+                              ├─ Priority queue control
                               ├─ Output sanitization
-                              └─ Cost savings calculation
+                              ├─ Cost savings calculation
+                              ├─ Prometheus metrics
+                              └─ Multi-node distributed execution
 ```
 
 When Claude Code calls the `offload_work` / `compress_context` tools, requests are forwarded to local Ollama. Since no Cloud API is used, token costs are saved.
 
-v0.2.0 introduces a **Dynamic Model Selector** that automatically recommends and selects the optimal local model based on task category.
+v0.3.0 introduces **batch processing**, **priority queue**, **metrics**, **data persistence**, **multi-node distributed execution**, and **model registry auto-update**.
 
 ## Requirements
 
@@ -91,7 +93,7 @@ If built from source:
 When Claude Code starts, you should see output like this on stderr:
 
 ```
-[claude-token-saver-mcp v0.1.0] Tier 2 (Standard) | Model: qwen2.5-coder:7b | Ollama: connected
+[claude-token-saver-mcp v0.3.0] Tier 2 (Standard) | Model: qwen2.5-coder:7b | Ollama: connected
 ```
 
 ## Available Tools
@@ -105,6 +107,8 @@ task:          "Write a function to sort an array in TypeScript"
 language:      "typescript"     (optional)
 context:       "// existing code..." (optional)
 output_format: "code"           (optional: code|diff|explanation|raw)
+model:         "qwen3:8b"       (optional: direct model override)
+category:      "coding"         (optional: category-based auto-selection)
 ```
 
 ### `compress_context`
@@ -118,7 +122,35 @@ max_length: 2000                       (optional: 100-10000)
 model:      "qwen3:8b"                 (optional: specify model)
 ```
 
-### `recommend_model` (v0.2.0)
+### `batch_offload` (v0.3.0)
+
+Submit multiple tasks as a batch. Supports sequential and parallel modes.
+
+```
+tasks: [
+  {"task": "Write a sort function", "language": "typescript"},
+  {"task": "Write unit tests for it", "language": "typescript"}
+]
+sequential: true   (optional: true=sequential with previous result as context, false=parallel)
+```
+
+### `cost_dashboard`
+
+View cumulative cost savings and model usage statistics.
+
+```
+(no arguments)
+```
+
+### `get_metrics` (v0.3.0)
+
+Get server metrics in Prometheus text format or JSON.
+
+```
+format: "json"       (optional: json|prometheus)
+```
+
+### `recommend_model`
 
 Recommend the optimal model based on task category. Takes system specs and installed models into account.
 
@@ -127,7 +159,7 @@ category:       "coding"    (required: coding, coding-agent, japanese-text, japa
 prefer_quality: true        (optional: quality-first=true, speed-first=false)
 ```
 
-### `pull_model` (v0.2.0)
+### `pull_model`
 
 Download a model from the Ollama registry.
 
@@ -135,7 +167,7 @@ Download a model from the Ollama registry.
 model: "qwen3:14b"  (required: model name to download)
 ```
 
-### `preload_model` (v0.2.0)
+### `preload_model`
 
 Preload a model into VRAM for warm-start inference.
 
@@ -144,7 +176,7 @@ model:      "qwen2.5-coder:32b"  (required: model name to preload)
 keep_alive: "-1"                 (optional: load retention time. "-1"=permanent, "5m", "1h")
 ```
 
-### `list_loaded_models` (v0.2.0)
+### `list_loaded_models`
 
 List models currently loaded in VRAM.
 
@@ -152,7 +184,17 @@ List models currently loaded in VRAM.
 (no arguments)
 ```
 
-## Agent Team Integration (v0.2.0)
+### `configure_model_selector`
+
+Manage model selector settings at runtime.
+
+```
+setting: "blocked_models"   (required: blocked_models|license_filter|custom_recommendations)
+action:  "get"              (required: get|set|add|remove)
+values:  ["model-name"]     (optional: for set/add/remove)
+```
+
+## Agent Team Integration
 
 Add an `LLM Usage` column to the role table in CLAUDE.md to enable automatic model recommendations for each role:
 
@@ -187,6 +229,9 @@ Configure via environment variables or `~/.config/claude-token-saver/config.json
 | `MODEL_PREFER_QUALITY` | `false` | Quality-first (`true`) / speed-first (`false`) |
 | `MAX_SIMULTANEOUS_MODELS` | `auto` | Max simultaneous VRAM models (`auto` or number) |
 | `PRELOAD_KEEP_ALIVE` | `-1` | Preload retention time (`-1`=permanent) |
+| `QUEUE_MAX_SIZE` | `10` | Max queue length |
+| `QUEUE_TIMEOUT_MS` | `60000` | Queue timeout (ms) |
+| `OLLAMA_TIMEOUT_MS` | (auto per tier) | Ollama request timeout (ms) |
 
 ### Configuration File Example
 
@@ -207,6 +252,22 @@ Configure via environment variables or `~/.config/claude-token-saver/config.json
   "cost": {
     "comparisonModel": "claude-sonnet-4-5"
   },
+  "persistence": {
+    "enabled": true,
+    "autoSaveIntervalMs": 300000
+  },
+  "registryUpdater": {
+    "enabled": true,
+    "updateIntervalMs": 1800000
+  },
+  "distributed": {
+    "enabled": false,
+    "nodes": [
+      {"id": "node1", "baseUrl": "http://192.168.1.10:11434"},
+      {"id": "node2", "baseUrl": "http://192.168.1.11:11434"}
+    ],
+    "strategy": "model-affinity"
+  },
   "logLevel": "info"
 }
 ```
@@ -225,14 +286,15 @@ When Ollama is running on the host machine, it auto-connects via `host.docker.in
 - **Prompt Injection Defense**: Inspects input against 20 patterns (5 categories), blocking malicious prompts
 - **Output Sanitization**: Replaces API keys, passwords, JWTs, and more (11 patterns) with `[REDACTED]`
 - **Input Size Limits**: Task 50,000 chars, context 100,000 chars, compression content 200,000 chars
-- **FIFO Queue**: Max 10 items, 200 KB payload limit, 60-second timeout
+- **Priority Queue**: Max 10 items, 200 KB payload limit, 60-second timeout
 
 ## Development
 
 ```bash
 npm ci
 npm run dev          # Development mode (tsx watch)
-npm test             # Run tests (404+ tests)
+npm test             # Run tests (721 tests)
+npm run test:e2e     # E2E tests (requires Ollama)
 npm run test:coverage # With coverage
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
@@ -243,14 +305,17 @@ npm run build        # Production build
 
 ```
 src/
-├── server.ts              # MCP server entry point
-├── config/                # Config schema & loader
-├── tiering/               # RAM-based auto-tiering
-├── ollama/                # Ollama client & model manager
-├── queue/                 # Promise-based FIFO queue
+├── server.ts              # MCP server entry point (10 tools registered)
+├── config/                # Zod config schema & loader
+├── tiering/               # RAM-based auto-tiering (3 levels)
+├── ollama/                # Ollama client, model manager, load balancer
+├── queue/                 # FIFO queue & priority queue
 ├── cost/                  # Cost calculation & reporter
-├── tools/                 # offload_work / compress_context / recommend_model / preload_model / list_loaded_models / pull_model
-├── model-selector/        # Dynamic Model Selector (registry, recommendation engine, VRAM calc, CLAUDE.md parser)
+├── tools/                 # 10 MCP tool handlers
+├── model-selector/        # Registry, recommendation engine, VRAM calc, execution tracker, benchmark DB, auto-updater
+├── metrics/               # Prometheus metrics collector
+├── persistence/           # ExecutionTracker / BenchmarkStore file persistence
+├── logging/               # Structured logging helpers
 ├── validators/            # Input validation & PI defense
 └── errors.ts              # CTS-XXXX error system
 ```

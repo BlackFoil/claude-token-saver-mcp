@@ -1,7 +1,8 @@
 # claude-token-saver-mcp インフラストラクチャ設計書
 
-**バージョン:** 1.0
+**バージョン:** 1.1 (v0.3.0対応)
 **作成日:** 2026-02-15
+**最終更新:** 2026-03-16
 **担当:** Infrastructure Agent
 **フェーズ:** Phase 2 — 基本設計
 
@@ -18,12 +19,30 @@ claude-token-saver-mcp/
 │   ├── tools/
 │   │   ├── index.ts           # ツール登録・ルーティング
 │   │   ├── offload-work.ts    # offload_work ツール実装
-│   │   └── compress-context.ts # compress_context ツール実装
+│   │   ├── compress-context.ts # compress_context ツール実装
+│   │   ├── batch-offload.ts   # バッチオフロードツール（複数タスク一括オフロード）
+│   │   ├── get-metrics.ts     # メトリクスMCPツール（Prometheus形式メトリクス取得）
+│   │   ├── cost-dashboard.ts  # コストダッシュボードツール（節約額サマリー表示）
+│   │   ├── recommend-model.ts # モデル推薦ツール（タスクに最適なモデルを提案）
+│   │   ├── preload-model.ts   # モデルプリロードツール（モデルを事前ロード）
+│   │   ├── list-loaded-models.ts # ロード済みモデル一覧ツール
+│   │   ├── pull-model.ts      # モデルプルツール（Ollamaモデルをダウンロード）
+│   │   └── configure-model-selector.ts # モデルセレクター設定ツール
 │   ├── queue/
-│   │   └── fifo-queue.ts      # FIFOキュー（同時実行数=1、レートリミット）
+│   │   ├── fifo-queue.ts      # FIFOキュー（同時実行数=1、レートリミット）
+│   │   └── priority-queue.ts  # 優先度付きキュー（タスク優先度制御）
 │   ├── ollama/
 │   │   ├── client.ts          # Ollama API クライアント（/api/chat, /api/generate）
-│   │   └── model-manager.ts   # モデルpull確認・ヘルスチェック
+│   │   ├── model-manager.ts   # モデルpull確認・ヘルスチェック
+│   │   └── load-balancer.ts   # マルチノードロードバランサー（分散Ollama対応）
+│   ├── metrics/
+│   │   └── collector.ts       # Prometheusメトリクス収集（リクエスト数、レイテンシ、トークン使用量等）
+│   ├── persistence/
+│   │   └── manager.ts         # 永続化マネージャー（コスト記録・セッションデータの永続化）
+│   ├── logging/
+│   │   └── structured.ts      # 構造化ログヘルパー（pino拡張、リクエストID付与等）
+│   ├── model-selector/
+│   │   └── registry-updater.ts # レジストリ自動更新（Ollamaモデル一覧の定期同期）
 │   ├── tiering/
 │   │   ├── detector.ts        # RAM自動検出・Tier判定
 │   │   └── config.ts          # Tier別モデル・コンテキスト上限定義
@@ -82,13 +101,17 @@ claude-token-saver-mcp/
 | モジュール | 責務 | 依存先 |
 |:---|:---|:---|
 | `server.ts` | MCPサーバー起動、stdio transport確立、ツール登録 | tools/, config/ |
-| `tools/` | MCPツール定義（offload_work, compress_context）、引数スキーマ | queue/, ollama/, cost/, validators/ |
-| `queue/` | FIFOキュー管理、同時実行制御、レートリミット | なし |
-| `ollama/` | Ollama APIとの通信、モデル管理、ヘルスチェック | config/ |
+| `tools/` | MCPツール定義（offload_work, compress_context, batch_offload, get_metrics, cost_dashboard, recommend_model, preload_model, list_loaded_models, pull_model, configure_model_selector）、引数スキーマ | queue/, ollama/, cost/, validators/, metrics/, model-selector/ |
+| `queue/` | FIFOキュー管理、優先度付きキュー、同時実行制御、レートリミット | なし |
+| `ollama/` | Ollama APIとの通信、モデル管理、ヘルスチェック、マルチノードロードバランシング | config/ |
 | `tiering/` | RAM検出、Tier判定、モデル選択 | config/ |
 | `cost/` | 節約額計算、価格管理、stderr出力 | config/ |
 | `config/` | 環境変数＋設定ファイルの統合ロード | なし |
 | `validators/` | 入力検証、プロンプトインジェクション検出 | config/ |
+| `metrics/` | Prometheusメトリクス収集・集計（リクエスト数、レイテンシ、トークン使用量、キュー深度等） | config/ |
+| `persistence/` | コスト記録・セッションデータのファイルシステム永続化、自動保存 | config/ |
+| `logging/` | 構造化ログヘルパー（pinoラッパー）、リクエストID自動付与、ログレベル制御 | config/ |
+| `model-selector/` | Ollamaモデルレジストリの定期同期・自動更新 | ollama/, config/ |
 
 ---
 
@@ -662,6 +685,13 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
+### CI/CD ワークフロー概要
+
+| ワークフロー | トリガー | 主要ステップ |
+|:---|:---|:---|
+| `ci.yml` | push/PR to main | lint, **format:check**, typecheck, test:coverage, build, license-check, **カバレッジレポートをartifactとして保存** |
+| `publish.yml` | GitHubリリース作成時 | npm ci, build, test, license-check, **`npm publish --provenance --access public`** を自動実行 |
+
 ### CI/CDパイプライン図
 
 ```
@@ -813,8 +843,13 @@ TIER_OVERRIDE=                               # Tier強制指定（1/2/3、空欄
 MODEL_OVERRIDE=                              # モデル強制指定（例: llama3.2:3b）
 
 # --- Queue ---
-QUEUE_MAX_SIZE=10                            # FIFOキュー最大長
+QUEUE_MAX_SIZE=10                            # FIFOキュー最大長（優先度付きキュー含む）
 QUEUE_TIMEOUT_MS=60000                       # キュー待ち時間上限（ミリ秒）
+
+# --- 注意: 以下の機能は設定ファイル（config.json）のみで制御 ---
+# distributed（マルチノード分散）: config.jsonの distributed セクション
+# persistence（永続化）: config.jsonの persistence セクション
+# registryUpdater（レジストリ自動更新）: config.jsonの registryUpdater セクション
 
 # --- Cost ---
 CLOUD_INPUT_PRICE_PER_MTOKEN=3.00           # クラウドAPI入力価格（$/1M tokens）
@@ -826,6 +861,45 @@ LOG_LEVEL=info                               # ログレベル（debug/info/warn
 # --- Node ---
 NODE_ENV=development                         # 実行環境（development/production/test）
 ```
+
+### 7.7 設定ファイルスキーマ（v0.3.0追加）
+
+環境変数に加え、`config.json` で以下の高度な設定を制御する。分散構成・永続化・レジストリ自動更新は設定ファイルのみで制御し、環境変数は提供しない。
+
+```json
+{
+  "distributed": {
+    "enabled": false,
+    "nodes": [
+      "http://ollama-node1:11434",
+      "http://ollama-node2:11434"
+    ],
+    "strategy": "model-affinity",
+    "healthCheckIntervalMs": 30000
+  },
+  "persistence": {
+    "enabled": true,
+    "dataDir": "./data",
+    "autoSaveIntervalMs": 300000
+  },
+  "registryUpdater": {
+    "enabled": false,
+    "updateIntervalMs": 1800000
+  }
+}
+```
+
+| セクション | フィールド | 型 | デフォルト | 説明 |
+|:---|:---|:---|:---|:---|
+| `distributed` | `enabled` | boolean | `false` | マルチノードロードバランシングの有効化 |
+| | `nodes` | string[] | `[]` | OllamaノードURLリスト |
+| | `strategy` | string | `"model-affinity"` | 負荷分散戦略（`model-affinity` / `round-robin` / `least-connections`） |
+| | `healthCheckIntervalMs` | number | `30000` | ノードヘルスチェック間隔（ミリ秒） |
+| `persistence` | `enabled` | boolean | `true` | コスト記録・セッションデータの永続化有効化 |
+| | `dataDir` | string | `"./data"` | 永続化データの保存先ディレクトリ |
+| | `autoSaveIntervalMs` | number | `300000` | 自動保存間隔（ミリ秒） |
+| `registryUpdater` | `enabled` | boolean | `false` | Ollamaモデルレジストリ自動更新の有効化 |
+| | `updateIntervalMs` | number | `1800000` | レジストリ更新間隔（ミリ秒、デフォルト30分） |
 
 ---
 

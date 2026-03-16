@@ -1,8 +1,8 @@
 # PulseAgent テスト戦略設計書
 
 **プロジェクト:** claude-token-saver-mcp (PulseAgent)
-**バージョン:** v1.0
-**作成日:** 2026-02-15
+**バージョン:** v0.3.0
+**作成日:** 2026-02-15（v0.3.0 更新: 2026-03-16）
 **作成者:** Tester Agent
 **フェーズ:** Phase 2 — 基本設計
 
@@ -12,6 +12,8 @@
 
 1. [テストピラミッドと配分戦略](#1-テストピラミッドと配分戦略)
 2. [ユニットテスト設計（Vitest）](#2-ユニットテスト設計vitest)
+   - 2.1〜2.9: コアモジュール（tiering, queue, cost, validation, timeout, ollama, tools, prompt, config）
+   - 2.10〜2.16: v0.3.0追加モジュール（metrics, persistence, structured-logging, batch, priority-queue, load-balancer, registry-updater）
 3. [統合テスト設計](#3-統合テスト設計)
 4. [セキュリティテスト設計](#4-セキュリティテスト設計)
 5. [パフォーマンステスト設計](#5-パフォーマンステスト設計)
@@ -26,24 +28,30 @@
 
 ```
           ┌───────────┐
-          │   E2E     │  10%  — MCP stdio統合テスト
-          │  (~15件)  │        Ollama実サーバー接続
+          │   E2E     │   2%  — Ollama実サーバー接続
+          │  (13件)   │        要Ollamaローカル起動
           ├───────────┤
-          │Integration│  20%  — Ollamaモック統合
-          │  (~30件)  │        モジュール間結合
+          │Integration│   3%  — モジュール間結合
+          │  (19件)   │        tool-flow / model-selector
           ├───────────┤
-          │   Unit    │  70%  — 純粋ロジック
-          │ (~105件)  │        モック/スタブ利用
+          │ Security  │   9%  — PI検知/DoS/サニタイズ
+          │  (65件)   │        prompt-injection / output-sanitize / dos-protection
+          ├───────────┤
+          │   Unit    │  82%  — 純粋ロジック
+          │ (~588件)  │        モック/スタブ利用
           └───────────┘
+
+  合計: 721 テスト / 38 テストファイル
 ```
 
 ### 1.2 配分の根拠
 
-| レイヤー | 配分 | 推定テスト数 | 根拠 |
+| レイヤー | 配分 | テスト数 | 根拠 |
 |:---|:---:|:---:|:---|
-| **Unit** | 70% | ~105件 | ティアリング、キュー、コスト計算、バリデーション等の純粋ロジックが多い。外部依存なしで高速実行可能 |
-| **Integration** | 20% | ~30件 | Ollama APIモック、MCPツール呼び出しチェーン、設定ファイル読み込みの結合確認 |
-| **E2E** | 10% | ~15件 | 実Ollamaサーバーでの応答確認、MCP stdio完全フロー。CI環境ではスキップ可能 |
+| **Unit** | 82% | ~588件 | ティアリング、キュー、コスト計算、バリデーション、メトリクス、永続化、優先度キュー、バッチ、ロードバランサー、レジストリ更新等の純粋ロジック。外部依存なしで高速実行可能 |
+| **Security** | 9% | 65件 | prompt-injection(38), output-sanitize(19), dos-protection(8)。OWASP LLM Top 10対応 |
+| **Integration** | 3% | 19件 | tool-flow(12), model-selector(7)。モジュール間結合確認 |
+| **E2E** | 2% | 13件 | ollama-e2e(10), timeout-e2e(3)。実Ollamaサーバー必須。CI環境ではスキップ可能 |
 
 ### 1.3 テスト実行戦略
 
@@ -466,6 +474,91 @@ describe('createTimeoutController', () => {
 | CF-05 | 未知のプロパティの無視 | 余分なプロパティ含むJSON | エラーなく未知プロパティを無視 |
 | CF-06 | カスタム価格テーブルの読み込み | 価格テーブルJSON | カスタム価格が適用される |
 
+### 2.10 MetricsCollector（v0.3.0追加）
+
+**対象ファイル:** `src/metrics.ts`
+**テストファイル:** `tests/unit/metrics.test.ts`（28テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| カウンター | `increment()`、初期値0、ラベル付きカウンター、複数回加算の累積 |
+| ゲージ | `set()` / `inc()` / `dec()`、負の値、ラベル付きゲージ |
+| ヒストグラム | `observe()`、バケット分布、パーセンタイル計算（p50/p90/p99） |
+| Prometheus出力 | `toPrometheus()` 形式の文字列生成、TYPE/HELP行、ラベルエスケープ |
+| JSONスナップショット | `toJSON()` での全メトリクスダンプ、空状態 / 値ありの両方 |
+
+### 2.11 PersistenceManager（v0.3.0追加）
+
+**対象ファイル:** `src/persistence.ts`
+**テストファイル:** `tests/unit/persistence.test.ts`（10テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| 初回起動 | ファイルなし時のデフォルト値初期化、ディレクトリ自動作成 |
+| 既存ファイル | 既存JSONファイルの読み込み、破損ファイルのフォールバック |
+| auto-save | タイマーによる定期保存、`save()` 手動呼び出し、シャットダウン時の最終保存 |
+| データ整合性 | 保存→読み込みの往復一致、同時書き込み保護 |
+
+### 2.12 構造化ログ（v0.3.0追加）
+
+**対象ファイル:** `src/structured-logging.ts`
+**テストファイル:** `tests/unit/structured-logging.test.ts`（8テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| ログレベル | debug / info / warn / error の出力制御 |
+| 構造化出力 | JSON形式のログ出力、タイムスタンプ、コンテキストフィールド |
+| フィルタリング | 最小ログレベル設定、モジュール名フィルター |
+
+### 2.13 バッチオフロード（v0.3.0追加）
+
+**対象ファイル:** `src/batch-offload.ts`
+**テストファイル:** `tests/unit/batch-offload.test.ts`（17テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| 並列モード | 複数タスクの同時実行、最大並列数制限 |
+| 順次モード | タスクの逐次実行、順序保証 |
+| 部分失敗 | 一部タスク失敗時の結果集約、エラーハンドリング |
+| PI検知 | バッチ入力に対するプロンプトインジェクション検出 |
+| コスト集計 | バッチ全体のトークン消費・節約額の合算 |
+
+### 2.14 優先度キュー（v0.3.0追加）
+
+**対象ファイル:** `src/priority-queue.ts`
+**テストファイル:** `tests/unit/priority-queue.test.ts`（15テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| 優先度順序 | 高優先度タスクが先に処理される、3段階以上の優先度 |
+| 同一優先度FIFO | 同一優先度内ではFIFO順序を保証 |
+| タイムアウト | 優先度別のタイムアウト設定、タイムアウト時の適切なエラー |
+| 統計 | キューサイズ、待ち時間、優先度別の処理件数 |
+
+### 2.15 ロードバランサー（v0.3.0追加）
+
+**対象ファイル:** `src/load-balancer.ts`
+**テストファイル:** `tests/unit/load-balancer.test.ts`（18テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| 3戦略 | round-robin / least-connections / random の各ルーティング戦略 |
+| フェイルオーバー | エンドポイント障害時の自動切り替え、リトライ回数制限 |
+| ヘルスチェック | 定期ヘルスチェック、unhealthyノードの除外・復帰 |
+| モデル一覧 | 複数エンドポイントからのモデル一覧取得、重複排除 |
+
+### 2.16 レジストリ自動更新（v0.3.0追加）
+
+**対象ファイル:** `src/registry-updater.ts`
+**テストファイル:** `tests/unit/registry-updater.test.ts`（33テスト）
+
+| カテゴリ | テスト観点 |
+|:---|:---|
+| パターン分類 | モデル名パターンマッチング、Tier自動分類、未知モデルのフォールバック |
+| 静的レジストリ | 静的定義モデルの更新除外、手動オーバーライドの保護 |
+| タイマー制御 | 定期更新タイマーの起動・停止、更新間隔の設定 |
+| API連携 | Ollama `/api/tags` からのモデル一覧取得、エラー時のリトライ |
+
 ---
 
 ## 3. 統合テスト設計
@@ -843,10 +936,10 @@ export default defineConfig({
         'src/index.ts',
       ],
       thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 75,
-        statements: 80,
+        lines: 95,
+        functions: 100,
+        branches: 95,
+        statements: 98,
       },
     },
 
@@ -893,15 +986,22 @@ afterAll(() => {
 
 | モジュール | 行カバレッジ | 分岐カバレッジ | 備考 |
 |:---|:---:|:---:|:---|
-| `tiering.ts` | 95% | 100% | 全境界値を網羅 |
-| `queue.ts` | 90% | 85% | エラーパス含む |
-| `cost-calculator.ts` | 95% | 90% | 全モデル×全パターン |
-| `validation.ts` | 95% | 90% | 全インジェクションパターン |
-| `timeout.ts` | 85% | 80% | タイマー系テストの限界考慮 |
-| `ollama-client.ts` | 80% | 75% | ネットワーク系はモック中心 |
-| `tools/*.ts` | 85% | 80% | 統合テストで補完 |
-| `config.ts` | 90% | 85% | 全設定パターン |
-| **合計** | **>80%** | **>75%** | CI/CDでゲートチェック |
+| `tiering/` | 96.05% | 86.66% | 全境界値を網羅 |
+| `queue/` | 100% | 100% | エラーパス含む |
+| `cost/` | 100% | 100% | 全モデル×全パターン |
+| `validators/` | 100% | 100% | 全インジェクションパターン |
+| `tiering/detector.ts` | 91.42% | 86.66% | タイマー系テスト |
+| `ollama/client.ts` | 91.44% | 92% | ネットワーク系はモック中心 |
+| `tools/*.ts` | 99.16% | 94.7% | 統合テストで補完 |
+| `config/` | 98.47% | 79.62% | 全設定パターン |
+| `metrics/collector.ts` | 100% | 87.09% | カウンター/ゲージ/ヒストグラム |
+| `persistence/` | 84.84% | 77.41% | ファイルI/O + auto-save |
+| `logging/structured.ts` | 100% | 100% | 構造化ログ出力 |
+| `tools/batch-offload.ts` | 96.5% | 86.95% | 並列/順次モード |
+| `queue/priority-queue.ts` | 100% | 100% | 優先度順序 + FIFO |
+| `model-selector/registry-updater.ts` | 98.47% | 100% | パターン分類 + タイマー |
+| `ollama/load-balancer.ts` | 86.86% | 78.33% | 3戦略 + フェイルオーバー |
+| **合計** | **97.58%** | **93.8%** | Statement: 97.58%, Branch: 93.8%, Function: 100% |
 
 ### 6.4 CI/CD統合（GitHub Actions）
 
@@ -1006,18 +1106,24 @@ packages/mcp-server/
 │   │   │   ├── timeout.test.ts
 │   │   │   ├── ollama-client.test.ts
 │   │   │   ├── system-prompt.test.ts
-│   │   │   └── config.test.ts
+│   │   │   ├── config.test.ts
+│   │   │   ├── metrics.test.ts              # v0.3.0: MetricsCollector (28テスト)
+│   │   │   ├── persistence.test.ts          # v0.3.0: PersistenceManager (10テスト)
+│   │   │   ├── structured-logging.test.ts   # v0.3.0: 構造化ログ (8テスト)
+│   │   │   ├── batch-offload.test.ts        # v0.3.0: バッチオフロード (17テスト)
+│   │   │   ├── priority-queue.test.ts       # v0.3.0: 優先度キュー (15テスト)
+│   │   │   ├── registry-updater.test.ts     # v0.3.0: レジストリ自動更新 (33テスト)
+│   │   │   └── load-balancer.test.ts        # v0.3.0: ロードバランサー (18テスト)
 │   │   ├── integration/
-│   │   │   ├── offload-flow.test.ts
-│   │   │   ├── compress-flow.test.ts
-│   │   │   └── mcp-stdio.test.ts
+│   │   │   ├── tool-flow.test.ts            # 12テスト
+│   │   │   └── model-selector.test.ts       # 7テスト
 │   │   ├── e2e/
-│   │   │   └── full-flow.test.ts
+│   │   │   ├── ollama-e2e.test.ts           # 10テスト（要Ollama）
+│   │   │   └── timeout-e2e.test.ts          # 3テスト（要Ollama）
 │   │   ├── security/
-│   │   │   ├── prompt-injection.test.ts
-│   │   │   ├── canary.test.ts
-│   │   │   ├── dos.test.ts
-│   │   │   └── output-sanitize.test.ts
+│   │   │   ├── prompt-injection.test.ts     # 38テスト
+│   │   │   ├── output-sanitize.test.ts      # 19テスト
+│   │   │   └── dos-protection.test.ts       # 8テスト
 │   │   └── bench/
 │   │       └── performance.bench.ts
 │   └── ...
@@ -1210,30 +1316,44 @@ export class TestMCPClient {
 
 ## 付録A: テストケース一覧（サマリー）
 
-| カテゴリ | テスト件数 | テストID範囲 |
+### v0.3.0 実績値（721テスト / 38ファイル）
+
+| カテゴリ | テスト件数 | テストファイル |
 |:---|:---:|:---|
-| ティアリングロジック | 12件 | T-01 ~ T-12 |
-| FIFOキュー | 12件 | Q-01 ~ Q-12 |
-| コスト計算 | 10件 | C-01 ~ C-10 |
-| 入力バリデーション | 15件 | V-01 ~ V-15 |
-| タイムアウト・フォールバック | 10件 | TO-01 ~ TO-10 |
-| Ollamaクライアント | 10件 | OC-01 ~ OC-10 |
-| MCPツール | 6件 | MT-01 ~ MT-06 |
-| System Prompt管理 | 4件 | SP-01 ~ SP-04 |
-| 設定ファイル読み込み | 6件 | CF-01 ~ CF-06 |
-| **ユニットテスト合計** | **85件** | — |
-| Ollamaモック統合テスト | 8件 | I-01 ~ I-08 |
-| MCP stdio統合テスト | 6件 | MS-01 ~ MS-06 |
-| 実Ollama E2Eテスト | 5件 | E-01 ~ E-05 |
-| **統合/E2Eテスト合計** | **19件** | — |
-| PIテスト（直接） | 12件 | PI-01 ~ PI-12 |
-| PIテスト（間接） | 3件 | PI-13 ~ PI-15 |
-| カナリアテスト | 5件 | CN-01 ~ CN-05 |
-| DoSテスト | 5件 | DOS-01 ~ DOS-05 |
-| 出力サニタイズ | 4件 | OS-01 ~ OS-04 |
-| **セキュリティテスト合計** | **29件** | — |
-| パフォーマンスベンチマーク | 8件 | PF-01 ~ PF-08 |
-| **全テスト合計** | **141件** | — |
+| **ユニットテスト** | | |
+| ティアリングロジック | 12件 | `tiering.test.ts` |
+| FIFOキュー | 12件 | `queue.test.ts` |
+| コスト計算 | 10件 | `cost-calculator.test.ts` |
+| 入力バリデーション | 15件 | `validation.test.ts` |
+| タイムアウト・フォールバック | 10件 | `timeout.test.ts` |
+| Ollamaクライアント | 10件 | `ollama-client.test.ts` |
+| MCPツール | 6件 | `tools/*.test.ts` |
+| System Prompt管理 | 4件 | `system-prompt.test.ts` |
+| 設定ファイル読み込み | 6件 | `config.test.ts` |
+| MetricsCollector | 28件 | `metrics.test.ts` |
+| PersistenceManager | 10件 | `persistence.test.ts` |
+| 構造化ログ | 8件 | `structured-logging.test.ts` |
+| バッチオフロード | 17件 | `batch-offload.test.ts` |
+| 優先度キュー | 15件 | `priority-queue.test.ts` |
+| レジストリ自動更新 | 33件 | `registry-updater.test.ts` |
+| ロードバランサー | 18件 | `load-balancer.test.ts` |
+| その他ユニットテスト | ~373件 | 各種 `.test.ts` |
+| **ユニットテスト合計** | **~588件** | — |
+| **セキュリティテスト** | | |
+| プロンプトインジェクション | 38件 | `prompt-injection.test.ts` |
+| 出力サニタイズ | 19件 | `output-sanitize.test.ts` |
+| DoS防御 | 8件 | `dos-protection.test.ts` |
+| **セキュリティテスト合計** | **65件** | — |
+| **統合テスト** | | |
+| ツールフロー | 12件 | `tool-flow.test.ts` |
+| モデルセレクター | 7件 | `model-selector.test.ts` |
+| **統合テスト合計** | **19件** | — |
+| **E2Eテスト（要Ollama）** | | |
+| Ollama E2E | 10件 | `ollama-e2e.test.ts` |
+| タイムアウトE2E | 3件 | `timeout-e2e.test.ts` |
+| **E2Eテスト合計** | **13件** | — |
+| パフォーマンスベンチマーク | 8件 | `performance.bench.ts` |
+| **全テスト合計** | **721件** | **38ファイル** |
 
 ---
 
@@ -1241,7 +1361,7 @@ export class TestMCPClient {
 
 | 優先度 | テスト | 理由 |
 |:---:|:---|:---|
-| **P0（必須）** | T-01~T-12, Q-01~Q-05, V-01~V-15, PI-01~PI-12, CN-01~CN-05 | コア機能 + セキュリティ |
-| **P1（重要）** | Q-06~Q-12, C-01~C-10, TO-01~TO-10, I-01~I-08, DOS-01~DOS-05 | 信頼性 + 耐障害性 |
-| **P2（推奨）** | OC-01~OC-10, MT-01~MT-06, MS-01~MS-06, OS-01~OS-04 | 統合品質 |
-| **P3（任意）** | E-01~E-05, PF-01~PF-08, SP-01~SP-04, CF-01~CF-06 | E2E + パフォーマンス |
+| **P0（必須）** | tiering, queue, validation, prompt-injection(38件), dos-protection(8件) | コア機能 + セキュリティ |
+| **P1（重要）** | cost-calculator, timeout, tool-flow(12件), output-sanitize(19件), priority-queue(15件), batch-offload(17件) | 信頼性 + 耐障害性 |
+| **P2（推奨）** | ollama-client, model-selector(7件), load-balancer(18件), registry-updater(33件), metrics(28件) | 統合品質 + 運用 |
+| **P3（任意）** | ollama-e2e(10件), timeout-e2e(3件), performance.bench, persistence(10件), structured-logging(8件) | E2E + パフォーマンス + 永続化 |

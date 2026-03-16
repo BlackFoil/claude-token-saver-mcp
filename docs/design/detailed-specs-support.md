@@ -1,7 +1,7 @@
 # サポートモジュール詳細関数仕様書
 
 **プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
-**バージョン:** v1.0
+**バージョン:** v1.1
 **作成日:** 2026-02-15
 **作成者:** Coder 2 / Logic Agent
 **フェーズ:** Phase 3 -- 詳細設計
@@ -18,6 +18,10 @@
 6. [src/validators/input-validator.ts -- 入力バリデーション](#6-srcvalidatorsinput-validatorts----入力バリデーション)
 7. [src/validators/prompt-guard.ts -- プロンプトインジェクション防御](#7-srcvalidatorsprompt-guardts----プロンプトインジェクション防御)
 8. [src/errors.ts -- エラークラス実装](#8-srcerrorsts----エラークラス実装)
+9. [MetricsCollector (P5-001)](#9-metricscollector-p5-001)
+10. [PersistenceManager (P5-002)](#10-persistencemanager-p5-002)
+11. [Structured Logging (P5-003)](#11-structured-logging-p5-003)
+12. [RegistryUpdater (P6-003)](#12-registryupdater-p6-003)
 
 ---
 
@@ -1322,6 +1326,233 @@ export function ctsErrorToCallToolResult(error: CTSError): CallToolResult
 |  | 3行目（`retryable` 時）: `RETRY: このエラーは一時的です。しばらく後に再試行できます。` |
 | **注意点** | `error` が `CTSError` でない場合（予期しないエラー）は、`CTS-0000` コードのジェネリックエラーとして変換する |
 | **対応テストID** | E-14, E-15 |
+
+---
+
+## 9. MetricsCollector (P5-001)
+
+運用メトリクスの収集・集計を行うモジュール。Prometheus互換のテキスト形式でのエクスポートをサポートする。
+
+### 9.1 カウンター
+
+```
+requestsTotal: 全リクエスト数（ツール問わず）
+requestsByTool: ツール別リクエスト数 (offload_work, compress_context, batch_offload)
+errorsTotal: 全エラー数
+errorsByCode: エラーコード別カウント (CTS-1001, CTS-2001, ...)
+```
+
+### 9.2 ゲージ
+
+```
+queueLength: 現在のキュー内アイテム数
+ollamaHealthy: Ollamaの稼働状態 (1 = healthy, 0 = unhealthy)
+loadedModelsCount: Ollamaにロード済みのモデル数
+```
+
+### 9.3 ヒストグラム
+
+```
+latencyBuckets: リクエストレイテンシの分布
+  └─ p50/p95/p99 算出 (nearest-rank法)
+
+nearest-rank法:
+  1. レイテンシ値をソート
+  2. index = Math.ceil(percentile / 100 * count) - 1
+  3. sortedValues[index] を返却
+```
+
+### 9.4 コスト集計
+
+```
+totalSavingsUsd: 累計節約額 (USD)
+totalInputTokens: 累計入力トークン数
+totalOutputTokens: 累計出力トークン数
+```
+
+### 9.5 エクスポート関数
+
+```typescript
+toPrometheusText(): string
+```
+
+HELP/TYPE注釈付きPrometheus text exposition formatで全メトリクスを出力する。
+
+```
+# HELP cts_requests_total Total number of requests
+# TYPE cts_requests_total counter
+cts_requests_total 42
+# HELP cts_queue_length Current queue length
+# TYPE cts_queue_length gauge
+cts_queue_length 3
+...
+```
+
+```typescript
+toJSON(): MetricsSnapshot
+```
+
+MetricsSnapshotオブジェクトを返却する。shallow copyによりイミュータビリティを保証する。
+
+---
+
+## 10. PersistenceManager (P5-002)
+
+実行履歴・ベンチマークデータの永続化を管理するモジュール。
+
+### 10.1 設定
+
+```
+configurable:
+  dataDir: string          // default: ~/.config/claude-token-saver/
+  autoSaveIntervalMs: number  // default: 300000 (5分)
+```
+
+### 10.2 メソッド仕様
+
+```
+register():
+  └─ ExecutionTracker, BenchmarkStore, Logger を永続化対象として登録
+
+loadAll():
+  ├─ execution-history.json 読み込み → ExecutionTracker に復元
+  ├─ benchmark-data.json 読み込み → BenchmarkStore に復元
+  └─ ファイルが存在しない場合は無視（初回起動時）
+
+saveAll():
+  ├─ dataDir が存在しない場合は mkdir -p で作成
+  ├─ execution-history.json 書き込み
+  ├─ benchmark-data.json 書き込み
+  └─ 書き込みエラー時は warn ログのみ出力（プロセスは継続）
+
+startAutoSave():
+  ├─ setInterval(saveAll, autoSaveIntervalMs) で定期保存開始
+  └─ timer.unref() でプロセス終了をブロックしない
+
+stopAutoSave():
+  └─ clearInterval(timer) で定期保存停止
+```
+
+### 10.3 エラーハンドリング
+
+- ファイル読み込み失敗（不正JSON含む）: warn ログを出力し、空データで続行
+- ファイル書き込み失敗: warn ログを出力し、次回の自動保存で再試行
+- ディレクトリ作成失敗: warn ログを出力し、永続化をスキップ
+
+---
+
+## 11. Structured Logging (P5-003)
+
+ツール実行のコンテキスト情報を構造化ログとして記録するモジュール。
+
+### 11.1 ToolLogContext
+
+```typescript
+interface ToolLogContext {
+  tool: string;              // 'offload_work' | 'compress_context' | 'batch_offload'
+  model?: string;            // 使用モデル名
+  category?: string;         // タスクカテゴリ
+  durationMs?: number;       // 処理時間 (ms)
+  inputTokens?: number;      // 入力トークン数
+  outputTokens?: number;     // 出力トークン数
+  savingsUsd?: number;       // 今回の節約額
+  queueWaitMs?: number;      // キュー待ち時間 (ms)
+  error?: string;            // エラーメッセージ
+  errorCode?: string;        // CTS-XXXX エラーコード
+}
+```
+
+### 11.2 createToolLogContext()
+
+```typescript
+function createToolLogContext(
+  tool: string,
+  startTime: number,
+  response?: OllamaChatResponse,
+  error?: Error,
+): ToolLogContext
+```
+
+**処理:**
+- `durationMs`: `Date.now() - startTime` で算出
+- `response.totalDurationMs` がある場合はフォールバック値として使用
+- `error` がCTSErrorの場合は `error.code` を `errorCode` に抽出
+
+### 11.3 createRequestId()
+
+```typescript
+function createRequestId(): string
+```
+
+`crypto.randomUUID()` でリクエスト固有のIDを生成。ログのトレーサビリティに使用する。
+
+---
+
+## 12. RegistryUpdater (P6-003)
+
+Ollamaにインストール済みのモデルを自動検出し、動的にモデルレジストリに追加するモジュール。
+
+### 12.1 モデル分類パターン (9パターン)
+
+```
+qwen*coder     → coding
+deepseek*coder → coding
+codellama      → coding
+devstral       → coding-agent
+qwen3          → general
+qwen2.5        → general
+gemma          → general
+phi            → general
+llama          → general
+```
+
+### 12.2 Tier推定
+
+```
+パラメータサイズに基づくTier割り当て:
+  <= 8B   → Tier1 (Light)
+  9-16B   → Tier2 (Standard)
+  > 16B   → Tier3 (Ultra)
+```
+
+### 12.3 VRAM推定
+
+```
+estimatedVram = fileSize(GB) × 1.2
+  └─ モデルファイルサイズから量子化オーバーヘッドを考慮した近似値
+```
+
+### 12.4 priority
+
+```
+priority: 99
+  └─ 静的レジストリ (priority: 1-10) より低い優先度
+  └─ 静的レジストリに同名モデルがある場合は静的定義が優先される
+```
+
+### 12.5 update() メソッド
+
+```
+update():
+  1. listModels() で Ollama のインストール済みモデル一覧を取得
+  2. 各モデルについて:
+     ├─ 静的レジストリに存在 → スキップ
+     ├─ 既に discoveredModels に存在 → スキップ
+     └─ 新規モデル:
+         ├─ classifyModel(name) でカテゴリ・Tier・VRAMを推定
+         └─ discoveredModels に追加 (priority: 99)
+  3. logger.info でdiscoveredModels の更新状況をログ出力
+```
+
+### 12.6 定期更新
+
+```
+start():
+  └─ setInterval(update, intervalMs) で定期的にモデル一覧を再スキャン
+
+stop():
+  └─ clearInterval で定期更新を停止
+```
 
 ---
 
