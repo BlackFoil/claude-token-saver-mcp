@@ -102,3 +102,25 @@ CI改善 (format:check追加, カバレッジアーティファクト保存)。
 - [ ] P7-005: モデル管理UI
   - インストール済みモデル一覧、プリロード/アンロード操作、推奨モデル表示
   - **担当:** PM
+
+---
+
+### P8: 公開準備・エコシステム露出
+
+> **目的:** OSS公開に向けた最終仕上げとコミュニティへの露出
+
+- [ ] P8-001: デモGIF撮影・README埋め込み
+  - 内容: Claude Code で offload_work 実行 → コード生成 → cost_dashboard で節約額表示
+  - 仕様: 800x450px, 15-20秒, asciinema or vhs で録画
+  - README.md / README.en.md の TODO コメント箇所に埋め込み
+  - **担当:** PM
+
+- [ ] P8-002: SECURITY.md 作成
+  - 脆弱性報告プロセスの定義 (GitHub Security Advisories 推奨)
+  - サポート対象バージョンの明記
+  - **担当:** PM
+
+- [ ] P8-003: awesome-mcp-servers への登録
+  - [wong2/awesome-mcp-servers](https://github.com/wong2/awesome-mcp-servers) (42k+ stars) へPR
+  - [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) へPR
+  - **担当:** PM
