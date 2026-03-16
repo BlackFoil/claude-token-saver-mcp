@@ -477,9 +477,24 @@ Sprint 12 (品質保証)
 
 ---
 
-## 今後の改善タスク（P2以降）
+## P2: E2Eテスト + タイムアウトテスト — ✅ 完了
 
-| タスク | 優先度 | 備考 |
-|:---|:---:|:---|
-| E2Eテスト | P2 | 実Ollamaサーバーとの統合テスト (CI Ollama container) |
-| client.tsタイムアウトテスト | P2 | AbortController + ReadableStreamの統合テスト |
+> **目的:** 実Ollamaサーバーに対するフルパイプラインE2Eテストと、3層タイムアウトの実証テスト
+
+- [x] E2E-01〜10: Ollama E2Eテスト (`tests/e2e/ollama-e2e.test.ts`)
+  - healthCheck, getVersion, listModels, pullModel, chat
+  - offload_work, compress_context, preload+list, recommend_model, cost_dashboard
+  - `describe.runIf(ollamaReady)` でOllama未接続時は自動スキップ
+- [x] T-01〜03: タイムアウトE2Eテスト (`tests/e2e/timeout-e2e.test.ts`)
+  - firstTokenTimeout → ModelLoadTimeoutError
+  - requestTimeout → GenerationTimeoutError
+  - heartbeatTimeout → GenerationTimeoutError
+- [x] E2E共通セットアップ (`tests/helpers/e2e-setup.ts`)
+- [x] E2E専用Vitest設定 (`vitest.config.e2e.ts`)
+- [x] `test:e2e` スクリプト追加 (`package.json`)
+
+---
+
+## 今後の改善タスク（P4以降）
+
+（現在、P2まで完了。追加改善タスクはここに記録する。）
