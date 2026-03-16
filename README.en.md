@@ -18,6 +18,12 @@ Code generation, refactoring, test creation, text summarization — all processe
 
 After analyzing Claude Code API usage, I found that **~40% of requests were routine code generation and text processing** — tasks a local 7B model handles well. "Complex reasoning on Cloud, routine work on Local" — this tool automates that split.
 
+## Vision
+
+Local LLM performance is improving rapidly. From Llama 3 in 2024 to Qwen3 in 2025, coding benchmarks (HumanEval) jumped from **60% to 85%** in just one year.
+
+At this pace, local LLMs will soon become a standard part of Agent Teams. claude-token-saver-mcp provides a **"Cloud × Local hybrid execution platform"** ahead of that future.
+
 ## How It Works
 
 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) is the standard protocol for Claude Code to call external tools. Once registered, Claude Code **evaluates each task and automatically delegates routine work to your local LLM**.
