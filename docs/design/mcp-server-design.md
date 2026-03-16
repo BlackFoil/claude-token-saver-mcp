@@ -564,6 +564,20 @@ Shows total savings, token counts, and per-model performance metrics.
 | phi4:latest | general | 12 | 2.1s | 100.0% |
 ```
 
+### 1.11 auto_setup (v0.3.0)
+
+- 機能: 最適モデルの推奨→ダウンロード→VRAMプリロードをワンステップで実行
+- 入力: category (optional, default "general"), prefer_quality (optional), skip_pull (optional), skip_preload (optional)
+- 処理フロー:
+  1. Ollama健全性チェック (不健全→再チェック→エラー)
+  2. インストール済み/ロード済みモデル取得
+  3. recommendModels()で最適モデル選択
+  4. 未インストール & !skip_pull → pullModel()
+  5. 未ロード & !skip_preload → chat()でプリロード
+  6. 結果をMarkdown形式で返却
+- エラー処理: pull/preload失敗は部分成功として継続
+- 条件: modelSelector.enabled=true の場合のみ公開
+
 ---
 
 ## 2. Ollamaクライアント設計

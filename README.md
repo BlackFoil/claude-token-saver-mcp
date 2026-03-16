@@ -194,6 +194,17 @@ action:  "get"              (必須: get|set|add|remove)
 values:  ["model-name"]     (オプション: set/add/remove 用)
 ```
 
+### `auto_setup`
+
+最適なモデルの推奨・ダウンロード・プリロードをワンステップで実行。
+
+```
+category:       "coding"  (オプション: デフォルト "general")
+prefer_quality: false     (オプション: 品質優先)
+skip_pull:      false     (オプション: DLスキップ)
+skip_preload:   false     (オプション: プリロードスキップ)
+```
+
 ## Agent Team 連携
 
 CLAUDE.md のロールテーブルに `LLM用途` 列を追加すると、各ロールに最適なモデルを自動推奨できます:
@@ -293,7 +304,7 @@ Ollama がホストマシンで動いている場合、`host.docker.internal` �
 ```bash
 npm ci
 npm run dev          # 開発モード (tsx watch)
-npm test             # テスト実行 (721 テスト)
+npm test             # テスト実行 (736 テスト)
 npm run test:e2e     # E2E テスト (Ollama 必須)
 npm run test:coverage # カバレッジ付き
 npm run lint         # ESLint
@@ -305,13 +316,13 @@ npm run build        # プロダクションビルド
 
 ```
 src/
-├── server.ts              # MCP サーバーエントリポイント (10 ツール登録)
+├── server.ts              # MCP サーバーエントリポイント (11 ツール登録)
 ├── config/                # Zod 設定スキーマ & ローダー
 ├── tiering/               # RAM ベース自動ティアリング (3 段階)
 ├── ollama/                # Ollama クライアント, モデルマネージャー, ロードバランサー
 ├── queue/                 # FIFO キュー & 優先度キュー
 ├── cost/                  # コスト計算 & レポーター
-├── tools/                 # 10 MCP ツールハンドラー
+├── tools/                 # 11 MCP ツールハンドラー
 ├── model-selector/        # レジストリ, 推奨エンジン, VRAM計算, 実行トラッカー, ベンチマークDB, 自動更新
 ├── metrics/               # Prometheus メトリクス収集
 ├── persistence/           # ExecutionTracker / BenchmarkStore ファイル永続化

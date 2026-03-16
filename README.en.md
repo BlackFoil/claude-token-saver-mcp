@@ -194,6 +194,17 @@ action:  "get"              (required: get|set|add|remove)
 values:  ["model-name"]     (optional: for set/add/remove)
 ```
 
+### `auto_setup`
+
+Recommend, download, and preload the best model in one step.
+
+```
+category:       "coding"  (optional, default: "general")
+prefer_quality: false     (optional: quality priority)
+skip_pull:      false     (optional: skip download)
+skip_preload:   false     (optional: skip VRAM preload)
+```
+
 ## Agent Team Integration
 
 Add an `LLM Usage` column to the role table in CLAUDE.md to enable automatic model recommendations for each role:
@@ -293,7 +304,7 @@ When Ollama is running on the host machine, it auto-connects via `host.docker.in
 ```bash
 npm ci
 npm run dev          # Development mode (tsx watch)
-npm test             # Run tests (721 tests)
+npm test             # Run tests (736 tests)
 npm run test:e2e     # E2E tests (requires Ollama)
 npm run test:coverage # With coverage
 npm run lint         # ESLint
@@ -305,13 +316,13 @@ npm run build        # Production build
 
 ```
 src/
-├── server.ts              # MCP server entry point (10 tools registered)
+├── server.ts              # MCP server entry point (11 tools registered)
 ├── config/                # Zod config schema & loader
 ├── tiering/               # RAM-based auto-tiering (3 levels)
 ├── ollama/                # Ollama client, model manager, load balancer
 ├── queue/                 # FIFO queue & priority queue
 ├── cost/                  # Cost calculation & reporter
-├── tools/                 # 10 MCP tool handlers
+├── tools/                 # 11 MCP tool handlers
 ├── model-selector/        # Registry, recommendation engine, VRAM calc, execution tracker, benchmark DB, auto-updater
 ├── metrics/               # Prometheus metrics collector
 ├── persistence/           # ExecutionTracker / BenchmarkStore file persistence

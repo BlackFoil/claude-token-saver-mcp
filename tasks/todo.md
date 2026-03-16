@@ -48,9 +48,9 @@ CI改善 (format:check追加, カバレッジアーティファクト保存)。
 
 | 指標 | 値 |
 |:---|:---:|
-| テスト合計 | 721 (unit: 588, security: 65, integration: 19, E2E: 13*) |
-| テストファイル | 38 |
-| MCPツール数 | 10 (offload_work, compress_context, cost_dashboard, batch_offload, get_metrics + recommend_model, preload_model, list_loaded_models, pull_model, configure_model_selector) |
+| テスト合計 | 736 (unit: 603, security: 65, integration: 19, E2E: 13*) |
+| テストファイル | 39 |
+| MCPツール数 | 11 (offload_work, compress_context, cost_dashboard, batch_offload, get_metrics, auto_setup + recommend_model, preload_model, list_loaded_models, pull_model, configure_model_selector) |
 | ビルド / lint / typecheck | ✅ 全パス |
 | バージョン | v0.3.0 |
 

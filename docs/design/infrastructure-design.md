@@ -27,7 +27,8 @@ claude-token-saver-mcp/
 │   │   ├── preload-model.ts   # モデルプリロードツール（モデルを事前ロード）
 │   │   ├── list-loaded-models.ts # ロード済みモデル一覧ツール
 │   │   ├── pull-model.ts      # モデルプルツール（Ollamaモデルをダウンロード）
-│   │   └── configure-model-selector.ts # モデルセレクター設定ツール
+│   │   ├── configure-model-selector.ts # モデルセレクター設定ツール
+│   │   └── auto-setup.ts      # auto_setup ツール（最適モデル推奨→DL→プリロード一括実行）
 │   ├── queue/
 │   │   ├── fifo-queue.ts      # FIFOキュー（同時実行数=1、レートリミット）
 │   │   └── priority-queue.ts  # 優先度付きキュー（タスク優先度制御）
@@ -101,7 +102,7 @@ claude-token-saver-mcp/
 | モジュール | 責務 | 依存先 |
 |:---|:---|:---|
 | `server.ts` | MCPサーバー起動、stdio transport確立、ツール登録 | tools/, config/ |
-| `tools/` | MCPツール定義（offload_work, compress_context, batch_offload, get_metrics, cost_dashboard, recommend_model, preload_model, list_loaded_models, pull_model, configure_model_selector）、引数スキーマ | queue/, ollama/, cost/, validators/, metrics/, model-selector/ |
+| `tools/` | MCPツール定義（offload_work, compress_context, batch_offload, get_metrics, cost_dashboard, recommend_model, preload_model, list_loaded_models, pull_model, configure_model_selector, auto_setup）、引数スキーマ | queue/, ollama/, cost/, validators/, metrics/, model-selector/ |
 | `queue/` | FIFOキュー管理、優先度付きキュー、同時実行制御、レートリミット | なし |
 | `ollama/` | Ollama APIとの通信、モデル管理、ヘルスチェック、マルチノードロードバランシング | config/ |
 | `tiering/` | RAM検出、Tier判定、モデル選択 | config/ |

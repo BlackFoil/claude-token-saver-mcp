@@ -20,9 +20,10 @@
 8. [src/tools/batch-offload.ts (P6-001)](#8-srctoolsbatch-offloadts-p6-001)
 9. [src/queue/priority-queue.ts (P6-002)](#9-srcqueuepriority-queuets-p6-002)
 10. [src/ollama/load-balancer.ts (P6-004)](#10-srcollamaload-balancerts-p6-004)
-11. [型定義一覧](#11-型定義一覧)
-12. [エラーコード対応表](#12-エラーコード対応表)
-13. [モジュール依存関係図](#13-モジュール依存関係図)
+11. [src/tools/auto-setup.ts (v0.3.0)](#11-srctoolsauto-setupts-v030)
+12. [型定義一覧](#12-型定義一覧)
+13. [エラーコード対応表](#13-エラーコード対応表)
+14. [モジュール依存関係図](#14-モジュール依存関係図)
 
 ---
 
@@ -1319,7 +1320,21 @@ class LoadBalancer {
 
 ---
 
-## 11. 型定義一覧
+## 11. src/tools/auto-setup.ts (v0.3.0)
+
+最適モデルの推奨・ダウンロード・VRAMプリロードをワンステップで実行するツール。
+
+### auto-setup.ts
+
+- AutoSetupContext: ollamaClient, tierConfig, config, logger, ollamaHealthy, benchmarkStore
+- 入力バリデーション: category → TASK_CATEGORIES (default "general"), prefer_quality (boolean), skip_pull (boolean), skip_preload (boolean)
+- フロー: healthCheck → listModels/listRunning → recommendModels → pull → preload
+- 部分失敗: pullFailed → preloadスキップ、preloadFailed → 警告表示
+- レスポンス: Markdown (System info, Selected model, Steps, Usage instructions, Warnings)
+
+---
+
+## 12. 型定義一覧
 
 全モジュールで共有される型定義をまとめる。実際の配置先は `src/types.ts` または各モジュールの型定義ファイル。
 
@@ -1439,7 +1454,7 @@ interface CostHistory {
 
 ---
 
-## 12. エラーコード対応表
+## 13. エラーコード対応表
 
 各関数がスローまたは返却するエラーコードと、対応するフォールバック動作の一覧。
 
@@ -1458,7 +1473,7 @@ interface CostHistory {
 
 ---
 
-## 13. モジュール依存関係図
+## 14. モジュール依存関係図
 
 ```
 src/server.ts (エントリポイント)

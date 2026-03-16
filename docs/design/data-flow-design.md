@@ -1035,7 +1035,19 @@ flowchart LR
    └→ format=prometheus: metricsCollector.toPrometheusText()
 ```
 
-### 7.4 永続化データフロー
+### 7.4 auto_setup データフロー
+
+```
+1. クライアント → auto_setup(category?, prefer_quality?, skip_pull?, skip_preload?)
+2. Ollama 健全性チェック (不健全→再チェック→CTS-1001)
+3. listModelsFull() + listRunning() でモデル状態取得
+4. recommendModels() → #1推奨モデル選択
+5. [未インストール & !skip_pull] → pullModel(modelId)
+6. [未ロード & !skip_preload] → chat(empty, keep_alive) でプリロード
+7. 結果: System info + Selected model + Steps + Usage
+```
+
+### 7.5 永続化データフロー
 
 ```
 起動時: PersistenceManager.loadAll()

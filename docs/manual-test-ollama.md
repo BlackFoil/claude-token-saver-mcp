@@ -1,10 +1,10 @@
-# 実 Ollama 手動テストマニュアル
+        # 実 Ollama 手動テストマニュアル
 
-claude-token-saver-mcp (v0.3.0) の全 10 MCP ツールを実際の Ollama サーバーと接続して手動テストする手順。
+claude-token-saver-mcp (v0.3.0) の全 11 MCP ツールを実際の Ollama サーバーと接続して手動テストする手順。
 
 **対象:** 開発者・QA担当
 **所要時間:** 約 30〜40 分
-**テスト項目数:** 28 項目
+**テスト項目数:** 29 項目
 
 ---
 
@@ -402,6 +402,18 @@ mcp_call 'offload_work' '{"task":"Hello","model":"nonexistent-model-xyz:latest"}
 - [ ] **MT-25a:** エラーレスポンスが返る
 - [ ] **MT-25b:** サーバーがクラッシュしない
 
+### MT-26: auto_setup — ワンステップセットアップ
+
+```bash
+mcp_call 'auto_setup' '{"category":"coding"}'
+```
+
+**チェック項目:**
+- [ ] **MT-26a:** `## Auto Setup Complete` ヘッダが含まれる
+- [ ] **MT-26b:** システム情報 (Tier, RAM) が表示される
+- [ ] **MT-26c:** 選択されたモデル名が表示される
+- [ ] **MT-26d:** Setup Steps に各ステップの結果が表示される
+
 ---
 
 ## 12. E2E 自動テスト実行
@@ -439,7 +451,7 @@ npm run test
 ```
 
 **チェック項目:**
-- [ ] 721 tests passed
+- [ ] 736 tests passed
 
 ---
 
@@ -470,9 +482,10 @@ Claude Code を起動し、以下を試す:
 4. 「コスト節約の状況を見せて」→ `cost_dashboard` が呼ばれるか
 5. 「サーバーメトリクスを表示して」→ `get_metrics` が呼ばれるか
 6. 「コーディングに最適なモデルを推奨して」→ `recommend_model` が呼ばれるか
+7. 「コーディング用にローカルLLMをセットアップして」→ `auto_setup` が呼ばれるか
 
 **チェック項目:**
-- [ ] Claude Code がツール一覧に 10 ツールを認識している
+- [ ] Claude Code がツール一覧に 11 ツールを認識している
 - [ ] offload_work が正常に動作する
 - [ ] compress_context が正常に動作する
 - [ ] batch_offload が正常に動作する
@@ -510,11 +523,12 @@ Claude Code を起動し、以下を試す:
 | MT-23 | プロンプトインジェクション検知 | セキュリティ | |
 | MT-24 | Ollama 未接続フォールバック | 異常系 | |
 | MT-25 | 存在しないモデルで offload_work | 異常系 | |
+| MT-26 | auto_setup ワンステップセットアップ | auto_setup | |
 | E2E | 自動テスト 13件 | E2E | |
-| Unit | 自動テスト 721件 | ユニット | |
+| Unit | 自動テスト 736件 | ユニット | |
 | CC | Claude Code 連携 | 統合 | |
 
 ### 合格基準
 
-- **全項目パス:** 28/28 ✅
+- **全項目パス:** 29/29 ✅
 - **許容:** MT-09 の cost_dashboard は同一セッション内で offload_work を先に呼ぶ必要あり。単独呼び出しでは累計 $0.0000 が表示される場合がある（正常動作）

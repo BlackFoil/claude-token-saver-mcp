@@ -13,7 +13,7 @@
 1. [テストピラミッドと配分戦略](#1-テストピラミッドと配分戦略)
 2. [ユニットテスト設計（Vitest）](#2-ユニットテスト設計vitest)
    - 2.1〜2.9: コアモジュール（tiering, queue, cost, validation, timeout, ollama, tools, prompt, config）
-   - 2.10〜2.16: v0.3.0追加モジュール（metrics, persistence, structured-logging, batch, priority-queue, load-balancer, registry-updater）
+   - 2.10〜2.17: v0.3.0追加モジュール（metrics, persistence, structured-logging, batch, priority-queue, load-balancer, registry-updater, auto-setup）
 3. [統合テスト設計](#3-統合テスト設計)
 4. [セキュリティテスト設計](#4-セキュリティテスト設計)
 5. [パフォーマンステスト設計](#5-パフォーマンステスト設計)
@@ -38,17 +38,17 @@
           │  (65件)   │        prompt-injection / output-sanitize / dos-protection
           ├───────────┤
           │   Unit    │  82%  — 純粋ロジック
-          │ (~588件)  │        モック/スタブ利用
+          │ (~603件)  │        モック/スタブ利用
           └───────────┘
 
-  合計: 721 テスト / 38 テストファイル
+  合計: 736 テスト / 39 テストファイル
 ```
 
 ### 1.2 配分の根拠
 
 | レイヤー | 配分 | テスト数 | 根拠 |
 |:---|:---:|:---:|:---|
-| **Unit** | 82% | ~588件 | ティアリング、キュー、コスト計算、バリデーション、メトリクス、永続化、優先度キュー、バッチ、ロードバランサー、レジストリ更新等の純粋ロジック。外部依存なしで高速実行可能 |
+| **Unit** | 82% | ~603件 | ティアリング、キュー、コスト計算、バリデーション、メトリクス、永続化、優先度キュー、バッチ、ロードバランサー、レジストリ更新、auto-setup等の純粋ロジック。外部依存なしで高速実行可能 |
 | **Security** | 9% | 65件 | prompt-injection(38), output-sanitize(19), dos-protection(8)。OWASP LLM Top 10対応 |
 | **Integration** | 3% | 19件 | tool-flow(12), model-selector(7)。モジュール間結合確認 |
 | **E2E** | 2% | 13件 | ollama-e2e(10), timeout-e2e(3)。実Ollamaサーバー必須。CI環境ではスキップ可能 |
@@ -558,6 +558,19 @@ describe('createTimeoutController', () => {
 | 静的レジストリ | 静的定義モデルの更新除外、手動オーバーライドの保護 |
 | タイマー制御 | 定期更新タイマーの起動・停止、更新間隔の設定 |
 | API連携 | Ollama `/api/tags` からのモデル一覧取得、エラー時のリトライ |
+
+### 2.17 auto-setup（v0.3.0追加）
+
+**対象ファイル:** `src/tools/auto-setup.ts`
+**テストファイル:** `tests/unit/auto-setup.test.ts`（15テスト）
+
+| カテゴリ | テスト数 | テスト観点 |
+|:---|:---:|:---|
+| 基本フロー | 4 | 正常フロー（推奨→pull→preload）、既にインストール済み、既にロード済み、category指定 |
+| skipオプション | 2 | skip_pull=trueでpullスキップ、skip_preload=trueでpreloadスキップ |
+| エラーハンドリング | 6 | Ollama不健全、recommendModels失敗、pull失敗→部分成功、preload失敗→警告、modelSelector無効、空の推奨リスト |
+| 品質優先 | 1 | prefer_quality=trueで品質重視モデル選択 |
+| レスポンス形式 | 2 | Markdown形式の出力検証、警告メッセージの出力検証 |
 
 ---
 
@@ -1113,7 +1126,8 @@ packages/mcp-server/
 │   │   │   ├── batch-offload.test.ts        # v0.3.0: バッチオフロード (17テスト)
 │   │   │   ├── priority-queue.test.ts       # v0.3.0: 優先度キュー (15テスト)
 │   │   │   ├── registry-updater.test.ts     # v0.3.0: レジストリ自動更新 (33テスト)
-│   │   │   └── load-balancer.test.ts        # v0.3.0: ロードバランサー (18テスト)
+│   │   │   ├── load-balancer.test.ts        # v0.3.0: ロードバランサー (18テスト)
+│   │   │   └── auto-setup.test.ts          # v0.3.0: auto_setup (15テスト)
 │   │   ├── integration/
 │   │   │   ├── tool-flow.test.ts            # 12テスト
 │   │   │   └── model-selector.test.ts       # 7テスト
@@ -1316,7 +1330,7 @@ export class TestMCPClient {
 
 ## 付録A: テストケース一覧（サマリー）
 
-### v0.3.0 実績値（721テスト / 38ファイル）
+### v0.3.0 実績値（736テスト / 39ファイル）
 
 | カテゴリ | テスト件数 | テストファイル |
 |:---|:---:|:---|
@@ -1337,8 +1351,9 @@ export class TestMCPClient {
 | 優先度キュー | 15件 | `priority-queue.test.ts` |
 | レジストリ自動更新 | 33件 | `registry-updater.test.ts` |
 | ロードバランサー | 18件 | `load-balancer.test.ts` |
+| auto-setup | 15件 | `auto-setup.test.ts` |
 | その他ユニットテスト | ~373件 | 各種 `.test.ts` |
-| **ユニットテスト合計** | **~588件** | — |
+| **ユニットテスト合計** | **~603件** | — |
 | **セキュリティテスト** | | |
 | プロンプトインジェクション | 38件 | `prompt-injection.test.ts` |
 | 出力サニタイズ | 19件 | `output-sanitize.test.ts` |
@@ -1353,7 +1368,7 @@ export class TestMCPClient {
 | タイムアウトE2E | 3件 | `timeout-e2e.test.ts` |
 | **E2Eテスト合計** | **13件** | — |
 | パフォーマンスベンチマーク | 8件 | `performance.bench.ts` |
-| **全テスト合計** | **721件** | **38ファイル** |
+| **全テスト合計** | **736件** | **39ファイル** |
 
 ---
 

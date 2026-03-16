@@ -93,8 +93,8 @@
 
 | 指標 | 値 |
 |:---|:---|
-| 総テスト数 | 721 tests / 38 test files |
-| ユニットテスト | ~588 tests |
+| 総テスト数 | 736 tests / 39 test files |
+| ユニットテスト | ~603 tests |
 | セキュリティテスト | 65 tests |
 | 統合テスト | 19 tests |
 | E2Eテスト | 13 tests（Ollama必須） |
@@ -124,6 +124,7 @@
 | OllamaLoadBalancer ↔ OllamaClient | **OK** | 同一インターフェース（chat, healthCheck, listModels） ✅ |
 | PriorityQueue ↔ FIFOQueue | **OK** | 同一エラー型（QueueFullError, RateLimitError） ✅ |
 | batch_offload ↔ offload_work | **OK** | 同一ToolHandlerContext、同一バリデーション・PI検知 ✅ |
+| auto_setup ↔ recommendModels + pullModel + preload | **OK** | 同一インターフェース ✅ |
 
 ### 2.7 v0.3.0 設定スキーマ整合性
 
@@ -200,7 +201,7 @@ P0-1（Ollamaバージョン統一）は即座に修正し、P1項目はPhase 3�
 | 1 | `docs/design/mcp-server-design.md` | ~1000 | MCPツール定義、Ollamaクライアント、ティアリング、キュー、コスト計算 |
 | 2 | `docs/design/infrastructure-design.md` | ~1120 | ディレクトリ構造、package.json、Docker、CI/CD |
 | 3 | `docs/design/security-design.md` | ~1000 | STRIDE脅威モデル、4層PI防御、DoS対策、35項目チェックリスト |
-| 4 | `docs/design/test-strategy.md` | ~800 | 721テスト / 38ファイル（Unit ~588/Integration 19/Security 65/E2E 13） |
+| 4 | `docs/design/test-strategy.md` | ~800 | 736テスト / 39ファイル（Unit ~603/Integration 19/Security 65/E2E 13） |
 | 5 | `docs/design/data-flow-design.md` | ~985 | Mermaid図8枚、エラークラス階層、CTS-XXXXコード体系、ロギング設計 |
 | 6 | `docs/design/integration-review.md` | — | 本横断レビュー結果 |
 
@@ -212,7 +213,7 @@ P0-1（Ollamaバージョン統一）は即座に修正し、P1項目はPhase 3�
 
 | チェック項目 | ステータス |
 |:---|:---:|
-| 新規10モジュール全てがserver.tsに統合済み | **OK** |
-| 全721テストがパス | **OK** |
+| 新規11モジュール全てがserver.tsに統合済み | **OK** |
+| 全736テストがパス | **OK** |
 | lint / typecheck / build 全パス | **OK** |
 | 既存テストに破壊的変更なし | **OK** |

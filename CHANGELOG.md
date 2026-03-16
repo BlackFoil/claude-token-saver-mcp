@@ -19,11 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 優先度付きキュー — `PriorityQueue` (URGENT/HIGH/NORMAL/LOW)
 - モデルレジストリ自動更新 — `RegistryUpdater` (9パターン自動分類)
 - 分散実行 — `OllamaLoadBalancer` (round-robin/least-connections/model-affinity + フェイルオーバー)
+- `auto_setup` MCPツール — ワンステップでモデル推奨→DL→プリロード (15テスト)
 - Config Schema拡張: `distributed` / `persistence` / `registryUpdater` セクション
 
 ### Changed
-- テスト: 592 → 721 (+129テスト, 38ファイル)
-- MCPツール: 8 → 10
+- テスト: 592 → 736 (+144テスト, 39ファイル)
+- MCPツール: 8 → 11
 - lint / typecheck / build 全パス
 
 ## [0.2.0] - 2026-02-19
