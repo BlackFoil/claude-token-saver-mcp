@@ -27,6 +27,7 @@ import { handleConfigureModelSelector, type ConfigureModelSelectorContext } from
 import { handleCostDashboard, type CostDashboardContext } from './tools/cost-dashboard.js';
 import { handleBatchOffload } from './tools/batch-offload.js';
 import { handleGetMetrics, type GetMetricsContext } from './tools/get-metrics.js';
+import { handleAutoSetup, type AutoSetupContext } from './tools/auto-setup.js';
 import { ExecutionTracker } from './model-selector/execution-tracker.js';
 import { BenchmarkStore } from './model-selector/benchmark-db.js';
 import { getFullRegistry } from './model-selector/registry.js';
@@ -187,6 +188,16 @@ async function main(): Promise<void> {
 
   // recommend_model context
   const recommendModelContext: RecommendModelContext = {
+    ollamaClient,
+    tierConfig,
+    config,
+    logger,
+    ollamaHealthy,
+    benchmarkStore,
+  };
+
+  // auto_setup context
+  const autoSetupContext: AutoSetupContext = {
     ollamaClient,
     tierConfig,
     config,
@@ -490,6 +501,37 @@ async function main(): Promise<void> {
           required: ['setting', 'action'],
         },
       });
+
+      // auto_setup: recommend → pull → preload in one step
+      tools.push({
+        name: 'auto_setup',
+        description:
+          'Automate the full model setup flow: recommend the best model for a task category, ' +
+          'download it if needed, and preload it into VRAM — all in one step.',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            category: {
+              type: 'string',
+              enum: [...TASK_CATEGORIES],
+              description: 'Task category: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general. Default: "general"',
+            },
+            prefer_quality: {
+              type: 'boolean' as const,
+              description: 'Prefer quality (true) or speed (false). Default: false',
+            },
+            skip_pull: {
+              type: 'boolean' as const,
+              description: 'Skip downloading the model if not installed. Default: false',
+            },
+            skip_preload: {
+              type: 'boolean' as const,
+              description: 'Skip preloading the model into VRAM. Default: false',
+            },
+          },
+          required: [],
+        },
+      });
     }
 
     return { tools };
@@ -518,6 +560,8 @@ async function main(): Promise<void> {
         return handleCostDashboard(args ?? {}, costDashboardContext);
       case 'batch_offload':
         return handleBatchOffload(args, toolContext);
+      case 'auto_setup':
+        return handleAutoSetup(args ?? {}, autoSetupContext);
       case 'get_metrics':
         return handleGetMetrics(args ?? {}, getMetricsContext);
       default:
@@ -588,6 +632,7 @@ async function main(): Promise<void> {
         preloadModelContext.ollamaHealthy = healthy;
         listLoadedModelsContext.ollamaHealthy = healthy;
         pullModelContext.ollamaHealthy = healthy;
+        autoSetupContext.ollamaHealthy = healthy;
 
         // P5-001: Update metrics
         metricsCollector.updateOllamaHealth(healthy);
