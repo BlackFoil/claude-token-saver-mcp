@@ -4,3 +4,7 @@ coverage/
 *.tsbuildinfo
 .env
 .DS_Store
+
+# Internal docs (keep in private repo)
+kickoff.md
+tasks/
