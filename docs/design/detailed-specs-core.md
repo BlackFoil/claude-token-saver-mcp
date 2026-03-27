@@ -1,6 +1,6 @@
 # コアモジュール詳細関数仕様書
 
-**プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
+**プロジェクト:** claude-token-saver-mcp
 **バージョン:** v1.1
 **作成日:** 2026-02-15
 **作成者:** Architect Agent

@@ -1,6 +1,6 @@
 # サポートモジュール詳細関数仕様書
 
-**プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
+**プロジェクト:** claude-token-saver-mcp
 **バージョン:** v1.1
 **作成日:** 2026-02-15
 **作成者:** Coder 2 / Logic Agent
@@ -62,7 +62,7 @@
 ### 1.3 型定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import type { PricingTable } from './pricing.js';
@@ -241,7 +241,7 @@ restoreFromHistory(history: CumulativeCost): void
 ### 2.3 型定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -410,7 +410,7 @@ export const COST_HISTORY_FILE_PATH = path.join(CONFIG_DIR, 'cost-history.json')
 ### 4.4 型定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -562,7 +562,7 @@ export function saveCostHistory(
 ### 5.3 スキーマ定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import { z } from 'zod';
@@ -702,7 +702,7 @@ MCPツール（`offload_work`, `compress_context`）への入力に対し、サ�
 ### 6.3 型定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import type { OffloadWorkInput, CompressContextInput } from '../tools/types.js';
@@ -824,7 +824,7 @@ MCPツールへの入力テキストに対するプロンプトインジェク�
 ### 7.3 型定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 /**
@@ -1029,7 +1029,7 @@ export function sanitizeOutput(text: string): SanitizeResult
 ### 8.3 型定義
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 /**

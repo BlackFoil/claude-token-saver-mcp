@@ -124,10 +124,10 @@ claude-token-saver-mcp/
   "version": "0.1.0",
   "description": "MCP server that offloads coding tasks to local LLM (Ollama) to save Claude API tokens",
   "license": "Apache-2.0",
-  "author": "PulseAgent Team",
+  "author": "claude-token-saver-mcp Contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pulseagent/claude-token-saver-mcp"
+    "url": "https://github.com/hiko99/claude-token-saver-mcp"
   },
   "keywords": [
     "mcp",
@@ -751,7 +751,7 @@ GitHub Release 作成
 
 ```bash
 # 1. リポジトリのクローン
-git clone https://github.com/pulseagent/claude-token-saver-mcp.git
+git clone https://github.com/hiko99/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 
 # 2. 依存パッケージのインストール
@@ -1001,7 +1001,7 @@ npm install -g claude-token-saver-mcp
 
 ```
 claude-token-saver-mcp
-Copyright 2026 PulseAgent Team
+Copyright 2026 claude-token-saver-mcp Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1043,7 +1043,7 @@ This product includes software developed by third parties.
 全ての `.ts` ソースファイルの先頭に以下のヘッダーを付与する:
 
 ```typescript
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 ```
 

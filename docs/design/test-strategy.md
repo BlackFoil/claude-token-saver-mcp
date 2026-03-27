@@ -1,6 +1,6 @@
-# PulseAgent テスト戦略設計書
+# claude-token-saver-mcp テスト戦略設計書
 
-**プロジェクト:** claude-token-saver-mcp (PulseAgent)
+**プロジェクト:** claude-token-saver-mcp
 **バージョン:** v0.3.0
 **作成日:** 2026-02-15（v0.3.0 更新: 2026-03-16）
 **作成者:** Tester Agent

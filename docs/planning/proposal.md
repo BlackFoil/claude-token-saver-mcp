@@ -1,6 +1,6 @@
 # claude-token-saver-mcp 企画書
 
-**プロジェクト名:** claude-token-saver-mcp (PulseAgent Token Saver)
+**プロジェクト名:** claude-token-saver-mcp
 **バージョン:** v2.0
 **作成日:** 2026-02-15
 **作成者:** PM / Claude Code (Leader)
@@ -173,7 +173,7 @@ Architectの検証に基づき、以下の仕様変更を提案する。
 
 | # | 調査項目 | リスク | 判定 |
 |:---|:---|:---:|:---|
-| 1 | LLMルーティング特許 | **中** | PulseAgentの「RAM量ベース静的Tiering」は既存特許と技術的に異なる |
+| 1 | LLMルーティング特許 | **中** | claude-token-saver-mcpの「RAM量ベース静的Tiering」は既存特許と技術的に異なる |
 | 2 | トークンコスト最適化特許 | **低** | 公知の手法の組合せ、特許侵害リスク極めて低い |
 | 3 | MCPライセンス | **低** | MIT License、Linux Foundation傘下、商用制限なし |
 | 4 | Ollama MITライセンス互換性 | **低** | MIT⇔Apache 2.0完全互換、API呼び出しのため派生物にも非該当 |

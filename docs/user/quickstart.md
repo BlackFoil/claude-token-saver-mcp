@@ -47,7 +47,7 @@ npm install -g claude-token-saver-mcp
 ### ソースからビルド
 
 ```bash
-git clone https://github.com/pulseagent/claude-token-saver-mcp.git
+git clone https://github.com/hiko99/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 npm install
 npm run build

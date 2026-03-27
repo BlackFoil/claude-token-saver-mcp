@@ -1,4 +1,4 @@
-// Copyright 2026 PulseAgent Team
+// Copyright 2026 claude-token-saver-mcp Contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';

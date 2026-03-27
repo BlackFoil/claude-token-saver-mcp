@@ -1,6 +1,6 @@
 # データフロー・エラー設計書
 
-**プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
+**プロジェクト:** claude-token-saver-mcp
 **バージョン:** v1.0
 **作成日:** 2026-02-15
 **作成者:** Coder 2 / Logic Agent

@@ -5,7 +5,7 @@ claude-token-saver-mcp へのコントリビューションを歓迎します。
 ## 開発環境
 
 ```bash
-git clone https://github.com/pulseagent/claude-token-saver-mcp.git
+git clone https://github.com/hiko99/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 npm ci
 npm test          # 736 テスト

@@ -1,6 +1,6 @@
 [English](./README.en.md) | 日本語
 
-[![CI](https://github.com/pulseagent/claude-token-saver-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pulseagent/claude-token-saver-mcp/actions) [![npm](https://img.shields.io/npm/v/claude-token-saver-mcp)](https://www.npmjs.com/package/claude-token-saver-mcp) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/pulseagent/claude-token-saver-mcp/actions) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+[![CI](https://github.com/hiko99/claude-token-saver-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hiko99/claude-token-saver-mcp/actions) [![npm](https://img.shields.io/npm/v/claude-token-saver-mcp)](https://www.npmjs.com/package/claude-token-saver-mcp) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/hiko99/claude-token-saver-mcp/actions) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
 # claude-token-saver-mcp
 
@@ -84,7 +84,7 @@ TypeScript で配列をシャッフルする関数を書いて
 <summary>ソースからビルドする場合</summary>
 
 ```bash
-git clone https://github.com/pulseagent/claude-token-saver-mcp.git
+git clone https://github.com/hiko99/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 npm ci && npm run build
 ```

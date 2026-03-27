@@ -1,6 +1,6 @@
 # MCPサーバー基本設計書
 
-**プロジェクト:** claude-token-saver-mcp (PulseAgent Token Saver)
+**プロジェクト:** claude-token-saver-mcp
 **バージョン:** v0.3.0
 **作成日:** 2026-02-15
 **作成者:** Architect Agent

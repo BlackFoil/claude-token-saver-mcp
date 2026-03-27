@@ -30,7 +30,7 @@
 | モデル名 | **OK** | phi4:latest / qwen2.5-coder:7b / qwen2.5-coder:32b で統一 |
 | キュー最大長 | **OK** | 全設計書で10件 |
 | MCPレスポンス形式 | **OK** | `CallToolResult` の `content[]` + `isError` で統一 |
-| プロジェクト名 | **P1修正** | 「PulseAgent」と「claude-token-saver-mcp」が混在。設計書タイトルを統一する |
+| プロジェクト名 | **P1修正** | 「claude-token-saver-mcp」と「claude-token-saver-mcp」が混在。設計書タイトルを統一する |
 
 #### v0.3.0 追加コンポーネント名
 
@@ -160,7 +160,7 @@
 
 | # | 内容 | 関連設計書 | 対応方針 |
 |:---:|:---|:---|:---|
-| P1-1 | プロジェクト名の混在（「PulseAgent」vs「claude-token-saver-mcp」） | security, test | npm パッケージ名は `claude-token-saver-mcp`、プロジェクトコードネームは `PulseAgent` と明確に区別する |
+| P1-1 | プロジェクト名の混在（「claude-token-saver-mcp」vs「claude-token-saver-mcp」） | security, test | npm パッケージ名は `claude-token-saver-mcp`、プロジェクトコードネームは `claude-token-saver-mcp` と明確に区別する |
 | P1-2 | テスト設計のパス表記が `packages/mcp-server/src/` （モノレポ前提）になっている | test-strategy | シングルパッケージ構成（`src/`直下）に修正 |
 | P1-3 | テスト設計のパッケージマネージャーが `pnpm` だがインフラ設計は `npm` | test-strategy, infrastructure | `npm` に統一 |
 
