@@ -49,7 +49,9 @@ Ollama is a tool for running AI models locally on your machine.
 ollama serve
 ```
 
-**1.** Add to `~/.claude/claude_desktop_config.json` (create the file if it doesn't exist):
+### Claude Code (CLI)
+
+**1.** Create `.mcp.json` in your project root:
 
 ```json
 {
@@ -76,6 +78,26 @@ Write a TypeScript function to shuffle an array
 If the response footer shows `Model: qwen2.5-coder:7b | Savings: $0.02`, it's working.
 If not, run `ollama list` to check your models, then see [Troubleshooting](./docs/user/troubleshooting.md).
 
+### Claude Desktop
+
+**1.** Add to `~/.claude/claude_desktop_config.json` (create the file if it doesn't exist):
+
+```json
+{
+  "mcpServers": {
+    "token-saver": { "command": "npx", "args": ["-y", "claude-token-saver-mcp"] }
+  }
+}
+```
+
+**2.** Restart Claude Desktop and ask:
+
+```text
+Set up a local LLM for coding tasks
+```
+
+**3.** Verification is the same as the CLI version above.
+
 <!-- TODO: Screenshot of setup completion here -->
 <!-- Content: Claude Code running offload_work, response footer showing Model / Tokens / Savings -->
 <!-- Recommended: 800x400px, terminal screenshot -->
@@ -88,6 +110,8 @@ git clone https://github.com/hiko99/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 npm ci && npm run build
 ```
+
+Add to `.mcp.json` (CLI) or `claude_desktop_config.json` (Desktop):
 
 ```json
 {
