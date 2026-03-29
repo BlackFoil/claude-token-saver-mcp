@@ -5,7 +5,7 @@ English | [日本語](./README.md)
 # claude-token-saver-mcp
 
 <p align="center">
-  <img src="./docs/assets/banner.svg" alt="claude-token-saver-mcp banner" width="100%">
+  <img src="./docs/assets/banner-en.svg" alt="claude-token-saver-mcp banner" width="100%">
 </p>
 
 > **Status: Beta** — Suitable for individual use. 736 tests / 97% coverage.

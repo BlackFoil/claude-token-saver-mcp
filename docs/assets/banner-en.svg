@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 620" width="1280" height="620" role="img" aria-label="claude-token-saver-mcp banner">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M1 2L8 5L1 8" fill="none" stroke="#00695c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arr-ret" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M9 2L2 5L9 8" fill="none" stroke="#999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- ========== BACKGROUND ========== -->
+  <rect width="1280" height="620" fill="#ffffff"/>
+  <rect x="0" y="0" width="1280" height="5" fill="#00695c"/>
+
+  <!-- ========== HEADER ========== -->
+  <rect x="40" y="22" width="6" height="48" fill="#00695c"/>
+  <text x="56" y="50" font-family="'SF Mono','Cascadia Code','Fira Code',monospace" font-size="28" font-weight="700" fill="#1a1a1a" letter-spacing="-0.5">claude-token-saver-mcp</text>
+  <text x="56" y="72" font-family="'Arial',sans-serif" font-size="13" fill="#888">MCP server that offloads routine coding tasks to local LLM (Ollama) · Apache-2.0</text>
+  <text x="1240" y="44" text-anchor="end" font-family="'Arial',sans-serif" font-size="20" font-weight="700" fill="#00695c">Inference on Cloud, Work on Local</text>
+  <text x="1240" y="68" text-anchor="end" font-family="'Arial',sans-serif" font-size="12" fill="#888">~40% of Claude Code API calls are routine tasks → auto-offloaded to local LLM</text>
+
+  <line x1="40" y1="88" x2="1240" y2="88" stroke="#e0e0e0" stroke-width="1"/>
+  <line x1="598" y1="88" x2="598" y2="572" stroke="#e0e0e0" stroke-width="1"/>
+
+  <!-- ========== LEFT COLUMN ========== -->
+
+  <rect x="40" y="102" width="10" height="10" fill="#00695c"/>
+  <text x="56" y="113" font-family="'Arial',sans-serif" font-size="15" font-weight="700" fill="#1a1a1a">30-Second Setup</text>
+  <text x="194" y="113" font-family="'Arial',sans-serif" font-size="12" fill="#aaa">Quick Start</text>
+  <line x1="40" y1="120" x2="566" y2="120" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Prerequisites -->
+  <text x="40" y="138" font-family="'Arial',sans-serif" font-size="11" fill="#888">Requirements:</text>
+  <rect x="118" y="126" width="118" height="16" rx="8" fill="#e8f5e9"/>
+  <text x="177" y="138" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="10" fill="#2e7d32">Node.js 20+</text>
+  <rect x="242" y="126" width="72" height="16" rx="8" fill="#e8f5e9"/>
+  <text x="278" y="138" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="10" fill="#2e7d32">Ollama</text>
+  <text x="320" y="138" font-family="'Arial',sans-serif" font-size="11" fill="#888">must be installed</text>
+
+  <!-- STEP 0 -->
+  <circle cx="60" cy="167" r="14" fill="#00695c"/>
+  <text x="60" y="172" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">0</text>
+  <line x1="60" y1="181" x2="60" y2="228" stroke="#b2dfdb" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="84" y="162" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Start Ollama</text>
+  <rect x="84" y="169" width="478" height="26" rx="4" fill="#1c2026"/>
+  <text x="98" y="186" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" fill="#8b949e">$</text>
+  <text x="112" y="186" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" fill="#e6edf3">ollama serve</text>
+  <text x="84" y="209" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">If not installed, download from ollama.com first</text>
+
+  <!-- STEP 1 -->
+  <circle cx="60" cy="238" r="14" fill="#00695c"/>
+  <text x="60" y="243" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">1</text>
+  <line x1="60" y1="252" x2="60" y2="336" stroke="#b2dfdb" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="84" y="234" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Create .mcp.json in your project root</text>
+  <rect x="84" y="241" width="478" height="86" rx="4" fill="#1c2026"/>
+  <text x="98" y="260" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#79c0ff">{</text>
+  <text x="116" y="276" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">  "mcpServers": {</text>
+  <text x="116" y="291" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">    "token-saver": {</text>
+  <text x="116" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">      "command": </text>
+  <text x="227" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#a5d6ff">"npx"</text>
+  <text x="264" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">, "args": [</text>
+  <text x="352" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#a5d6ff">"-y"</text>
+  <text x="383" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">, </text>
+  <text x="400" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#a5d6ff">"claude-token-saver-mcp"</text>
+  <text x="98" y="321" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#79c0ff">    ] } } }</text>
+
+  <!-- STEP 2 -->
+  <circle cx="60" cy="346" r="14" fill="#00695c"/>
+  <text x="60" y="351" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">2</text>
+  <line x1="60" y1="360" x2="60" y2="440" stroke="#b2dfdb" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="84" y="342" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Launch Claude Code and run setup</text>
+  <rect x="84" y="349" width="478" height="26" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="98" y="366" font-family="'Arial',sans-serif" font-size="11" fill="#1b5e20">Set up a local LLM for coding</text>
+  <text x="84" y="391" font-family="'Arial',sans-serif" font-size="10" fill="#888">Auto-runs:</text>
+  <rect x="148" y="381" width="86" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="191" y="393" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#2e7d32">Detect RAM</text>
+  <text x="238" y="393" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">→</text>
+  <rect x="246" y="381" width="96" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="294" y="393" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#2e7d32">Recommend model</text>
+  <text x="346" y="393" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">→</text>
+  <rect x="354" y="381" width="106" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="407" y="393" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#2e7d32">Download (~4 GB)</text>
+  <text x="464" y="393" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">→</text>
+  <rect x="472" y="381" width="68" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="506" y="393" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#2e7d32">Preload</text>
+  <text x="84" y="414" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">Everything is handled automatically by Claude Code. No manual steps required.</text>
+
+  <!-- STEP 3 -->
+  <circle cx="60" cy="450" r="14" fill="#00695c"/>
+  <text x="60" y="455" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">3</text>
+  <text x="84" y="446" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Verify it works</text>
+  <rect x="84" y="453" width="478" height="26" rx="4" fill="#1c2026"/>
+  <text x="98" y="466" font-family="'Arial',sans-serif" font-size="10" fill="#8b949e">Try asking:</text>
+  <text x="160" y="466" font-family="'SF Mono','Cascadia Code',monospace" font-size="10.5" fill="#e6edf3">Write a shuffle function in TypeScript</text>
+  <rect x="84" y="485" width="478" height="44" rx="4" fill="#f0f9f5" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="98" y="502" font-family="'Arial',sans-serif" font-size="10" fill="#888">Success looks like:</text>
+  <text x="178" y="502" font-family="'SF Mono','Cascadia Code',monospace" font-size="10" fill="#2e7d32">"Generated by local LLM (qwen2.5-coder:...)"</text>
+  <text x="430" y="502" font-family="'Arial',sans-serif" font-size="10" fill="#2e7d32">in the response</text>
+  <text x="98" y="522" font-family="'Arial',sans-serif" font-size="9.5" fill="#aaa">If not shown, run ollama list to verify the model is available. See troubleshooting docs.</text>
+
+  <!-- ========== RIGHT COLUMN ========== -->
+
+  <!-- Architecture section -->
+  <rect x="622" y="102" width="10" height="10" fill="#00695c"/>
+  <text x="638" y="113" font-family="'Arial',sans-serif" font-size="15" font-weight="700" fill="#1a1a1a">How It Works</text>
+  <text x="734" y="113" font-family="'Arial',sans-serif" font-size="12" fill="#aaa">Architecture</text>
+  <line x1="622" y1="120" x2="1240" y2="120" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Claude Code box -->
+  <rect x="622" y="132" width="152" height="74" rx="6" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.8"/>
+  <text x="698" y="160" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" font-weight="700" fill="#1565c0">Claude Code</text>
+  <line x1="636" y1="168" x2="760" y2="168" stroke="#c5cae9" stroke-width="0.5"/>
+  <text x="698" y="183" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#3949ab">Complex reasoning</text>
+  <text x="698" y="197" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#3949ab">stays on Cloud</text>
+
+  <line x1="774" y1="169" x2="820" y2="169" stroke="#00695c" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="797" y="161" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="9" fill="#00695c">MCP</text>
+
+  <!-- token-saver box -->
+  <rect x="820" y="126" width="168" height="86" rx="6" fill="#e8f5e9" stroke="#00695c" stroke-width="1.2"/>
+  <rect x="820" y="126" width="168" height="22" rx="6" fill="#00695c"/>
+  <rect x="820" y="140" width="168" height="8" fill="#00695c"/>
+  <text x="904" y="141" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" font-weight="700" fill="#fff">token-saver</text>
+  <text x="904" y="160" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#1b5e20">Classifies &amp; routes tasks</text>
+  <text x="904" y="175" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#1b5e20">Routine → Local / Complex → Cloud</text>
+  <text x="904" y="191" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="9" fill="#81c784">security / fallback</text>
+
+  <line x1="988" y1="169" x2="1034" y2="169" stroke="#00695c" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="1011" y="161" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="9" fill="#00695c">HTTP</text>
+
+  <!-- Ollama box -->
+  <rect x="1034" y="132" width="196" height="74" rx="6" fill="#fff8e1" stroke="#ffca28" stroke-width="0.8"/>
+  <text x="1132" y="160" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" font-weight="700" fill="#e65100">Ollama</text>
+  <line x1="1048" y1="168" x2="1216" y2="168" stroke="#ffe082" stroke-width="0.5"/>
+  <text x="1132" y="183" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#bf360c">Local LLM</text>
+  <text x="1132" y="197" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#bf360c">100% on-device, no data sent out</text>
+
+  <!-- Return arrow -->
+  <path d="M1132 206 Q1132 228 904 228 Q676 228 698 206" fill="none" stroke="#aaa" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr-ret)"/>
+  <text x="904" y="244" text-anchor="middle" font-family="'Arial',sans-serif" font-size="10" fill="#999">Result returned (auto-falls back to Cloud if Ollama is unavailable)</text>
+
+  <!-- ========== AUTO-TIERING SECTION ========== -->
+  <rect x="622" y="258" width="10" height="10" fill="#00695c"/>
+  <text x="638" y="269" font-family="'Arial',sans-serif" font-size="14" font-weight="700" fill="#1a1a1a">Auto-Tiering</text>
+  <text x="726" y="269" font-family="'Arial',sans-serif" font-size="11" fill="#aaa">by RAM</text>
+  <line x1="622" y1="276" x2="1240" y2="276" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Description -->
+  <text x="622" y="293" font-family="'Arial',sans-serif" font-size="11" fill="#666">Detects available RAM, then automatically recommends, downloads, and preloads the best model.</text>
+
+  <!-- Table header -->
+  <rect x="622" y="300" width="618" height="22" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="0.5"/>
+  <text x="720" y="314" text-anchor="middle" font-family="'Arial',sans-serif" font-size="11" font-weight="700" fill="#555">RAM</text>
+  <text x="840" y="314" text-anchor="middle" font-family="'Arial',sans-serif" font-size="11" font-weight="700" fill="#555">Tier</text>
+  <text x="990" y="314" text-anchor="middle" font-family="'Arial',sans-serif" font-size="11" font-weight="700" fill="#555">Recommended Model</text>
+  <text x="1180" y="314" text-anchor="middle" font-family="'Arial',sans-serif" font-size="11" font-weight="700" fill="#555">Download Size</text>
+  <line x1="622" y1="322" x2="1240" y2="322" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Row 1 -->
+  <text x="720" y="338" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">&lt; 16 GB</text>
+  <rect x="800" y="328" width="80" height="18" rx="9" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="840" y="340" text-anchor="middle" font-family="'SF Mono',monospace" font-size="10" fill="#1565c0">Light</text>
+  <text x="990" y="338" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">phi4:latest</text>
+  <text x="1180" y="338" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#888">~2.5 GB</text>
+  <line x1="622" y1="346" x2="1240" y2="346" stroke="#f0f0f0" stroke-width="0.5"/>
+
+  <!-- Row 2 -->
+  <rect x="622" y="346" width="618" height="26" fill="#fafafa"/>
+  <text x="720" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">16 – 48 GB</text>
+  <rect x="796" y="351" width="88" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="840" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="10" fill="#2e7d32">Standard</text>
+  <text x="990" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">qwen2.5-coder:7b</text>
+  <text x="1180" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#888">~4.7 GB</text>
+  <line x1="622" y1="372" x2="1240" y2="372" stroke="#f0f0f0" stroke-width="0.5"/>
+
+  <!-- Row 3 -->
+  <text x="720" y="388" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">&gt; 48 GB</text>
+  <rect x="808" y="378" width="64" height="18" rx="9" fill="#fff8e1" stroke="#ffca28" stroke-width="0.5"/>
+  <text x="840" y="390" text-anchor="middle" font-family="'SF Mono',monospace" font-size="10" fill="#e65100">Ultra</text>
+  <text x="990" y="388" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">qwen2.5-coder:32b</text>
+  <text x="1180" y="388" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#888">~18 GB</text>
+  <line x1="622" y1="398" x2="1240" y2="398" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- ========== KEY FEATURES ========== -->
+  <rect x="622" y="410" width="10" height="10" fill="#00695c"/>
+  <text x="638" y="421" font-family="'Arial',sans-serif" font-size="13" font-weight="700" fill="#1a1a1a">Key Features</text>
+  <line x1="622" y1="428" x2="1240" y2="428" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- F1 -->
+  <rect x="622" y="436" width="298" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="622" y="436" width="4" height="62" rx="2" fill="#00695c"/>
+  <text x="636" y="455" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Fully Local</text>
+  <text x="636" y="472" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">Routine tasks run without hitting the Cloud API.</text>
+  <text x="636" y="488" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">No data ever leaves your machine.</text>
+
+  <!-- F2 -->
+  <rect x="930" y="436" width="310" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="930" y="436" width="4" height="62" rx="2" fill="#1565c0"/>
+  <text x="944" y="455" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Security Built-in</text>
+  <text x="944" y="472" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">Prompt injection detection (20 patterns)</text>
+  <text x="944" y="488" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">+ auto-redacts API keys, JWTs &amp; more.</text>
+
+  <!-- F3 -->
+  <rect x="622" y="506" width="298" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="622" y="506" width="4" height="62" rx="2" fill="#e65100"/>
+  <text x="636" y="525" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Cost Dashboard</text>
+  <text x="636" y="542" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">Track savings in real time.</text>
+  <text x="636" y="558" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">~$50–80/month savings at 40% routine ratio.</text>
+
+  <!-- F4 -->
+  <rect x="930" y="506" width="310" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="930" y="506" width="4" height="62" rx="2" fill="#7c3aed"/>
+  <text x="944" y="525" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Auto-Fallback</text>
+  <text x="944" y="542" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">If Ollama is down or slow, seamlessly</text>
+  <text x="944" y="558" font-family="'Arial',sans-serif" font-size="10.5" fill="#666">switches to Cloud — zero interruption.</text>
+
+  <!-- ========== FOOTER ========== -->
+  <line x1="40" y1="572" x2="1240" y2="572" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="40" y="593" font-family="'Arial',sans-serif" font-size="11" fill="#aaa">Platform: macOS / Linux / Windows (any environment where Ollama runs) · TypeScript 96% · v0.3.0 Beta</text>
+  <text x="1240" y="593" text-anchor="end" font-family="'Arial',sans-serif" font-size="11" fill="#aaa">github.com/BlackFoil/claude-token-saver-mcp</text>
+
+  <rect x="0" y="615" width="1280" height="5" fill="#00695c"/>
+
+  <!-- ========== OUTER BLACK BORDER ========== -->
+  <rect x="0.5" y="0.5" width="1279" height="619" fill="none" stroke="#000000" stroke-width="1.5"/>
+</svg>
