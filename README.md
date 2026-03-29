@@ -48,8 +48,6 @@ Ollama が落ちていたり応答が遅い場合は Cloud API に自動フォ�
 ollama serve
 ```
 
-### Claude Code (CLI)
-
 **1.** プロジェクトルートに `.mcp.json` を作成
 
 ```json
@@ -74,28 +72,8 @@ RAM に応じた最適モデルが推奨 → ダウンロード（約 4GB）→ 
 TypeScript で配列をシャッフルする関数を書いて
 ```
 
-レスポンス末尾に `Model: qwen2.5-coder:7b | Savings: $0.02` と出れば OK。
+「ローカルLLM（qwen2.5-coder:…）で生成しました」のようにローカルモデル名が表示されれば OK。
 出ない場合は `ollama list` でモデルを確認し、[トラブルシューティング](./docs/user/troubleshooting.md) を参照してください。
-
-### Claude Desktop
-
-**1.** `~/.claude/claude_desktop_config.json` に追加（ファイルがなければ新規作成）
-
-```json
-{
-  "mcpServers": {
-    "token-saver": { "command": "npx", "args": ["-y", "claude-token-saver-mcp"] }
-  }
-}
-```
-
-**2.** Claude Desktop を再起動して、こう頼む
-
-```text
-コーディング用にローカルLLMをセットアップして
-```
-
-**3.** 動作確認は CLI 版と同じです。
 
 <!-- TODO: セットアップ完了のスクリーンショットをここに貼る -->
 <!-- 内容: Claude Code で offload_work が実行され、応答末尾に Model / Tokens / Savings が表示されている様子 -->
@@ -110,7 +88,7 @@ cd claude-token-saver-mcp
 npm ci && npm run build
 ```
 
-CLI の場合は `.mcp.json`、Desktop の場合は `claude_desktop_config.json` に追加：
+プロジェクトルートの `.mcp.json` に追加：
 
 ```json
 {
