@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Copyright 2026 claude-token-saver-mcp Contributors
+// Copyright 2026 claude-token-saver-mcp team
 // SPDX-License-Identifier: Apache-2.0
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
