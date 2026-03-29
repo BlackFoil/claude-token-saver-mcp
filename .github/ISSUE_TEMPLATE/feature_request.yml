@@ -1,0 +1,31 @@
+name: 機能リクエスト
+description: 新機能や改善の提案
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: 機能リクエストありがとうございます。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 概要
+      description: 提案する機能を簡潔に説明してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: ユースケース
+      description: この機能がどのような場面で役立つか記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: 提案する実装方法
+      description: 実装案があれば記載してください。
+    validations:
+      required: false

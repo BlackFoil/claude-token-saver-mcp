@@ -318,7 +318,7 @@ CTS はセキュリティのため、以下のカテゴリのパターンを検�
 1. `compress_context` ツールで先に要約してから `offload_work` に渡す:
 
    ```text
-   compress_context({ text: "...(長いテキスト)..." })
+   compress_context({ content: "...(長いテキスト)..." })
    → 要約結果を offload_work に渡す
    ```
 
@@ -450,7 +450,7 @@ npx pino-pretty < /dev/stderr
 
 # JSON ログから特定のエラーコードを検索
 # CTS のログは stderr に出力されるため、リダイレクトして確認する
-node dist/index.js 2>cts.log
+node dist/server.js 2>cts.log
 cat cts.log | grep "CTS-" | npx pino-pretty
 
 # 特定のエラーコードでフィルタ

@@ -1,0 +1,32 @@
+name: ドキュメント修正
+description: ドキュメントの誤りや改善の報告
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: ドキュメントに関する報告ありがとうございます。
+
+  - type: input
+    id: page_or_file
+    attributes:
+      label: 対象ページ / ファイル
+      description: 修正が必要なファイルパスまたはページURLを記載してください。
+      placeholder: "例: README.md, docs/design/mcp-server.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 問題の内容
+      description: 誤りや改善すべき点を記載してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested_fix
+    attributes:
+      label: 修正案
+      description: 具体的な修正案があれば記載してください。
+    validations:
+      required: false

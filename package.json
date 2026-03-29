@@ -4,9 +4,16 @@
   "description": "MCP server that offloads coding tasks to local LLM (Ollama) to save Claude API tokens",
   "license": "Apache-2.0",
   "author": "claude-token-saver-mcp team",
+  "homepage": "https://github.com/BlackFoil/claude-token-saver-mcp#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hiko99/claude-token-saver-mcp"
+    "url": "https://github.com/BlackFoil/claude-token-saver-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/BlackFoil/claude-token-saver-mcp/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "mcp",

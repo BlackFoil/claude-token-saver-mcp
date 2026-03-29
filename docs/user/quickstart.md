@@ -38,11 +38,21 @@ ollama pull qwen2.5-coder:7b
 
 ## ステップ 2: MCP サーバーのインストール (1 分)
 
-### npm からインストール (推奨)
+### npx で実行 (推奨)
+
+グローバルインストール不要で、常に最新版が使えます。
+
+```bash
+npx claude-token-saver-mcp
+```
+
+### npm グローバルインストール
 
 ```bash
 npm install -g claude-token-saver-mcp
 ```
+
+> **Note:** npx での実行を推奨します。グローバルインストールではバージョンの手動更新が必要です。
 
 ### ソースからビルド
 
@@ -118,5 +128,5 @@ Claude Code に「コーディング用にローカルLLMをセットアップ�
 
 ## 次のステップ
 
-- **設定リファレンス** — `~/.config/claude-token-saver/config.json` で Tier 固定・モデル変更・タイムアウト調整などが可能です。詳しくは [設定リファレンス](../design/detailed-specs-core.md) を参照してください。
+- **設定リファレンス** — `~/.config/claude-token-saver/config.json` で Tier 固定・モデル変更・タイムアウト調整などが可能です。詳しくは [設定リファレンス](./configuration.md) を参照してください。
 - **トラブルシューティング** — Ollama に接続できない場合は、`ollama serve` が起動中か、`OLLAMA_BASE_URL` 環境変数が正しいかを確認してください。

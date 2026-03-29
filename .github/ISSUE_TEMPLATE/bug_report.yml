@@ -1,0 +1,85 @@
+name: バグ報告
+description: 不具合の報告
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: バグ報告ありがとうございます。以下の項目をできるだけ詳しく記入してください。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 概要
+      description: 発生した問題を簡潔に説明してください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: 問題を再現するための手順を記載してください。
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作
+      description: 本来どのように動作すべきかを記載してください。
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "例: macOS 15.3, Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: input
+    id: node_version
+    attributes:
+      label: Node.js バージョン
+      placeholder: "例: v22.12.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ollama_version
+    attributes:
+      label: Ollama バージョン
+      placeholder: "例: 0.6.2"
+    validations:
+      required: true
+
+  - type: input
+    id: model_name
+    attributes:
+      label: 使用モデル
+      placeholder: "例: qwen2.5-coder:7b"
+    validations:
+      required: false
+
+  - type: textarea
+    id: claude_config
+    attributes:
+      label: Claude 設定 (.mcp.json)
+      description: 関連する .mcp.json の内容を貼り付けてください。秘密情報は除外してください。
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: ログ出力
+      description: 関連するログを貼り付けてください。
+      render: text
+    validations:
+      required: false

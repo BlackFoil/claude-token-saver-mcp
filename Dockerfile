@@ -25,7 +25,7 @@ RUN addgroup --system cts && adduser --system --ingroup cts cts
 USER cts
 
 ENV NODE_ENV=production
-ENV OLLAMA_HOST=http://host.docker.internal:11434
+ENV OLLAMA_BASE_URL=http://host.docker.internal:11434
 
 ENTRYPOINT ["tini", "--"]
 CMD ["node", "dist/server.js"]
