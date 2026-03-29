@@ -487,7 +487,7 @@ npm run test
 
 ### 13.1 MCP サーバー設定
 
-`~/.claude/claude_desktop_config.json`:
+プロジェクトルートの `.mcp.json`:
 
 ```json
 {
