@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { handleRecommendModel, type RecommendModelContext } from '../../src/tools/recommend-model.js';
+import {
+  handleRecommendModel,
+  type RecommendModelContext,
+} from '../../src/tools/recommend-model.js';
 import { OllamaClient } from '../../src/ollama/client.js';
 import type { AppConfig } from '../../src/config/schema.js';
 import type { TierConfig } from '../../src/tiering/config.js';
@@ -32,18 +35,30 @@ function makeConfig(overrides?: Partial<AppConfig['modelSelector']>): AppConfig 
 function makeTierConfig(tier: 1 | 2 | 3): TierConfig {
   const configs: Record<number, TierConfig> = {
     1: {
-      level: 1, name: 'Light', primaryModel: 'phi4:latest', fallbackModel: null,
-      contextLimit: 4_000, ramRange: { min: 0, max: 16 },
+      level: 1,
+      name: 'Light',
+      primaryModel: 'phi4:latest',
+      fallbackModel: null,
+      contextLimit: 4_000,
+      ramRange: { min: 0, max: 16 },
       timeout: { requestTimeout: 60_000, heartbeatTimeout: 30_000, firstTokenTimeout: 120_000 },
     },
     2: {
-      level: 2, name: 'Standard', primaryModel: 'qwen2.5-coder:7b', fallbackModel: null,
-      contextLimit: 12_000, ramRange: { min: 16, max: 48 },
+      level: 2,
+      name: 'Standard',
+      primaryModel: 'qwen2.5-coder:7b',
+      fallbackModel: null,
+      contextLimit: 12_000,
+      ramRange: { min: 16, max: 48 },
       timeout: { requestTimeout: 90_000, heartbeatTimeout: 30_000, firstTokenTimeout: 120_000 },
     },
     3: {
-      level: 3, name: 'Ultra', primaryModel: 'qwen2.5-coder:32b', fallbackModel: null,
-      contextLimit: 32_000, ramRange: { min: 48, max: Infinity },
+      level: 3,
+      name: 'Ultra',
+      primaryModel: 'qwen2.5-coder:32b',
+      fallbackModel: null,
+      contextLimit: 32_000,
+      ramRange: { min: 48, max: Infinity },
       timeout: { requestTimeout: 180_000, heartbeatTimeout: 45_000, firstTokenTimeout: 180_000 },
     },
   };
@@ -123,10 +138,7 @@ describe('handleRecommendModel (DMS-010/013)', () => {
 
   it('respects prefer_quality parameter', async () => {
     const ctx = makeContext(3);
-    const result = await handleRecommendModel(
-      { category: 'coding', prefer_quality: true },
-      ctx,
-    );
+    const result = await handleRecommendModel({ category: 'coding', prefer_quality: true }, ctx);
 
     expect(result.isError).toBeUndefined();
     const text = (result.content[0] as { type: 'text'; text: string }).text;
@@ -139,7 +151,12 @@ describe('handleRecommendModel (DMS-010/013)', () => {
     // Mock listModelsFull and listRunning
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
       models: [
-        { name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01T00:00:00Z' },
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01T00:00:00Z',
+        },
       ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
@@ -156,9 +173,7 @@ describe('handleRecommendModel (DMS-010/013)', () => {
   it('handles Ollama connection failure gracefully', async () => {
     const ctx = makeContext(3, undefined, true);
 
-    vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const result = await handleRecommendModel({ category: 'coding' }, ctx);
 
@@ -171,8 +186,13 @@ describe('handleRecommendModel (DMS-010/013)', () => {
   it('works for all valid categories', async () => {
     const ctx = makeContext(2);
     const categories = [
-      'coding', 'coding-agent', 'japanese-text',
-      'japanese-coding', 'translation', 'summarization', 'general',
+      'coding',
+      'coding-agent',
+      'japanese-text',
+      'japanese-coding',
+      'translation',
+      'summarization',
+      'general',
     ];
 
     for (const category of categories) {
@@ -207,10 +227,7 @@ describe('handleRecommendModel (DMS-010/013)', () => {
 
   it('returns error when prefer_quality is non-boolean', async () => {
     const ctx = makeContext(3);
-    const result = await handleRecommendModel(
-      { category: 'coding', prefer_quality: 'yes' },
-      ctx,
-    );
+    const result = await handleRecommendModel({ category: 'coding', prefer_quality: 'yes' }, ctx);
 
     expect(result.isError).toBe(true);
     const text = (result.content[0] as { type: 'text'; text: string }).text;
@@ -220,9 +237,7 @@ describe('handleRecommendModel (DMS-010/013)', () => {
   it('handles non-Error throw from Ollama query gracefully', async () => {
     const ctx = makeContext(3, undefined, true);
 
-    vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockRejectedValueOnce(
-      'string error',
-    );
+    vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockRejectedValueOnce('string error');
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
       models: [],
     });
@@ -238,7 +253,9 @@ describe('handleRecommendModel (DMS-010/013)', () => {
     const ctx = makeContext(3);
     // Override config to cause a TypeError during recommendation
     Object.defineProperty(ctx.config.modelSelector, 'enabled', {
-      get() { throw new TypeError('property access fail'); },
+      get() {
+        throw new TypeError('property access fail');
+      },
     });
 
     const result = await handleRecommendModel({ category: 'coding' }, ctx);

@@ -2,7 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { PriorityQueue, Priority } from '../../src/queue/priority-queue.js';
 
 function createTestQueue(
-  overrides?: Partial<{ maxQueueLength: number; maxRequestSizeBytes: number; queueTimeoutMs: number }>,
+  overrides?: Partial<{
+    maxQueueLength: number;
+    maxRequestSizeBytes: number;
+    queueTimeoutMs: number;
+  }>,
   processor?: (item: string) => Promise<string>,
 ) {
   return new PriorityQueue<string, string>(
@@ -73,13 +77,10 @@ describe('PriorityQueue', () => {
   });
 
   it('PQ-04: queue full error', async () => {
-    const queue = createTestQueue(
-      { maxQueueLength: 1 },
-      async (item) => {
-        await new Promise((r) => setTimeout(r, 100));
-        return item;
-      },
-    );
+    const queue = createTestQueue({ maxQueueLength: 1 }, async (item) => {
+      await new Promise((r) => setTimeout(r, 100));
+      return item;
+    });
 
     const p1 = queue.enqueue('first', 100);
     await new Promise((r) => setTimeout(r, 5));

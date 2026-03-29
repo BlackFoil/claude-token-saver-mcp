@@ -91,9 +91,7 @@ describe('Structured Logging (P5-003)', () => {
     it('returns a valid UUID v4 format', () => {
       const id = createRequestId();
       // UUID v4: 8-4-4-4-12 hex digits
-      expect(id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
     it('returns unique IDs on successive calls', () => {

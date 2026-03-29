@@ -13,11 +13,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import {
-  isOllamaAvailable,
-  createE2EClient,
-  TEST_MODEL,
-} from '../helpers/e2e-setup.js';
+import { isOllamaAvailable, createE2EClient, TEST_MODEL } from '../helpers/e2e-setup.js';
 import { ModelLoadTimeoutError, GenerationTimeoutError } from '../../src/ollama/client.js';
 
 const ollamaReady = await isOllamaAvailable();
@@ -46,7 +42,10 @@ describe.runIf(ollamaReady)('E2E: Timeout Layer Verification', () => {
       client.chat({
         model: TEST_MODEL,
         messages: [
-          { role: 'user', content: 'Write a detailed essay about the history of computing from 1940 to 2020.' },
+          {
+            role: 'user',
+            content: 'Write a detailed essay about the history of computing from 1940 to 2020.',
+          },
         ],
         stream: true,
         options: {
@@ -70,7 +69,10 @@ describe.runIf(ollamaReady)('E2E: Timeout Layer Verification', () => {
       client.chat({
         model: TEST_MODEL,
         messages: [
-          { role: 'user', content: 'Write a detailed essay about the history of computing from 1940 to 2020.' },
+          {
+            role: 'user',
+            content: 'Write a detailed essay about the history of computing from 1940 to 2020.',
+          },
         ],
         stream: true,
         options: {
@@ -94,7 +96,10 @@ describe.runIf(ollamaReady)('E2E: Timeout Layer Verification', () => {
       client.chat({
         model: TEST_MODEL,
         messages: [
-          { role: 'user', content: 'Write a detailed essay about the history of computing from 1940 to 2020.' },
+          {
+            role: 'user',
+            content: 'Write a detailed essay about the history of computing from 1940 to 2020.',
+          },
         ],
         stream: true,
         options: {

@@ -35,11 +35,7 @@ function truncateByTokens(text: string, maxTokens: number): string {
   return text.substring(0, cutPos);
 }
 
-function buildCompressPrompt(
-  content: string,
-  focus?: string,
-  maxLength?: number,
-): string {
+function buildCompressPrompt(content: string, focus?: string, maxLength?: number): string {
   const parts: string[] = ['Summarize the following content.'];
   if (focus) parts.push(`Focus on: ${focus}`);
   if (maxLength) parts.push(`Target maximum length: ${maxLength} characters.`);
@@ -107,10 +103,14 @@ export async function handleCompressContext(
     }
 
     // DMS-017: Resolve model override
-    const rawArgs = typeof rawInput === 'object' && rawInput !== null
-      ? rawInput as Record<string, unknown> : {};
-    const modelOverride = typeof rawArgs['model'] === 'string' && rawArgs['model'].trim()
-      ? rawArgs['model'].trim() : undefined;
+    const rawArgs =
+      typeof rawInput === 'object' && rawInput !== null
+        ? (rawInput as Record<string, unknown>)
+        : {};
+    const modelOverride =
+      typeof rawArgs['model'] === 'string' && rawArgs['model'].trim()
+        ? rawArgs['model'].trim()
+        : undefined;
     const effectiveModel = modelOverride ?? tierConfig.primaryModel;
     if (modelOverride) {
       logger.info({ model: effectiveModel }, 'compress_context: using explicit model override');
@@ -125,19 +125,18 @@ export async function handleCompressContext(
       const contentLimit = Math.floor(tierConfig.contextLimit * 0.9);
       processedContent = truncateByTokens(input.content, contentLimit);
       truncated = true;
-      logger.warn({
-        inputTokens: originalTokens,
-        maxTokens: tierConfig.contextLimit,
-        truncatedTokens: estimateTokenCount(processedContent),
-      }, 'コンテキストカットオフ発生');
+      logger.warn(
+        {
+          inputTokens: originalTokens,
+          maxTokens: tierConfig.contextLimit,
+          truncatedTokens: estimateTokenCount(processedContent),
+        },
+        'コンテキストカットオフ発生',
+      );
     }
 
     // Step 6: Build prompt
-    const userPrompt = buildCompressPrompt(
-      processedContent,
-      input.focus,
-      input.max_length,
-    );
+    const userPrompt = buildCompressPrompt(processedContent, input.focus, input.max_length);
 
     const messages = [
       { role: 'system' as const, content: SYSTEM_PROMPT },
@@ -160,10 +159,7 @@ export async function handleCompressContext(
 
     let ollamaResponse: OllamaChatResponse;
     try {
-      ollamaResponse = await queue.enqueue(
-        payload,
-        validated.totalBytes,
-      );
+      ollamaResponse = await queue.enqueue(payload, validated.totalBytes);
     } catch (queueError) {
       if (queueError instanceof CTSError) {
         return createFallbackResponse('QUEUE_ERROR', queueError.message);
@@ -192,23 +188,29 @@ export async function handleCompressContext(
 
     // Step 10: Log
     reportCost(costResult, 'compress_context');
-    logger.info({
-      tool: 'compress_context',
-      model: ollamaResponse.model,
-      inputTokens: ollamaResponse.inputTokens,
-      outputTokens: ollamaResponse.outputTokens,
-      durationMs: ollamaResponse.totalDurationMs,
-      savingsUsd: costResult.savingsUsd,
-      truncated,
-    }, 'compress_context completed');
+    logger.info(
+      {
+        tool: 'compress_context',
+        model: ollamaResponse.model,
+        inputTokens: ollamaResponse.inputTokens,
+        outputTokens: ollamaResponse.outputTokens,
+        durationMs: ollamaResponse.totalDurationMs,
+        savingsUsd: costResult.savingsUsd,
+        truncated,
+      },
+      'compress_context completed',
+    );
 
     // Sanitize output
     const sanitized = sanitizeOutput(ollamaResponse.text);
     if (sanitized.redactionCount > 0) {
-      logger.warn({
-        detectedCategories: sanitized.detectedCategories,
-        redactionCount: sanitized.redactionCount,
-      }, 'Sensitive info redacted from LLM output');
+      logger.warn(
+        {
+          detectedCategories: sanitized.detectedCategories,
+          redactionCount: sanitized.redactionCount,
+        },
+        'Sensitive info redacted from LLM output',
+      );
     }
 
     // Step 11: Build response
@@ -221,9 +223,8 @@ export async function handleCompressContext(
 
     const originalLength = input.content.length;
     const compressedLength = ollamaResponse.text.length;
-    const compressionRatio = originalLength > 0
-      ? ((1 - compressedLength / originalLength) * 100).toFixed(1)
-      : '0.0';
+    const compressionRatio =
+      originalLength > 0 ? ((1 - compressedLength / originalLength) * 100).toFixed(1) : '0.0';
 
     const meta = [
       `Model: ${ollamaResponse.model}`,

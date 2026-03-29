@@ -238,9 +238,7 @@ export class OllamaClient {
 
       if (!response.ok) {
         const body = await response.text().catch(() => '');
-        throw new OllamaConnectionError(
-          `Ollama returned HTTP ${response.status}: ${body}`,
-        );
+        throw new OllamaConnectionError(`Ollama returned HTTP ${response.status}: ${body}`);
       }
 
       // ── NDJSON streaming parse ──
@@ -372,9 +370,7 @@ export class OllamaClient {
     }
 
     if (!response.ok) {
-      throw new OllamaNotRunningError(
-        `Ollama version endpoint returned HTTP ${response.status}`,
-      );
+      throw new OllamaNotRunningError(`Ollama version endpoint returned HTTP ${response.status}`);
     }
 
     const data = (await response.json()) as { version: string };
@@ -413,9 +409,7 @@ export class OllamaClient {
     }
 
     if (!response.ok) {
-      throw new OllamaNotRunningError(
-        `Ollama tags endpoint returned HTTP ${response.status}`,
-      );
+      throw new OllamaNotRunningError(`Ollama tags endpoint returned HTTP ${response.status}`);
     }
 
     const data = (await response.json()) as OllamaTagsResponse;
@@ -437,9 +431,7 @@ export class OllamaClient {
     }
 
     if (!response.ok) {
-      throw new OllamaNotRunningError(
-        `Ollama ps endpoint returned HTTP ${response.status}`,
-      );
+      throw new OllamaNotRunningError(`Ollama ps endpoint returned HTTP ${response.status}`);
     }
 
     const data = (await response.json()) as OllamaPsResponse;
@@ -491,9 +483,7 @@ export class OllamaClient {
         if (response.status === 404 || body.includes('not found')) {
           throw new ModelNotFoundError(`Model "${name}" not found: ${body}`);
         }
-        throw new OllamaConnectionError(
-          `Ollama pull returned HTTP ${response.status}: ${body}`,
-        );
+        throw new OllamaConnectionError(`Ollama pull returned HTTP ${response.status}: ${body}`);
       }
 
       if (!response.body) {
@@ -521,7 +511,12 @@ export class OllamaClient {
 
           let chunk: { status: string; completed?: number; total?: number; error?: string };
           try {
-            chunk = JSON.parse(line) as { status: string; completed?: number; total?: number; error?: string };
+            chunk = JSON.parse(line) as {
+              status: string;
+              completed?: number;
+              total?: number;
+              error?: string;
+            };
           } catch {
             continue; // skip malformed lines during pull
           }

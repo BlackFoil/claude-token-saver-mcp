@@ -38,7 +38,9 @@ export async function handlePullModel(
       const recheck = await ctx.ollamaClient.healthCheck();
       if (!recheck) {
         return {
-          content: [{ type: 'text', text: '[CTS-1001] Ollama is not available. Cannot pull model.' }],
+          content: [
+            { type: 'text', text: '[CTS-1001] Ollama is not available. Cannot pull model.' },
+          ],
           isError: true,
         };
       }
@@ -63,7 +65,7 @@ export async function handlePullModel(
       };
     }
 
-    const sizeGB = (pullResult.sizeBytes / (1024 ** 3)).toFixed(1);
+    const sizeGB = (pullResult.sizeBytes / 1024 ** 3).toFixed(1);
     const durationSec = (pullResult.durationMs / 1000).toFixed(1);
 
     const lines = [

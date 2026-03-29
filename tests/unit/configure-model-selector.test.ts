@@ -3,12 +3,14 @@ import { handleConfigureModelSelector } from '../../src/tools/configure-model-se
 import type { ConfigureModelSelectorContext } from '../../src/tools/configure-model-selector.js';
 import type { AppConfig } from '../../src/config/schema.js';
 
-function createMockContext(overrides?: Partial<{
-  enabled: boolean;
-  blockedModels: string[];
-  licenseFilter: string[];
-  customRecommendations: Record<string, Record<string, string[]>>;
-}>): ConfigureModelSelectorContext {
+function createMockContext(
+  overrides?: Partial<{
+    enabled: boolean;
+    blockedModels: string[];
+    licenseFilter: string[];
+    customRecommendations: Record<string, Record<string, string[]>>;
+  }>,
+): ConfigureModelSelectorContext {
   return {
     config: {
       ollama: { baseUrl: 'http://127.0.0.1:11434' },
@@ -28,7 +30,11 @@ function createMockContext(overrides?: Partial<{
         licenseFilter: overrides?.licenseFilter ?? ['Apache-2.0', 'MIT', 'NVIDIA-Open'],
       },
     } as AppConfig,
-    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ConfigureModelSelectorContext['logger'],
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    } as unknown as ConfigureModelSelectorContext['logger'],
   };
 }
 
@@ -171,10 +177,7 @@ describe('handleConfigureModelSelector (DMS-032)', () => {
 
   it('non-string setting returns error', async () => {
     const ctx = createMockContext();
-    const result = await handleConfigureModelSelector(
-      { setting: 123, action: 'get' },
-      ctx,
-    );
+    const result = await handleConfigureModelSelector({ setting: 123, action: 'get' }, ctx);
 
     expect(result.isError).toBe(true);
     const text = (result.content[0] as { text: string }).text;
@@ -387,7 +390,9 @@ describe('handleConfigureModelSelector (DMS-032)', () => {
     const ctx = createMockContext();
     // Force a generic error by providing a non-object custom_config that passes validation but fails later
     Object.defineProperty(ctx.config.modelSelector, 'enabled', {
-      get() { throw new TypeError('unexpected'); },
+      get() {
+        throw new TypeError('unexpected');
+      },
     });
 
     const result = await handleConfigureModelSelector(

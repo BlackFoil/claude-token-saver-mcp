@@ -89,9 +89,7 @@ describe('BenchmarkStore (DMS-028)', () => {
 
     await store.loadFromFile('/path/to/bad.json');
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid JSON'),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid JSON'));
     warnSpy.mockRestore();
   });
 
@@ -170,11 +168,7 @@ describe('BenchmarkStore (DMS-028)', () => {
     store.updateBenchmarks('save-model', { humanEval: 95.0 });
     await store.saveToFile('/tmp/benchmarks.json');
 
-    expect(writeFile).toHaveBeenCalledWith(
-      '/tmp/benchmarks.json',
-      expect.any(String),
-      'utf-8',
-    );
+    expect(writeFile).toHaveBeenCalledWith('/tmp/benchmarks.json', expect.any(String), 'utf-8');
 
     const writtenData = JSON.parse(vi.mocked(writeFile).mock.calls[0]![1] as string);
     expect(writtenData.version).toBe(1);

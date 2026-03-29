@@ -170,10 +170,7 @@ export class OllamaLoadBalancer {
           }
         }
 
-        this.logger.debug(
-          { nodeId: nodeState.node.id, healthy },
-          'Health check result',
-        );
+        this.logger.debug({ nodeId: nodeState.node.id, healthy }, 'Health check result');
       } catch {
         nodeState.healthy = false;
         nodeState.lastHealthCheck = Date.now();
@@ -229,9 +226,7 @@ export class OllamaLoadBalancer {
     const seen = new Map<string, OllamaModelInfo>();
     const healthyNodes = this.getHealthyNodes();
 
-    const results = await Promise.allSettled(
-      healthyNodes.map((ns) => ns.client.listModels()),
-    );
+    const results = await Promise.allSettled(healthyNodes.map((ns) => ns.client.listModels()));
 
     for (const result of results) {
       if (result.status === 'fulfilled') {
@@ -263,9 +258,7 @@ export class OllamaLoadBalancer {
       throw new Error('No healthy nodes available for pull');
     }
 
-    const results = await Promise.allSettled(
-      healthyNodes.map((ns) => ns.client.pullModel(name)),
-    );
+    const results = await Promise.allSettled(healthyNodes.map((ns) => ns.client.pullModel(name)));
 
     const failures = results.filter((r) => r.status === 'rejected');
     if (failures.length === results.length) {

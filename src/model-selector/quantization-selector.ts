@@ -48,9 +48,7 @@ export function selectQuantization(input: QuantizationInput): QuantizationResult
   if (fitting.length > 0) {
     // Sort by preference
     const sorted = [...fitting].sort((a, b) =>
-      preferQuality
-        ? a.qualityRank - b.qualityRank
-        : a.speedRank - b.speedRank,
+      preferQuality ? a.qualityRank - b.qualityRank : a.speedRank - b.speedRank,
     );
     return { variant: sorted[0]!, exceedsVram: false };
   }

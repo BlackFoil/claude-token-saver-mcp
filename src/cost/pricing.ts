@@ -41,9 +41,7 @@ export function loadPricing(
       pricing.inputPer1MTokens > 1000 ||
       pricing.outputPer1MTokens > 1000
     ) {
-      process.stderr.write(
-        `[WARN] モデル "${model}" の価格情報が不正です。スキップします。\n`,
-      );
+      process.stderr.write(`[WARN] モデル "${model}" の価格情報が不正です。スキップします。\n`);
       continue;
     }
 

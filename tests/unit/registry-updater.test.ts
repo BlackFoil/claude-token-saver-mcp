@@ -268,7 +268,9 @@ describe('RegistryUpdater.update', () => {
 
   it('returns empty array when listModels fails', async () => {
     const client = makeMockClient();
-    (client.listModels as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('connection refused'));
+    (client.listModels as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('connection refused'),
+    );
     logger = makeLogger();
     const updater = new RegistryUpdater(client, logger, { enabled: true });
 

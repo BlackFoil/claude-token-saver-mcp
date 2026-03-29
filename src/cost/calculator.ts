@@ -57,19 +57,13 @@ export class CostCalculator {
 
   calculateSavings(params: CalculateSavingsParams): CostResult {
     if (params.inputTokens < 0 || params.outputTokens < 0) {
-      throw new InvalidConfigError(
-        'tokens',
-        'トークン数は0以上である必要があります',
-      );
+      throw new InvalidConfigError('tokens', 'トークン数は0以上である必要があります');
     }
 
     const model = params.model ?? this.defaultComparisonModel;
     const modelPricing = this.pricing[model];
     if (!modelPricing) {
-      throw new InvalidConfigError(
-        'model',
-        `モデル '${model}' の価格情報が見つかりません`,
-      );
+      throw new InvalidConfigError('model', `モデル '${model}' の価格情報が見つかりません`);
     }
 
     const savingsUsd =
@@ -119,10 +113,7 @@ export class CostCalculator {
 
   restoreFromHistory(history: CumulativeCost): void {
     if (history.totalSavingsUsd < 0) {
-      throw new InvalidConfigError(
-        'costHistory',
-        '不正なコスト履歴データです',
-      );
+      throw new InvalidConfigError('costHistory', '不正なコスト履歴データです');
     }
     this.totalSavingsUsd = history.totalSavingsUsd;
     this.totalRequests = history.totalRequests;

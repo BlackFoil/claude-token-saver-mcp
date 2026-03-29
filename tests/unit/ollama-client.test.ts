@@ -20,7 +20,7 @@ function makeClient(overrides?: Partial<import('../../src/ollama/client.js').Oll
 // Helper to create a ReadableStream from NDJSON lines
 function ndjsonStream(lines: string[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-  const data = lines.map(l => l + '\n').join('');
+  const data = lines.map((l) => l + '\n').join('');
   return new ReadableStream({
     start(controller) {
       controller.enqueue(encoder.encode(data));
@@ -31,9 +31,9 @@ function ndjsonStream(lines: string[]): ReadableStream<Uint8Array> {
 
 describe('OllamaClient.healthCheck', () => {
   it('returns true when Ollama is running', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('Ollama is running', { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('Ollama is running', { status: 200 }));
 
     const client = makeClient();
     const result = await client.healthCheck();
@@ -47,9 +47,7 @@ describe('OllamaClient.healthCheck', () => {
   });
 
   it('returns false when fetch fails', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const client = makeClient();
     const result = await client.healthCheck();
@@ -59,9 +57,9 @@ describe('OllamaClient.healthCheck', () => {
   });
 
   it('returns false when response does not contain expected text', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('Something else', { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('Something else', { status: 200 }));
 
     const client = makeClient();
     const result = await client.healthCheck();
@@ -73,9 +71,9 @@ describe('OllamaClient.healthCheck', () => {
 
 describe('OllamaClient.getVersion', () => {
   it('returns version for valid response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: '0.3.0' }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '0.3.0' }), { status: 200 }));
 
     const client = makeClient();
     const version = await client.getVersion();
@@ -85,9 +83,9 @@ describe('OllamaClient.getVersion', () => {
   });
 
   it('throws OllamaVersionError for old version', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: '0.1.0' }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '0.1.0' }), { status: 200 }));
 
     const client = makeClient();
     await expect(client.getVersion()).rejects.toThrow(OllamaVersionError);
@@ -96,9 +94,7 @@ describe('OllamaClient.getVersion', () => {
   });
 
   it('throws OllamaNotRunningError on connection failure', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const client = makeClient();
     await expect(client.getVersion()).rejects.toThrow(OllamaNotRunningError);
@@ -107,9 +103,9 @@ describe('OllamaClient.getVersion', () => {
   });
 
   it('throws OllamaNotRunningError on non-ok response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('', { status: 500 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 500 }));
 
     const client = makeClient();
     await expect(client.getVersion()).rejects.toThrow(OllamaNotRunningError);
@@ -120,12 +116,10 @@ describe('OllamaClient.getVersion', () => {
 
 describe('OllamaClient.listModels', () => {
   it('returns model list', async () => {
-    const models = [
-      { name: 'phi4:latest', size: 1000, digest: 'abc', modified_at: '2026-01-01' },
-    ];
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ models }), { status: 200 }),
-    );
+    const models = [{ name: 'phi4:latest', size: 1000, digest: 'abc', modified_at: '2026-01-01' }];
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ models }), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listModels();
@@ -136,9 +130,9 @@ describe('OllamaClient.listModels', () => {
   });
 
   it('returns empty array when no models field', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({}), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listModels();
@@ -148,9 +142,9 @@ describe('OllamaClient.listModels', () => {
   });
 
   it('throws OllamaNotRunningError on fetch failure', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('Network error'),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('Network error'));
 
     const client = makeClient();
     await expect(client.listModels()).rejects.toThrow(OllamaNotRunningError);
@@ -210,9 +204,7 @@ describe('OllamaClient.chat', () => {
   });
 
   it('throws OllamaNotRunningError on connection failure', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const client = makeClient();
     await expect(
@@ -227,9 +219,9 @@ describe('OllamaClient.chat', () => {
   });
 
   it('throws OllamaConnectionError on non-ok response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('Internal Server Error', { status: 500 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('Internal Server Error', { status: 500 }));
 
     const client = makeClient();
     await expect(
@@ -244,9 +236,9 @@ describe('OllamaClient.chat', () => {
   });
 
   it('throws OllamaConnectionError when body is null', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(null, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
 
     const client = makeClient();
     // Response with null body - the check is !response.body
@@ -270,9 +262,9 @@ describe('OllamaClient.chat', () => {
       done: false,
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream([chunk1]), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream([chunk1]), { status: 200 }));
 
     const client = makeClient();
     await expect(
@@ -293,9 +285,11 @@ describe('OllamaClient.pullModel', () => {
     const successLine = JSON.stringify({ status: 'success' });
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream([progressLine, successLine]), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(ndjsonStream([progressLine, successLine]), { status: 200 }),
+      );
 
     const client = makeClient();
     const result = await client.pullModel('phi4:latest');
@@ -310,9 +304,9 @@ describe('OllamaClient.pullModel', () => {
   });
 
   it('throws ModelNotFoundError on 404', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('not found', { status: 404 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('not found', { status: 404 }));
 
     const client = makeClient();
     await expect(client.pullModel('nonexistent')).rejects.toThrow(ModelNotFoundError);
@@ -323,9 +317,9 @@ describe('OllamaClient.pullModel', () => {
   it('throws ModelNotFoundError on error in stream', async () => {
     const errorLine = JSON.stringify({ status: 'error', error: 'model not found' });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream([errorLine]), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream([errorLine]), { status: 200 }));
 
     const client = makeClient();
     await expect(client.pullModel('bad-model')).rejects.toThrow(ModelNotFoundError);
@@ -334,9 +328,7 @@ describe('OllamaClient.pullModel', () => {
   });
 
   it('throws OllamaNotRunningError on connection failure', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const client = makeClient();
     await expect(client.pullModel('phi4:latest')).rejects.toThrow(OllamaNotRunningError);
@@ -345,9 +337,9 @@ describe('OllamaClient.pullModel', () => {
   });
 
   it('throws OllamaConnectionError on non-404 error response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('server error', { status: 500 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('server error', { status: 500 }));
 
     const client = makeClient();
     await expect(client.pullModel('phi4:latest')).rejects.toThrow(OllamaConnectionError);
@@ -356,9 +348,9 @@ describe('OllamaClient.pullModel', () => {
   });
 
   it('throws OllamaConnectionError when body is null', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(null, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
 
     const client = makeClient();
     await expect(client.pullModel('phi4:latest')).rejects.toThrow(OllamaConnectionError);
@@ -376,16 +368,16 @@ describe('OllamaClient.pullModel', () => {
     ];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     await client.pullModel('phi4:latest');
 
     // Should have progress logs (10%, 50%, 100%) + success
-    const calls = stderrSpy.mock.calls.map(c => c[0] as string);
-    const progressCalls = calls.filter(c => c.includes('Pulling model'));
+    const calls = stderrSpy.mock.calls.map((c) => c[0] as string);
+    const progressCalls = calls.filter((c) => c.includes('Pulling model'));
     expect(progressCalls.length).toBeGreaterThanOrEqual(2);
 
     stderrSpy.mockRestore();
@@ -399,29 +391,27 @@ describe('OllamaClient.pullModel', () => {
     ];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     await client.pullModel('phi4:latest');
 
-    const calls = stderrSpy.mock.calls.map(c => c[0] as string);
-    expect(calls.some(c => c.includes('verifying sha256 digest'))).toBe(true);
+    const calls = stderrSpy.mock.calls.map((c) => c[0] as string);
+    expect(calls.some((c) => c.includes('verifying sha256 digest'))).toBe(true);
 
     stderrSpy.mockRestore();
     fetchSpy.mockRestore();
   });
 
   it('throws OllamaConnectionError when stream ends without success', async () => {
-    const lines = [
-      JSON.stringify({ status: 'downloading', completed: 50, total: 100 }),
-    ];
+    const lines = [JSON.stringify({ status: 'downloading', completed: 50, total: 100 })];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     await expect(client.pullModel('phi4:latest')).rejects.toThrow(OllamaConnectionError);
@@ -431,15 +421,12 @@ describe('OllamaClient.pullModel', () => {
   });
 
   it('skips malformed JSON lines during pull', async () => {
-    const lines = [
-      'not-valid-json',
-      JSON.stringify({ status: 'success' }),
-    ];
+    const lines = ['not-valid-json', JSON.stringify({ status: 'success' })];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     const result = await client.pullModel('phi4:latest');
@@ -463,9 +450,9 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
       },
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
     const client = makeClient();
     await expect(
@@ -509,9 +496,9 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
       },
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
     const client = makeClient();
     const result = await client.chat({
@@ -529,14 +516,11 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
   it('strips trailing slashes from baseUrl', () => {
     const client = makeClient({ baseUrl: 'http://localhost:11434///' });
     // Access private baseUrl via healthCheck URL check
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('Ollama is running', { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('Ollama is running', { status: 200 }));
     client.healthCheck();
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'http://localhost:11434/',
-      expect.anything(),
-    );
+    expect(fetchSpy).toHaveBeenCalledWith('http://localhost:11434/', expect.anything());
     fetchSpy.mockRestore();
   });
 
@@ -556,9 +540,9 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
       },
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
     const client = makeClient();
     await expect(
@@ -573,9 +557,9 @@ describe('OllamaClient.chat - NDJSON edge cases', () => {
   });
 
   it('listModels throws on non-ok response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('', { status: 503 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 503 }));
 
     const client = makeClient();
     await expect(client.listModels()).rejects.toThrow(OllamaNotRunningError);
@@ -621,9 +605,9 @@ describe('OllamaClient.listModelsFull (DMS-002)', () => {
       ],
     };
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(tagsResponse), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify(tagsResponse), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listModelsFull();
@@ -640,9 +624,9 @@ describe('OllamaClient.listModelsFull (DMS-002)', () => {
   });
 
   it('returns empty models array when no models installed', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ models: [] }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ models: [] }), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listModelsFull();
@@ -653,9 +637,9 @@ describe('OllamaClient.listModelsFull (DMS-002)', () => {
   });
 
   it('handles missing models field gracefully', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({}), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listModelsFull();
@@ -666,9 +650,7 @@ describe('OllamaClient.listModelsFull (DMS-002)', () => {
   });
 
   it('throws OllamaNotRunningError on connection failure', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const client = makeClient();
     await expect(client.listModelsFull()).rejects.toThrow(OllamaNotRunningError);
@@ -677,9 +659,9 @@ describe('OllamaClient.listModelsFull (DMS-002)', () => {
   });
 
   it('throws OllamaNotRunningError on non-ok response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('', { status: 503 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 503 }));
 
     const client = makeClient();
     await expect(client.listModelsFull()).rejects.toThrow(OllamaNotRunningError);
@@ -694,9 +676,9 @@ describe('OllamaClient.listModelsFull (DMS-002)', () => {
       ],
     };
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(tagsResponse), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify(tagsResponse), { status: 200 }));
 
     const client = makeClient();
     const models = await client.listModels();
@@ -743,9 +725,9 @@ describe('OllamaClient.listRunning (DMS-003)', () => {
       ],
     };
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(psResponse), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify(psResponse), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listRunning();
@@ -761,9 +743,9 @@ describe('OllamaClient.listRunning (DMS-003)', () => {
   });
 
   it('returns empty array when no models are loaded', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ models: [] }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ models: [] }), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listRunning();
@@ -774,9 +756,9 @@ describe('OllamaClient.listRunning (DMS-003)', () => {
   });
 
   it('handles missing models field gracefully', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({}), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listRunning();
@@ -787,9 +769,7 @@ describe('OllamaClient.listRunning (DMS-003)', () => {
   });
 
   it('throws OllamaNotRunningError on connection failure', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const client = makeClient();
     await expect(client.listRunning()).rejects.toThrow(OllamaNotRunningError);
@@ -798,9 +778,9 @@ describe('OllamaClient.listRunning (DMS-003)', () => {
   });
 
   it('throws OllamaNotRunningError on non-ok response', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('', { status: 500 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 500 }));
 
     const client = makeClient();
     await expect(client.listRunning()).rejects.toThrow(OllamaNotRunningError);
@@ -819,9 +799,9 @@ describe('OllamaClient.pullModel response (DMS-004)', () => {
     ];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     const result = await client.pullModel('qwen2.5-coder:32b');
@@ -844,9 +824,9 @@ describe('OllamaClient.pullModel response (DMS-004)', () => {
     ];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     const result = await client.pullModel('qwen2.5-coder:7b');
@@ -868,9 +848,9 @@ describe('OllamaClient.pullModel response (DMS-004)', () => {
     ];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     const result = await client.pullModel('large-model:32b');
@@ -884,9 +864,9 @@ describe('OllamaClient.pullModel response (DMS-004)', () => {
 
 describe('OllamaClient.listRunning edge cases', () => {
   it('handles missing models field with null fallback', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ models: null }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ models: null }), { status: 200 }));
 
     const client = makeClient();
     const result = await client.listRunning();
@@ -933,9 +913,9 @@ describe('OllamaClient.chat - non-done content in remaining buffer', () => {
       },
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
     const client = makeClient();
     const result = await client.chat({
@@ -995,9 +975,9 @@ describe('OllamaClient - non-Error throws in fetch catch', () => {
 
 describe('OllamaClient.getVersion - compareVersions edge cases', () => {
   it('accepts version equal to minimum (0.1.34)', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: '0.1.34' }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '0.1.34' }), { status: 200 }));
 
     const client = makeClient();
     const version = await client.getVersion();
@@ -1007,9 +987,9 @@ describe('OllamaClient.getVersion - compareVersions edge cases', () => {
   });
 
   it('accepts version with fewer parts (e.g., 0.2)', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: '0.2' }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '0.2' }), { status: 200 }));
 
     const client = makeClient();
     const version = await client.getVersion();
@@ -1019,9 +999,9 @@ describe('OllamaClient.getVersion - compareVersions edge cases', () => {
   });
 
   it('accepts version with more parts (e.g., 1.0.0.0)', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ version: '1.0.0.0' }), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ version: '1.0.0.0' }), { status: 200 }));
 
     const client = makeClient();
     const version = await client.getVersion();
@@ -1078,9 +1058,9 @@ describe('OllamaClient.chat - multiple chunk reads with heartbeat', () => {
       },
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
     const client = makeClient();
     const result = await client.chat({
@@ -1125,9 +1105,9 @@ describe('OllamaClient.chat - empty lines in NDJSON', () => {
       },
     });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(stream, { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(stream, { status: 200 }));
 
     const client = makeClient();
     const result = await client.chat({
@@ -1152,9 +1132,9 @@ describe('OllamaClient.pullModel - empty lines in stream', () => {
     ];
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(lines), { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(lines), { status: 200 }));
 
     const client = makeClient();
     const result = await client.pullModel('test:latest');

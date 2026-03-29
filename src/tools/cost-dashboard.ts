@@ -75,7 +75,10 @@ export async function handleCostDashboard(
     lines.push('> No execution history available.');
   }
 
-  ctx.logger.debug({ totalSavings: savings.totalSavingsUsd, rows: rows.length }, 'Cost dashboard rendered');
+  ctx.logger.debug(
+    { totalSavings: savings.totalSavingsUsd, rows: rows.length },
+    'Cost dashboard rendered',
+  );
 
   return {
     content: [

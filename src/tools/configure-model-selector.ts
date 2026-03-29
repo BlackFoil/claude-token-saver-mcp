@@ -24,7 +24,11 @@ export interface ConfigureModelSelectorContext {
 type SettingName = 'blocked_models' | 'license_filter' | 'custom_recommendations';
 type ActionName = 'get' | 'set' | 'add' | 'remove';
 
-const VALID_SETTINGS: readonly SettingName[] = ['blocked_models', 'license_filter', 'custom_recommendations'];
+const VALID_SETTINGS: readonly SettingName[] = [
+  'blocked_models',
+  'license_filter',
+  'custom_recommendations',
+];
 const VALID_ACTIONS: readonly ActionName[] = ['get', 'set', 'add', 'remove'];
 
 interface ConfigureInput {
@@ -61,7 +65,10 @@ function validateInput(args: Record<string, unknown>): ConfigureInput {
   const customConfig = args['custom_config'];
   if (customConfig !== undefined && customConfig !== null) {
     if (typeof customConfig !== 'object' || Array.isArray(customConfig)) {
-      throw new InvalidConfigError('custom_config', 'Must be an object { category: { tier: modelId[] } }');
+      throw new InvalidConfigError(
+        'custom_config',
+        'Must be an object { category: { tier: modelId[] } }',
+      );
     }
   }
 
@@ -73,7 +80,11 @@ function validateInput(args: Record<string, unknown>): ConfigureInput {
     );
   }
 
-  if (setting !== 'custom_recommendations' && (action === 'add' || action === 'remove') && (!values || values.length === 0)) {
+  if (
+    setting !== 'custom_recommendations' &&
+    (action === 'add' || action === 'remove') &&
+    (!values || values.length === 0)
+  ) {
     throw new InvalidConfigError('values', `"${action}" action requires non-empty values array`);
   }
 
@@ -82,7 +93,10 @@ function validateInput(args: Record<string, unknown>): ConfigureInput {
   }
 
   if (setting === 'custom_recommendations' && action === 'set' && !customConfig) {
-    throw new InvalidConfigError('custom_config', '"set" action for custom_recommendations requires custom_config');
+    throw new InvalidConfigError(
+      'custom_config',
+      '"set" action for custom_recommendations requires custom_config',
+    );
   }
 
   return {
@@ -104,11 +118,7 @@ function validateLicenseValues(values: string[]): void {
   }
 }
 
-function handleBlockedModels(
-  action: ActionName,
-  config: AppConfig,
-  values?: string[],
-): string {
+function handleBlockedModels(action: ActionName, config: AppConfig, values?: string[]): string {
   const current = config.modelSelector.blockedModels;
 
   if (action === 'get') {
@@ -133,11 +143,7 @@ function handleBlockedModels(
   return `Removed ${values!.length} model(s) from blocklist. Remaining: ${config.modelSelector.blockedModels.length}`;
 }
 
-function handleLicenseFilter(
-  action: ActionName,
-  config: AppConfig,
-  values?: string[],
-): string {
+function handleLicenseFilter(action: ActionName, config: AppConfig, values?: string[]): string {
   const current = config.modelSelector.licenseFilter;
 
   if (action === 'get') {
@@ -226,10 +232,13 @@ export async function handleConfigureModelSelector(
         throw new InvalidConfigError('setting', `Unknown setting: ${input.setting as string}`);
     }
 
-    ctx.logger.info({
-      setting: input.setting,
-      action: input.action,
-    }, 'configure_model_selector completed');
+    ctx.logger.info(
+      {
+        setting: input.setting,
+        action: input.action,
+      },
+      'configure_model_selector completed',
+    );
 
     return {
       content: [{ type: 'text', text: `## Model Selector Configuration\n\n${resultText}` }],

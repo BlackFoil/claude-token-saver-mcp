@@ -39,13 +39,43 @@ interface ModelFamilyPattern {
 
 const MODEL_FAMILY_PATTERNS: ModelFamilyPattern[] = [
   // Coding-specific models (must be checked before general qwen/deepseek)
-  { pattern: /^qwen.*coder/i, category: 'coding', license: 'Apache-2.0', benchmarks: { humanEval: 70 } },
-  { pattern: /^deepseek.*coder/i, category: 'coding', license: 'MIT', benchmarks: { humanEval: 65 } },
-  { pattern: /^codellama/i, category: 'coding', license: 'Meta-Community', benchmarks: { humanEval: 60 } },
-  { pattern: /^devstral/i, category: 'coding-agent', license: 'Apache-2.0', benchmarks: { sweBench: 50 } },
+  {
+    pattern: /^qwen.*coder/i,
+    category: 'coding',
+    license: 'Apache-2.0',
+    benchmarks: { humanEval: 70 },
+  },
+  {
+    pattern: /^deepseek.*coder/i,
+    category: 'coding',
+    license: 'MIT',
+    benchmarks: { humanEval: 65 },
+  },
+  {
+    pattern: /^codellama/i,
+    category: 'coding',
+    license: 'Meta-Community',
+    benchmarks: { humanEval: 60 },
+  },
+  {
+    pattern: /^devstral/i,
+    category: 'coding-agent',
+    license: 'Apache-2.0',
+    benchmarks: { sweBench: 50 },
+  },
   // General models with Japanese support
-  { pattern: /^qwen3/i, category: 'general', license: 'Apache-2.0', benchmarks: { japaneseMTBench: 7.0 } },
-  { pattern: /^qwen2\.5/i, category: 'general', license: 'Apache-2.0', benchmarks: { japaneseMTBench: 6.5 } },
+  {
+    pattern: /^qwen3/i,
+    category: 'general',
+    license: 'Apache-2.0',
+    benchmarks: { japaneseMTBench: 7.0 },
+  },
+  {
+    pattern: /^qwen2\.5/i,
+    category: 'general',
+    license: 'Apache-2.0',
+    benchmarks: { japaneseMTBench: 6.5 },
+  },
   // General models
   { pattern: /^gemma/i, category: 'general', license: 'MIT', benchmarks: {} },
   { pattern: /^phi/i, category: 'general', license: 'MIT', benchmarks: {} },
@@ -78,7 +108,7 @@ function estimateTier(paramBillions: number): TierLevel {
  * Rough heuristic: file size * 1.2 for runtime overhead, converted to GB.
  */
 function estimateVram(sizeBytes: number): number {
-  return Math.round((sizeBytes / (1024 ** 3)) * 1.2 * 10) / 10;
+  return Math.round((sizeBytes / 1024 ** 3) * 1.2 * 10) / 10;
 }
 
 /**
@@ -111,10 +141,7 @@ export class RegistryUpdater {
     }
     if (this.timer) return; // already running
 
-    this.logger.info(
-      { intervalMs: this.config.updateIntervalMs },
-      'Starting registry auto-update',
-    );
+    this.logger.info({ intervalMs: this.config.updateIntervalMs }, 'Starting registry auto-update');
 
     // Run immediately, then on interval
     void this.update().catch((err) => {

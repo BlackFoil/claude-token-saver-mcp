@@ -121,15 +121,12 @@ describe('handleCompressContext', () => {
 
     // Should contain truncation warning
     expect(text).toContain('WARNING: Input truncated');
-    expect((ctx.logger.warn as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    expect(ctx.logger.warn as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
 
   it('includes focus in prompt when provided', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'test content here', focus: 'error handling' },
-      ctx,
-    );
+    await handleCompressContext({ content: 'test content here', focus: 'error handling' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     const userMsg = enqueuedPayload.request.messages[1].content;
@@ -240,10 +237,7 @@ describe('handleCompressContext', () => {
 
   it('includes max_length in prompt when provided', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'test content', max_length: 500 },
-      ctx,
-    );
+    await handleCompressContext({ content: 'test content', max_length: 500 }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     const userMsg = enqueuedPayload.request.messages[1].content;
@@ -254,14 +248,11 @@ describe('handleCompressContext', () => {
 
   it('uses explicit model override when model param provided', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'test content', model: 'custom-model:7b' },
-      ctx,
-    );
+    await handleCompressContext({ content: 'test content', model: 'custom-model:7b' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('custom-model:7b');
-    expect((ctx.logger.info as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
+    expect(ctx.logger.info as ReturnType<typeof vi.fn>).toHaveBeenCalledWith(
       expect.objectContaining({ model: 'custom-model:7b' }),
       expect.stringContaining('model override'),
     );
@@ -269,10 +260,7 @@ describe('handleCompressContext', () => {
 
   it('ignores empty model string override', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'test content', model: '  ' },
-      ctx,
-    );
+    await handleCompressContext({ content: 'test content', model: '  ' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:7b');
@@ -289,7 +277,9 @@ describe('handleCompressContext', () => {
 
   it('records successful execution when executionTracker is present', async () => {
     const mockTracker = { recordExecution: vi.fn() };
-    const ctx = createMockContext({ executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'] });
+    const ctx = createMockContext({
+      executionTracker: mockTracker as unknown as ToolHandlerContext['executionTracker'],
+    });
 
     await handleCompressContext({ content: 'test content' }, ctx);
 

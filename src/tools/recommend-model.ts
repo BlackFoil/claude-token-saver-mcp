@@ -108,12 +108,15 @@ export async function handleRecommendModel(
     // Format as Markdown
     const markdown = formatRecommendationMarkdown(output, category, totalRamGB);
 
-    ctx.logger.info({
-      category,
-      tier: output.tier,
-      recommendations: output.recommendations.length,
-      vramFallback: output.vramFallback,
-    }, 'recommend_model completed');
+    ctx.logger.info(
+      {
+        category,
+        tier: output.tier,
+        recommendations: output.recommendations.length,
+        vramFallback: output.vramFallback,
+      },
+      'recommend_model completed',
+    );
 
     return {
       content: [{ type: 'text', text: markdown }],

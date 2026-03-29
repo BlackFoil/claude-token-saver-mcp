@@ -152,8 +152,9 @@ export function recommendModels(input: RecommendInput): RecommendOutput {
   // 2. Apply blocked model filter
   const blockedSet = new Set(blockedModels.map((m) => m.toLowerCase()));
   candidates = candidates.filter(
-    (c) => !blockedSet.has(c.modelId.toLowerCase()) &&
-           !blockedSet.has(c.modelId.split(':')[0]!.toLowerCase()),
+    (c) =>
+      !blockedSet.has(c.modelId.toLowerCase()) &&
+      !blockedSet.has(c.modelId.split(':')[0]!.toLowerCase()),
   );
 
   // 3. Apply license filter
@@ -239,7 +240,9 @@ export function formatRecommendationMarkdown(
 
   if (output.vramFallback) {
     lines.push('');
-    lines.push('> **Note:** VRAM constraints limit to 1 model. Recommending general-purpose model for versatility.');
+    lines.push(
+      '> **Note:** VRAM constraints limit to 1 model. Recommending general-purpose model for versatility.',
+    );
   }
 
   const installed = output.recommendations.filter((r) => r.installed);
@@ -253,9 +256,10 @@ export function formatRecommendationMarkdown(
       const rec = r.recommendation;
       const benchStr = formatBenchmarks(rec);
       const loadedStr = r.loaded ? ' [LOADED]' : '';
-      const quantStr = r.recommendedQuantization && r.recommendedQuantization !== rec.quantization
-        ? `${rec.quantization} → ${r.recommendedQuantization}`
-        : rec.quantization;
+      const quantStr =
+        r.recommendedQuantization && r.recommendedQuantization !== rec.quantization
+          ? `${rec.quantization} → ${r.recommendedQuantization}`
+          : rec.quantization;
       lines.push(
         `${i + 1}. ✅ **${rec.modelId}** (${quantStr})${loadedStr} — ${benchStr} | License: ${rec.license}`,
       );
@@ -270,15 +274,15 @@ export function formatRecommendationMarkdown(
       const r = notInstalled[i]!;
       const rec = r.recommendation;
       const benchStr = formatBenchmarks(rec);
-      lines.push(
-        `${startIdx + i + 1}. 📥 ${rec.modelId} — ${benchStr} | License: ${rec.license}`,
-      );
+      lines.push(`${startIdx + i + 1}. 📥 ${rec.modelId} — ${benchStr} | License: ${rec.license}`);
     }
   }
 
   if (output.recommendations.length === 0) {
     lines.push('');
-    lines.push('No models found matching the criteria. Check blocked models and license filter settings.');
+    lines.push(
+      'No models found matching the criteria. Check blocked models and license filter settings.',
+    );
   }
 
   lines.push('');

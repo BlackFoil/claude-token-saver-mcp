@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { OllamaLoadBalancer, type LoadBalancerConfig, type OllamaNode } from '../../src/ollama/load-balancer.js';
+import {
+  OllamaLoadBalancer,
+  type LoadBalancerConfig,
+  type OllamaNode,
+} from '../../src/ollama/load-balancer.js';
 import type { OllamaChatRequest } from '../../src/ollama/client.js';
 import type { Logger } from 'pino';
 
@@ -159,18 +163,19 @@ describe('OllamaLoadBalancer.chat — failover', () => {
       }
 
       if (urlStr.includes('node1') && urlStr.includes('/api/chat')) {
-        const chunk = JSON.stringify({
-          model: 'qwen3:8b',
-          created_at: '2026-01-01T00:00:00Z',
-          message: { role: 'assistant', content: '' },
-          done: true,
-          total_duration: 100_000_000,
-          load_duration: 10_000_000,
-          prompt_eval_count: 5,
-          prompt_eval_duration: 1_000_000,
-          eval_count: 2,
-          eval_duration: 1_000_000,
-        }) + '\n';
+        const chunk =
+          JSON.stringify({
+            model: 'qwen3:8b',
+            created_at: '2026-01-01T00:00:00Z',
+            message: { role: 'assistant', content: '' },
+            done: true,
+            total_duration: 100_000_000,
+            load_duration: 10_000_000,
+            prompt_eval_count: 5,
+            prompt_eval_duration: 1_000_000,
+            eval_count: 2,
+            eval_duration: 1_000_000,
+          }) + '\n';
 
         return new Response(chunk, { status: 200 });
       }
@@ -189,9 +194,7 @@ describe('OllamaLoadBalancer.chat — failover', () => {
     const config = makeConfig(2, 'round-robin');
     const lb = new OllamaLoadBalancer(config, makeLogger());
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
 
     await expect(lb.chat(makeChatRequest())).rejects.toThrow();
 
@@ -203,9 +206,7 @@ describe('OllamaLoadBalancer.chat — failover', () => {
     const lb = new OllamaLoadBalancer(config, makeLogger());
 
     // Mark all unhealthy
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
     await lb.healthCheck();
 
     await expect(lb.chat(makeChatRequest())).rejects.toThrow('No healthy Ollama nodes available');
@@ -268,9 +269,7 @@ describe('OllamaLoadBalancer.healthCheck', () => {
     const config = makeConfig(2, 'round-robin');
     const lb = new OllamaLoadBalancer(config, makeLogger());
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(
-      new Error('ECONNREFUSED'),
-    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
 
     const anyHealthy = await lb.healthCheck();
     expect(anyHealthy).toBe(false);
@@ -343,9 +342,9 @@ describe('OllamaLoadBalancer.startHealthChecks/stopHealthChecks', () => {
     const config = makeConfig(1, 'round-robin');
     const lb = new OllamaLoadBalancer(config, makeLogger());
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('Ollama is running', { status: 200 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('Ollama is running', { status: 200 }));
 
     lb.startHealthChecks();
     lb.startHealthChecks(); // no-op
@@ -363,20 +362,26 @@ describe('OllamaLoadBalancer.listModels', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
       if (urlStr.includes('node0') && urlStr.includes('/api/tags')) {
-        return new Response(JSON.stringify({
-          models: [
-            { name: 'qwen3:8b', size: 5e9, digest: 'a', modified_at: '' },
-            { name: 'phi4:14b', size: 8e9, digest: 'b', modified_at: '' },
-          ],
-        }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            models: [
+              { name: 'qwen3:8b', size: 5e9, digest: 'a', modified_at: '' },
+              { name: 'phi4:14b', size: 8e9, digest: 'b', modified_at: '' },
+            ],
+          }),
+          { status: 200 },
+        );
       }
       if (urlStr.includes('node1') && urlStr.includes('/api/tags')) {
-        return new Response(JSON.stringify({
-          models: [
-            { name: 'qwen3:8b', size: 5e9, digest: 'a', modified_at: '' }, // duplicate
-            { name: 'gemma3:12b', size: 7e9, digest: 'c', modified_at: '' },
-          ],
-        }), { status: 200 });
+        return new Response(
+          JSON.stringify({
+            models: [
+              { name: 'qwen3:8b', size: 5e9, digest: 'a', modified_at: '' }, // duplicate
+              { name: 'gemma3:12b', size: 7e9, digest: 'c', modified_at: '' },
+            ],
+          }),
+          { status: 200 },
+        );
       }
       return new Response('Ollama is running', { status: 200 });
     });

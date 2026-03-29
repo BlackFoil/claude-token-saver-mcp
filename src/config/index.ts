@@ -13,21 +13,25 @@ const CONFIG_DIR = join(homedir(), '.config', 'claude-token-saver');
 export const CONFIG_FILE_PATH = join(CONFIG_DIR, 'config.json');
 export const COST_HISTORY_FILE_PATH = join(CONFIG_DIR, 'cost-history.json');
 
-function deepMerge(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
+function deepMerge(
+  base: Record<string, unknown>,
+  override: Record<string, unknown>,
+): Record<string, unknown> {
   const result = { ...base };
   for (const key of Object.keys(override)) {
     const bVal = base[key];
     const oVal = override[key];
     if (
-      bVal && oVal &&
-      typeof bVal === 'object' && typeof oVal === 'object' &&
-      !Array.isArray(bVal) && !Array.isArray(oVal) &&
-      bVal !== null && oVal !== null
+      bVal &&
+      oVal &&
+      typeof bVal === 'object' &&
+      typeof oVal === 'object' &&
+      !Array.isArray(bVal) &&
+      !Array.isArray(oVal) &&
+      bVal !== null &&
+      oVal !== null
     ) {
-      result[key] = deepMerge(
-        bVal as Record<string, unknown>,
-        oVal as Record<string, unknown>,
-      );
+      result[key] = deepMerge(bVal as Record<string, unknown>, oVal as Record<string, unknown>);
     } else {
       result[key] = oVal;
     }
@@ -156,9 +160,7 @@ export function loadConfig(configFilePath?: string): AppConfig {
     }
   }
 
-  const merged = applyEnvOverrides(
-    deepMerge({} as Record<string, unknown>, fileConfig),
-  );
+  const merged = applyEnvOverrides(deepMerge({} as Record<string, unknown>, fileConfig));
 
   const parseResult = appConfigSchema.safeParse(merged);
   if (!parseResult.success) {
@@ -191,10 +193,7 @@ export function loadCostHistory(configDir?: string): CumulativeCost | null {
   }
 }
 
-export function saveCostHistory(
-  history: CumulativeCost,
-  configDir?: string,
-): void {
+export function saveCostHistory(history: CumulativeCost, configDir?: string): void {
   const dir = configDir ?? CONFIG_DIR;
   const filePath = join(dir, 'cost-history.json');
 

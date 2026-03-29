@@ -31,7 +31,12 @@ function makeConfig(overrides?: Partial<AppConfig['modelSelector']>): AppConfig 
       licenseFilter: ['Apache-2.0', 'MIT', 'NVIDIA-Open'],
       ...overrides,
     },
-    distributed: { enabled: false, nodes: [], strategy: 'model-affinity', healthCheckIntervalMs: 30_000 },
+    distributed: {
+      enabled: false,
+      nodes: [],
+      strategy: 'model-affinity',
+      healthCheckIntervalMs: 30_000,
+    },
     persistence: { enabled: true, autoSaveIntervalMs: 300_000 },
     registryUpdater: { enabled: false, updateIntervalMs: 1_800_000 },
   };
@@ -40,18 +45,30 @@ function makeConfig(overrides?: Partial<AppConfig['modelSelector']>): AppConfig 
 function makeTierConfig(tier: 1 | 2 | 3): TierConfig {
   const configs: Record<number, TierConfig> = {
     1: {
-      level: 1, name: 'Light', primaryModel: 'phi4:latest', fallbackModel: null,
-      contextLimit: 4_000, ramRange: { min: 0, max: 16 },
+      level: 1,
+      name: 'Light',
+      primaryModel: 'phi4:latest',
+      fallbackModel: null,
+      contextLimit: 4_000,
+      ramRange: { min: 0, max: 16 },
       timeout: { requestTimeout: 60_000, heartbeatTimeout: 30_000, firstTokenTimeout: 120_000 },
     },
     2: {
-      level: 2, name: 'Standard', primaryModel: 'qwen2.5-coder:7b', fallbackModel: null,
-      contextLimit: 12_000, ramRange: { min: 16, max: 48 },
+      level: 2,
+      name: 'Standard',
+      primaryModel: 'qwen2.5-coder:7b',
+      fallbackModel: null,
+      contextLimit: 12_000,
+      ramRange: { min: 16, max: 48 },
       timeout: { requestTimeout: 90_000, heartbeatTimeout: 30_000, firstTokenTimeout: 120_000 },
     },
     3: {
-      level: 3, name: 'Ultra', primaryModel: 'qwen2.5-coder:32b', fallbackModel: null,
-      contextLimit: 32_000, ramRange: { min: 48, max: Infinity },
+      level: 3,
+      name: 'Ultra',
+      primaryModel: 'qwen2.5-coder:32b',
+      fallbackModel: null,
+      contextLimit: 32_000,
+      ramRange: { min: 48, max: Infinity },
       timeout: { requestTimeout: 180_000, heartbeatTimeout: 45_000, firstTokenTimeout: 180_000 },
     },
   };
@@ -69,7 +86,12 @@ function makeMockClient() {
   vi.spyOn(client, 'healthCheck').mockResolvedValue(true);
   vi.spyOn(client, 'listModelsFull').mockResolvedValue({
     models: [
-      { name: 'qwen2.5-coder:7b', size: 5_000_000_000, digest: 'abc123', modified_at: '2026-01-01T00:00:00Z' },
+      {
+        name: 'qwen2.5-coder:7b',
+        size: 5_000_000_000,
+        digest: 'abc123',
+        modified_at: '2026-01-01T00:00:00Z',
+      },
     ],
   });
   vi.spyOn(client, 'listRunning').mockResolvedValue({
@@ -166,7 +188,14 @@ describe('handleAutoSetup', () => {
       // Model installed AND loaded
       vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValue({
         models: [
-          { name: 'qwen2.5-coder:7b', size: 5_000_000_000, size_vram: 5_000_000_000, digest: 'abc', expires_at: '', details: {} },
+          {
+            name: 'qwen2.5-coder:7b',
+            size: 5_000_000_000,
+            size_vram: 5_000_000_000,
+            digest: 'abc',
+            expires_at: '',
+            details: {},
+          },
         ],
       });
 
@@ -199,10 +228,7 @@ describe('handleAutoSetup', () => {
         models: [],
       });
 
-      const result = await handleAutoSetup(
-        { category: 'coding', skip_pull: true },
-        ctx,
-      );
+      const result = await handleAutoSetup({ category: 'coding', skip_pull: true }, ctx);
 
       expect(ctx.ollamaClient.pullModel).not.toHaveBeenCalled();
       const text = getText(result);
@@ -214,10 +240,7 @@ describe('handleAutoSetup', () => {
     it('AS-06: skip_preload=true skips VRAM loading', async () => {
       const ctx = makeContext(2);
 
-      const result = await handleAutoSetup(
-        { category: 'coding', skip_preload: true },
-        ctx,
-      );
+      const result = await handleAutoSetup({ category: 'coding', skip_preload: true }, ctx);
 
       expect(result.isError).toBeUndefined();
       expect(ctx.ollamaClient.chat).not.toHaveBeenCalled();
@@ -247,9 +270,7 @@ describe('handleAutoSetup', () => {
       vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValue({
         models: [],
       });
-      vi.spyOn(ctx.ollamaClient, 'pullModel').mockRejectedValue(
-        new Error('network error'),
-      );
+      vi.spyOn(ctx.ollamaClient, 'pullModel').mockRejectedValue(new Error('network error'));
 
       const result = await handleAutoSetup({ category: 'coding' }, ctx);
 
@@ -267,9 +288,7 @@ describe('handleAutoSetup', () => {
     it('AS-09: handles preload failure gracefully', async () => {
       const ctx = makeContext(2);
       // Model installed, but preload (chat) fails
-      vi.spyOn(ctx.ollamaClient, 'chat').mockRejectedValue(
-        new Error('VRAM full'),
-      );
+      vi.spyOn(ctx.ollamaClient, 'chat').mockRejectedValue(new Error('VRAM full'));
 
       const result = await handleAutoSetup({ category: 'coding' }, ctx);
 
@@ -296,9 +315,19 @@ describe('handleAutoSetup', () => {
     it('AS-11: returns error when no recommendations found', async () => {
       const ctx = makeContext(2, true, {
         blockedModels: [
-          'qwen2.5-coder', 'deepseek-coder-v2', 'qwen3', 'devstral',
-          'phi4', 'phi4-mini', 'gemma3', 'llama3', 'llama3.2',
-          'aya-expanse', 'plamo', 'qwen2.5', 'qwen3-coder',
+          'qwen2.5-coder',
+          'deepseek-coder-v2',
+          'qwen3',
+          'devstral',
+          'phi4',
+          'phi4-mini',
+          'gemma3',
+          'llama3',
+          'llama3.2',
+          'aya-expanse',
+          'plamo',
+          'qwen2.5',
+          'qwen3-coder',
         ],
         licenseFilter: ['Apache-2.0', 'MIT', 'NVIDIA-Open'],
       });
@@ -332,15 +361,22 @@ describe('handleAutoSetup', () => {
       // Tier 3 with both models installed — quality preference should sort by VRAM (larger first)
       vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValue({
         models: [
-          { name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01T00:00:00Z' },
-          { name: 'qwen2.5-coder:7b', size: 5_000_000_000, digest: 'def', modified_at: '2026-01-01T00:00:00Z' },
+          {
+            name: 'qwen2.5-coder:32b',
+            size: 18_500_000_000,
+            digest: 'abc',
+            modified_at: '2026-01-01T00:00:00Z',
+          },
+          {
+            name: 'qwen2.5-coder:7b',
+            size: 5_000_000_000,
+            digest: 'def',
+            modified_at: '2026-01-01T00:00:00Z',
+          },
         ],
       });
 
-      const result = await handleAutoSetup(
-        { category: 'coding', prefer_quality: true },
-        ctx,
-      );
+      const result = await handleAutoSetup({ category: 'coding', prefer_quality: true }, ctx);
 
       expect(result.isError).toBeUndefined();
       const text = getText(result);

@@ -39,9 +39,12 @@ describe('loadConfig', () => {
   it('loads and parses a valid config file', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
-    writeFileSync(configPath, JSON.stringify({
-      ollama: { baseUrl: 'http://localhost:12345' },
-    }));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        ollama: { baseUrl: 'http://localhost:12345' },
+      }),
+    );
 
     const config = loadConfig(configPath);
     expect(config.ollama.baseUrl).toBe('http://localhost:12345');
@@ -52,10 +55,13 @@ describe('loadConfig', () => {
   it('deep merges nested objects from config file', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
-    writeFileSync(configPath, JSON.stringify({
-      ollama: { baseUrl: 'http://localhost:12345' },
-      queue: { maxQueueLength: 20 },
-    }));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        ollama: { baseUrl: 'http://localhost:12345' },
+        queue: { maxQueueLength: 20 },
+      }),
+    );
 
     const config = loadConfig(configPath);
     expect(config.ollama.baseUrl).toBe('http://localhost:12345');
@@ -175,9 +181,12 @@ describe('loadConfig', () => {
   it('rejects invalid config via Zod schema', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
-    writeFileSync(configPath, JSON.stringify({
-      ollama: { baseUrl: 'not-a-url' },
-    }));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        ollama: { baseUrl: 'not-a-url' },
+      }),
+    );
 
     expect(() => loadConfig(configPath)).toThrow();
 
@@ -188,9 +197,12 @@ describe('loadConfig', () => {
   it('deepMerge handles array values in config (replaces, does not merge)', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
-    writeFileSync(configPath, JSON.stringify({
-      modelSelector: { blockedModels: ['model-a', 'model-b'] },
-    }));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        modelSelector: { blockedModels: ['model-a', 'model-b'] },
+      }),
+    );
 
     const config = loadConfig(configPath);
     expect(config.modelSelector.blockedModels).toEqual(['model-a', 'model-b']);
@@ -201,9 +213,12 @@ describe('loadConfig', () => {
   it('deepMerge handles null override values', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
-    writeFileSync(configPath, JSON.stringify({
-      tier: null,
-    }));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        tier: null,
+      }),
+    );
 
     const config = loadConfig(configPath);
     expect(config.tier).toBeNull();
@@ -253,9 +268,12 @@ describe('loadConfig', () => {
   it('applies OLLAMA_BASE_URL when ollama object already exists in config', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-test-'));
     const configPath = join(tmpDir, 'config.json');
-    writeFileSync(configPath, JSON.stringify({
-      ollama: { baseUrl: 'http://localhost:11434' },
-    }));
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        ollama: { baseUrl: 'http://localhost:11434' },
+      }),
+    );
     process.env['OLLAMA_BASE_URL'] = 'http://remote-host:11434';
 
     const config = loadConfig(configPath);
@@ -302,10 +320,13 @@ describe('loadCostHistory', () => {
 
   it('returns null for invalid data (negative savings)', () => {
     const tmpDir = mkdtempSync(join(tmpdir(), 'cts-cost-'));
-    writeFileSync(join(tmpDir, 'cost-history.json'), JSON.stringify({
-      totalSavingsUsd: -1,
-      totalRequests: 1,
-    }));
+    writeFileSync(
+      join(tmpDir, 'cost-history.json'),
+      JSON.stringify({
+        totalSavingsUsd: -1,
+        totalRequests: 1,
+      }),
+    );
 
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const result = loadCostHistory(tmpDir);

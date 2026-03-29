@@ -104,5 +104,5 @@ export function canLoadModel(
   totalRamGB: number,
 ): boolean {
   const availableVram = estimateVramFromRam(totalRamGB);
-  return (currentLoadedVramGB + newModelVramGB) <= availableVram;
+  return currentLoadedVramGB + newModelVramGB <= availableVram;
 }

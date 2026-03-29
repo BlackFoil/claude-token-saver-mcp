@@ -4,7 +4,11 @@
  * Ollama API is mocked at the fetch level.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handleOffloadWork, type ToolHandlerContext, type OllamaTaskPayload } from '../../src/tools/offload-work.js';
+import {
+  handleOffloadWork,
+  type ToolHandlerContext,
+  type OllamaTaskPayload,
+} from '../../src/tools/offload-work.js';
 import { handleCompressContext } from '../../src/tools/compress-context.js';
 import { OllamaClient, type OllamaChatResponse } from '../../src/ollama/client.js';
 import { FIFOQueue } from '../../src/queue/fifo-queue.js';
@@ -110,13 +114,14 @@ describe('Integration: offload_work complete flow', () => {
   });
 
   it('I-01: validates → queues → calls Ollama → calculates cost → returns result', async () => {
-    const responseText = 'function sort(arr: number[]): number[] { return arr.sort((a, b) => a - b); }';
+    const responseText =
+      'function sort(arr: number[]): number[] { return arr.sort((a, b) => a - b); }';
     const model = 'qwen2.5-coder:7b';
     const chunks = createOllamaStreamResponse(responseText, model);
 
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks), { status: 200 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(chunks), { status: 200 }));
 
     const ctx = createIntegrationContext();
     const result = await handleOffloadWork(
@@ -151,9 +156,9 @@ describe('Integration: offload_work complete flow', () => {
     const model = 'qwen2.5-coder:7b';
     const chunks = createOllamaStreamResponse(responseText, model);
 
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks), { status: 200 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(chunks), { status: 200 }));
 
     const ctx = createIntegrationContext();
     await handleOffloadWork(
@@ -194,15 +199,10 @@ describe('Integration: offload_work complete flow', () => {
   });
 
   it('I-04: returns fallback when Ollama is not available', async () => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const ctx = createIntegrationContext({ ollamaHealthy: false });
-    const result = await handleOffloadWork(
-      { task: 'Write a hello world function' },
-      ctx,
-    );
+    const result = await handleOffloadWork({ task: 'Write a hello world function' }, ctx);
 
     expect(result.isError).toBe(true);
     const text = (result.content[0] as { text: string }).text;
@@ -224,15 +224,12 @@ describe('Integration: offload_work complete flow', () => {
     const responseText = 'Use key: sk-ant1234567890abcdefghij to connect';
     const chunks = createOllamaStreamResponse(responseText, 'qwen2.5-coder:7b');
 
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks), { status: 200 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(chunks), { status: 200 }));
 
     const ctx = createIntegrationContext();
-    const result = await handleOffloadWork(
-      { task: 'Show me how to connect to the API' },
-      ctx,
-    );
+    const result = await handleOffloadWork({ task: 'Show me how to connect to the API' }, ctx);
 
     const text = (result.content[0] as { text: string }).text;
     expect(text).toContain('[REDACTED:API_KEY]');
@@ -244,9 +241,9 @@ describe('Integration: offload_work complete flow', () => {
 
     // Call 1
     const chunks1 = createOllamaStreamResponse('result one', 'qwen2.5-coder:7b');
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks1), { status: 200 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(chunks1), { status: 200 }));
 
     const result1 = await handleOffloadWork({ task: 'task one' }, ctx);
     const text1 = (result1.content[0] as { text: string }).text;
@@ -258,9 +255,7 @@ describe('Integration: offload_work complete flow', () => {
 
     // Call 2
     const chunks2 = createOllamaStreamResponse('result two', 'qwen2.5-coder:7b');
-    fetchSpy.mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks2), { status: 200 }),
-    );
+    fetchSpy.mockResolvedValueOnce(new Response(ndjsonStream(chunks2), { status: 200 }));
 
     const result2 = await handleOffloadWork({ task: 'task two' }, ctx);
     const text2 = (result2.content[0] as { text: string }).text;
@@ -294,9 +289,9 @@ describe('Integration: compress_context complete flow', () => {
     const summary = 'This module exports a sort function and a binary search function.';
     const chunks = createOllamaStreamResponse(summary, 'qwen2.5-coder:7b');
 
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks), { status: 200 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(chunks), { status: 200 }));
 
     const ctx = createIntegrationContext();
     const longContent = `
@@ -341,9 +336,9 @@ describe('Integration: compress_context complete flow', () => {
     const summary = 'Truncated summary.';
     const chunks = createOllamaStreamResponse(summary, 'phi4:latest');
 
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(chunks), { status: 200 }),
-    );
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(ndjsonStream(chunks), { status: 200 }));
 
     const ctx = createIntegrationContext({ tierConfig: { ...tier1Config, contextLimit: 100 } });
     const content = 'word '.repeat(200); // ~1000 chars, ~333 tokens > 100 limit
@@ -372,15 +367,10 @@ describe('Integration: compress_context complete flow', () => {
   });
 
   it('I-11: compress_context fallback when Ollama is down', async () => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(
-      new Error('ECONNREFUSED'),
-    );
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const ctx = createIntegrationContext({ ollamaHealthy: false });
-    const result = await handleCompressContext(
-      { content: 'Some content to compress' },
-      ctx,
-    );
+    const result = await handleCompressContext({ content: 'Some content to compress' }, ctx);
 
     expect(result.isError).toBe(true);
     const text = (result.content[0] as { text: string }).text;

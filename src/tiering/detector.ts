@@ -10,13 +10,10 @@ import { TIER_DEFINITIONS, type TierConfig, type TierConfigOverrides } from './c
  * テスト容易性のため totalMemoryGB を外部注入可能。
  */
 export function detectTier(totalMemoryGB?: number): TierConfig {
-  const ramGB = totalMemoryGB ?? totalmem() / (1024 ** 3);
+  const ramGB = totalMemoryGB ?? totalmem() / 1024 ** 3;
 
   if (Number.isNaN(ramGB) || ramGB <= 0) {
-    throw new InvalidConfigError(
-      'totalMemoryGB',
-      `RAM量の値が不正です: ${ramGB}`,
-    );
+    throw new InvalidConfigError('totalMemoryGB', `RAM量の値が不正です: ${ramGB}`);
   }
 
   for (const tier of TIER_DEFINITIONS) {
@@ -43,9 +40,8 @@ export function applyConfigOverrides(
   return {
     ...baseTier,
     primaryModel: overrides.primaryModel ?? baseTier.primaryModel,
-    fallbackModel: overrides.fallbackModel !== undefined
-      ? overrides.fallbackModel
-      : baseTier.fallbackModel,
+    fallbackModel:
+      overrides.fallbackModel !== undefined ? overrides.fallbackModel : baseTier.fallbackModel,
     contextLimit: overrides.contextLimit ?? baseTier.contextLimit,
     timeout: {
       ...baseTier.timeout,

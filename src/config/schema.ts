@@ -34,7 +34,11 @@ const timeoutOverrideSchema = z
 
 const queueConfigSchema = z.object({
   maxQueueLength: z.number().int().min(1).max(100).default(10),
-  maxRequestSizeBytes: z.number().int().min(1024).default(200 * 1024),
+  maxRequestSizeBytes: z
+    .number()
+    .int()
+    .min(1024)
+    .default(200 * 1024),
   queueTimeoutMs: z.number().int().min(5_000).default(60_000),
   rateLimitPerMinute: z.number().int().min(1).optional(),
 });
@@ -48,19 +52,18 @@ const securityConfigSchema = z.object({
   enableInputSanitization: z.boolean().default(true),
 });
 
-const logLevelSchema = z
-  .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
-  .default('info');
+const logLevelSchema = z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info');
 
 const modelSelectorSchema = z.object({
   enabled: z.boolean().default(true),
   preferQuality: z.boolean().default(false),
   preloadKeepAlive: z.string().default('-1'),
-  maxSimultaneousModels: z.union([z.literal('auto'), z.number().int().min(1).max(10)]).default('auto'),
-  customRecommendations: z.record(
-    z.string(),
-    z.record(z.string(), z.array(z.string())),
-  ).default({}),
+  maxSimultaneousModels: z
+    .union([z.literal('auto'), z.number().int().min(1).max(10)])
+    .default('auto'),
+  customRecommendations: z
+    .record(z.string(), z.record(z.string(), z.array(z.string())))
+    .default({}),
   blockedModels: z.array(z.string()).default(['codestral']),
   licenseFilter: z.array(z.string()).default(['Apache-2.0', 'MIT', 'NVIDIA-Open']),
 });
@@ -75,19 +78,29 @@ const ollamaNodeSchema = z.object({
 const distributedSchema = z.object({
   enabled: z.boolean().default(false),
   nodes: z.array(ollamaNodeSchema).default([]),
-  strategy: z.enum(['round-robin', 'least-connections', 'model-affinity']).default('model-affinity'),
+  strategy: z
+    .enum(['round-robin', 'least-connections', 'model-affinity'])
+    .default('model-affinity'),
   healthCheckIntervalMs: z.number().int().min(5_000).default(30_000),
 });
 
 const persistenceSchema = z.object({
   enabled: z.boolean().default(true),
   dataDir: z.string().optional(),
-  autoSaveIntervalMs: z.number().int().min(10_000).default(5 * 60 * 1_000),
+  autoSaveIntervalMs: z
+    .number()
+    .int()
+    .min(10_000)
+    .default(5 * 60 * 1_000),
 });
 
 const registryUpdaterSchema = z.object({
   enabled: z.boolean().default(false),
-  updateIntervalMs: z.number().int().min(60_000).default(30 * 60 * 1_000),
+  updateIntervalMs: z
+    .number()
+    .int()
+    .min(60_000)
+    .default(30 * 60 * 1_000),
 });
 
 export const appConfigSchema = z.object({

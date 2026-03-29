@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { handleListLoadedModels, type ListLoadedModelsContext } from '../../src/tools/list-loaded-models.js';
+import {
+  handleListLoadedModels,
+  type ListLoadedModelsContext,
+} from '../../src/tools/list-loaded-models.js';
 import type { AppConfig } from '../../src/config/schema.js';
 import type { TierConfig } from '../../src/tiering/config.js';
 import { OllamaNotRunningError } from '../../src/errors.js';
@@ -47,7 +50,11 @@ function createMockContext(overrides?: Partial<ListLoadedModelsContext>): ListLo
     } as unknown as ListLoadedModelsContext['ollamaClient'],
     tierConfig: TIER_CONFIG,
     config: makeConfig(),
-    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } as unknown as ListLoadedModelsContext['logger'],
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    } as unknown as ListLoadedModelsContext['logger'],
     ollamaHealthy: true,
     ...overrides,
   };
@@ -217,9 +224,7 @@ describe('handleListLoadedModels (DMS-015)', () => {
     const ctx = createMockContext({
       ollamaClient: {
         healthCheck: vi.fn().mockResolvedValue(true),
-        listRunning: vi.fn().mockRejectedValue(
-          new OllamaNotRunningError('Connection failed'),
-        ),
+        listRunning: vi.fn().mockRejectedValue(new OllamaNotRunningError('Connection failed')),
       } as unknown as ListLoadedModelsContext['ollamaClient'],
     });
 
@@ -233,9 +238,7 @@ describe('handleListLoadedModels (DMS-015)', () => {
     const ctx = createMockContext({
       ollamaClient: {
         healthCheck: vi.fn().mockResolvedValue(true),
-        listRunning: vi.fn().mockRejectedValue(
-          new TypeError('unexpected'),
-        ),
+        listRunning: vi.fn().mockRejectedValue(new TypeError('unexpected')),
       } as unknown as ListLoadedModelsContext['ollamaClient'],
     });
 
@@ -251,7 +254,9 @@ describe('handleListLoadedModels (DMS-015)', () => {
       size: 5_000_000_000,
       digest: 'abc',
       size_vram: 4_000_000_000,
-      get expires_at(): string { throw new TypeError('getter failed'); },
+      get expires_at(): string {
+        throw new TypeError('getter failed');
+      },
     };
     const ctx = createMockContext({
       ollamaClient: {

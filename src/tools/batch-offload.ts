@@ -21,14 +21,19 @@ export interface BatchTask {
 }
 
 const batchInputSchema = z.object({
-  tasks: z.array(z.object({
-    task: z.string().min(1).max(50000),
-    language: z.string().optional(),
-    context: z.string().max(100000).optional(),
-    output_format: z.enum(['code', 'diff', 'explanation', 'raw']).optional(),
-    model: z.string().optional(),
-    category: z.string().optional(),
-  })).min(1).max(10),
+  tasks: z
+    .array(
+      z.object({
+        task: z.string().min(1).max(50000),
+        language: z.string().optional(),
+        context: z.string().max(100000).optional(),
+        output_format: z.enum(['code', 'diff', 'explanation', 'raw']).optional(),
+        model: z.string().optional(),
+        category: z.string().optional(),
+      }),
+    )
+    .min(1)
+    .max(10),
   sequential: z.boolean().default(false),
 });
 
@@ -114,10 +119,7 @@ async function processOneTask(
     };
 
     // Enqueue with LOW priority
-    const ollamaResponse: OllamaChatResponse = await queue.enqueue(
-      payload,
-      validated.totalBytes,
-    );
+    const ollamaResponse: OllamaChatResponse = await queue.enqueue(payload, validated.totalBytes);
 
     // Cost calculation
     const costResult = costCalculator.calculateSavings({
@@ -127,15 +129,18 @@ async function processOneTask(
     });
 
     reportCost(costResult, 'batch_offload');
-    logger.info({
-      tool: 'batch_offload',
-      taskIndex: index,
-      model: ollamaResponse.model,
-      inputTokens: ollamaResponse.inputTokens,
-      outputTokens: ollamaResponse.outputTokens,
-      durationMs: ollamaResponse.totalDurationMs,
-      savingsUsd: costResult.savingsUsd,
-    }, 'batch_offload task completed');
+    logger.info(
+      {
+        tool: 'batch_offload',
+        taskIndex: index,
+        model: ollamaResponse.model,
+        inputTokens: ollamaResponse.inputTokens,
+        outputTokens: ollamaResponse.outputTokens,
+        durationMs: ollamaResponse.totalDurationMs,
+        savingsUsd: costResult.savingsUsd,
+      },
+      'batch_offload task completed',
+    );
 
     return {
       index,
@@ -147,11 +152,12 @@ async function processOneTask(
       savingsUsd: costResult.savingsUsd,
     };
   } catch (error) {
-    const errorMessage = error instanceof CTSError
-      ? `[${error.code}] ${error.message}`
-      : error instanceof Error
-        ? error.message
-        : String(error);
+    const errorMessage =
+      error instanceof CTSError
+        ? `[${error.code}] ${error.message}`
+        : error instanceof Error
+          ? error.message
+          : String(error);
 
     return {
       index,
@@ -175,10 +181,12 @@ export async function handleBatchOffload(
       const recheck = await context.ollamaClient.healthCheck();
       if (!recheck) {
         return {
-          content: [{
-            type: 'text',
-            text: '[FALLBACK_TO_CLOUD] OLLAMA_UNREACHABLE: Ollama is not available. Process these tasks directly.',
-          }],
+          content: [
+            {
+              type: 'text',
+              text: '[FALLBACK_TO_CLOUD] OLLAMA_UNREACHABLE: Ollama is not available. Process these tasks directly.',
+            },
+          ],
           isError: true,
         };
       }
@@ -192,10 +200,12 @@ export async function handleBatchOffload(
         .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
         .join('; ');
       return {
-        content: [{
-          type: 'text',
-          text: `[CTS-5001] バッチ入力バリデーションエラー: ${messages}`,
-        }],
+        content: [
+          {
+            type: 'text',
+            text: `[CTS-5001] バッチ入力バリデーションエラー: ${messages}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -218,9 +228,7 @@ export async function handleBatchOffload(
       }
     } else {
       // Parallel: all tasks go to queue simultaneously
-      const promises = tasks.map((task, i) =>
-        processOneTask(task, i, context),
-      );
+      const promises = tasks.map((task, i) => processOneTask(task, i, context));
       results = await Promise.all(promises);
     }
 
@@ -252,15 +260,17 @@ export async function handleBatchOffload(
     outputParts.push('---');
     outputParts.push(
       `Total tokens: ${totalInputTokens} in / ${totalOutputTokens} out | ` +
-      `Total savings: $${totalSavings.toFixed(4)} | ` +
-      `Mode: ${sequential ? 'sequential' : 'parallel'}`,
+        `Total savings: $${totalSavings.toFixed(4)} | ` +
+        `Mode: ${sequential ? 'sequential' : 'parallel'}`,
     );
 
     return {
-      content: [{
-        type: 'text',
-        text: outputParts.join('\n'),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: outputParts.join('\n'),
+        },
+      ],
       isError: failCount === tasks.length ? true : undefined,
     };
   } catch (error) {

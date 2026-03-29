@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateOffloadWorkInput, validateCompressContextInput } from '../../src/validators/input-validator.js';
+import {
+  validateOffloadWorkInput,
+  validateCompressContextInput,
+} from '../../src/validators/input-validator.js';
 import { detectPromptInjection, sanitizeOutput } from '../../src/validators/prompt-guard.js';
 
 const MAX_SIZE = 200 * 1024;
@@ -27,16 +30,11 @@ describe('validateOffloadWorkInput', () => {
   });
 
   it('V-05: rejects oversized input', () => {
-    expect(() =>
-      validateOffloadWorkInput({ task: 'x'.repeat(100) }, 50),
-    ).toThrow();
+    expect(() => validateOffloadWorkInput({ task: 'x'.repeat(100) }, 50)).toThrow();
   });
 
   it('accepts valid language', () => {
-    const result = validateOffloadWorkInput(
-      { task: 'test', language: 'typescript' },
-      MAX_SIZE,
-    );
+    const result = validateOffloadWorkInput({ task: 'test', language: 'typescript' }, MAX_SIZE);
     expect(result.input.language).toBe('typescript');
   });
 
@@ -47,10 +45,7 @@ describe('validateOffloadWorkInput', () => {
   });
 
   it('V-13: accepts valid output_format', () => {
-    const result = validateOffloadWorkInput(
-      { task: 'test', output_format: 'code' },
-      MAX_SIZE,
-    );
+    const result = validateOffloadWorkInput({ task: 'test', output_format: 'code' }, MAX_SIZE);
     expect(result.input.output_format).toBe('code');
   });
 });
@@ -72,9 +67,7 @@ describe('validateCompressContextInput', () => {
   });
 
   it('V-09: rejects oversized content', () => {
-    expect(() =>
-      validateCompressContextInput({ content: 'x'.repeat(100) }, 50, 4000),
-    ).toThrow();
+    expect(() => validateCompressContextInput({ content: 'x'.repeat(100) }, 50, 4000)).toThrow();
   });
 
   it('V-10: sets requiresTruncation when tokens exceed limit', () => {
@@ -87,11 +80,7 @@ describe('validateCompressContextInput', () => {
   });
 
   it('V-11: estimates tokens reasonably', () => {
-    const result = validateCompressContextInput(
-      { content: 'x'.repeat(300) },
-      MAX_SIZE,
-      4000,
-    );
+    const result = validateCompressContextInput({ content: 'x'.repeat(300) }, MAX_SIZE, 4000);
     expect(result.estimatedTokens).toBe(100); // 300 / 3
   });
 });
@@ -168,12 +157,16 @@ describe('sanitizeOutput', () => {
   });
 
   it('SO-07: redacts private key', () => {
-    const result = sanitizeOutput('-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----');
+    const result = sanitizeOutput(
+      '-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----',
+    );
     expect(result.sanitized).toContain('[REDACTED:PRIVATE_KEY]');
   });
 
   it('SO-09: redacts JWT', () => {
-    const result = sanitizeOutput('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c');
+    const result = sanitizeOutput(
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+    );
     expect(result.sanitized).toContain('[REDACTED:JWT]');
   });
 

@@ -4,17 +4,30 @@
  * Ollama API is mocked at the fetch level.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handleRecommendModel, type RecommendModelContext } from '../../src/tools/recommend-model.js';
+import {
+  handleRecommendModel,
+  type RecommendModelContext,
+} from '../../src/tools/recommend-model.js';
 import { handlePullModel, type PullModelContext } from '../../src/tools/pull-model.js';
 import { handlePreloadModel, type PreloadModelContext } from '../../src/tools/preload-model.js';
-import { handleListLoadedModels, type ListLoadedModelsContext } from '../../src/tools/list-loaded-models.js';
-import { handleOffloadWork, type ToolHandlerContext, type OllamaTaskPayload } from '../../src/tools/offload-work.js';
+import {
+  handleListLoadedModels,
+  type ListLoadedModelsContext,
+} from '../../src/tools/list-loaded-models.js';
+import {
+  handleOffloadWork,
+  type ToolHandlerContext,
+  type OllamaTaskPayload,
+} from '../../src/tools/offload-work.js';
 import { OllamaClient, type OllamaChatResponse } from '../../src/ollama/client.js';
 import { FIFOQueue } from '../../src/queue/fifo-queue.js';
 import { CostCalculator } from '../../src/cost/calculator.js';
 import { DEFAULT_PRICING, DEFAULT_COMPARISON_MODEL } from '../../src/cost/pricing.js';
 import { detectTier } from '../../src/tiering/detector.js';
-import { parseClaudeMdRoles, extractUniqueCategories } from '../../src/model-selector/claude-md-parser.js';
+import {
+  parseClaudeMdRoles,
+  extractUniqueCategories,
+} from '../../src/model-selector/claude-md-parser.js';
 import type { AppConfig } from '../../src/config/schema.js';
 import pino from 'pino';
 
@@ -60,18 +73,29 @@ function createOllamaStreamResponse(text: string, model: string): string[] {
   const chunks: string[] = [];
   for (let i = 0; i < words.length; i++) {
     const content = i === 0 ? words[i]! : ' ' + words[i]!;
-    chunks.push(JSON.stringify({
-      model, created_at: new Date().toISOString(),
-      message: { role: 'assistant', content }, done: false,
-    }));
+    chunks.push(
+      JSON.stringify({
+        model,
+        created_at: new Date().toISOString(),
+        message: { role: 'assistant', content },
+        done: false,
+      }),
+    );
   }
-  chunks.push(JSON.stringify({
-    model, created_at: new Date().toISOString(),
-    message: { role: 'assistant', content: '' }, done: true,
-    total_duration: 500_000_000, load_duration: 50_000_000,
-    prompt_eval_count: 10, prompt_eval_duration: 200_000_000,
-    eval_count: words.length, eval_duration: 100_000_000,
-  }));
+  chunks.push(
+    JSON.stringify({
+      model,
+      created_at: new Date().toISOString(),
+      message: { role: 'assistant', content: '' },
+      done: true,
+      total_duration: 500_000_000,
+      load_duration: 50_000_000,
+      prompt_eval_count: 10,
+      prompt_eval_duration: 200_000_000,
+      eval_count: words.length,
+      eval_duration: 100_000_000,
+    }),
+  );
   return chunks;
 }
 
@@ -92,12 +116,18 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     const config = makeConfig();
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
 
     // Step 1: recommend_model for coding
     const recCtx: RecommendModelContext = {
-      ollamaClient, tierConfig, config, logger: silentLogger, ollamaHealthy: false,
+      ollamaClient,
+      tierConfig,
+      config,
+      logger: silentLogger,
+      ollamaHealthy: false,
     };
     const recResult = await handleRecommendModel({ category: 'coding' }, recCtx);
     expect(recResult.isError).toBeUndefined();
@@ -108,43 +138,74 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
 
     // Step 2: pull_model (mock success)
     const pullCtx: PullModelContext = {
-      ollamaClient, logger: silentLogger, ollamaHealthy: true,
+      ollamaClient,
+      logger: silentLogger,
+      ollamaHealthy: true,
     };
     vi.spyOn(ollamaClient, 'pullModel').mockResolvedValueOnce({
-      modelName: 'qwen2.5-coder:32b', sizeBytes: 18_500_000_000,
-      durationMs: 120_000, alreadyUpToDate: false,
+      modelName: 'qwen2.5-coder:32b',
+      sizeBytes: 18_500_000_000,
+      durationMs: 120_000,
+      alreadyUpToDate: false,
     });
     const pullResult = await handlePullModel({ model: 'qwen2.5-coder:32b' }, pullCtx);
     expect(pullResult.isError).toBeUndefined();
-    expect((pullResult.content[0] as { type: 'text'; text: string }).text).toContain('pulled successfully');
+    expect((pullResult.content[0] as { type: 'text'; text: string }).text).toContain(
+      'pulled successfully',
+    );
 
     // Step 3: preload_model (mock VRAM load)
     const preloadCtx: PreloadModelContext = {
-      ollamaClient, tierConfig, config, logger: silentLogger, ollamaHealthy: true,
+      ollamaClient,
+      tierConfig,
+      config,
+      logger: silentLogger,
+      ollamaHealthy: true,
     };
     vi.spyOn(ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01',
+        },
+      ],
     });
     vi.spyOn(ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
     vi.spyOn(ollamaClient, 'chat').mockResolvedValueOnce({
-      text: '', model: 'qwen2.5-coder:32b', inputTokens: 0, outputTokens: 1,
-      totalDurationMs: 2000, loadDurationMs: 1500,
+      text: '',
+      model: 'qwen2.5-coder:32b',
+      inputTokens: 0,
+      outputTokens: 1,
+      totalDurationMs: 2000,
+      loadDurationMs: 1500,
     });
     vi.spyOn(ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{
-        name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b',
-        size: 18_500_000_000, size_vram: 17_000_000_000,
-        digest: 'abc', expires_at: '9999-12-31T00:00:00Z', details: {},
-      }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
     const preloadResult = await handlePreloadModel({ model: 'qwen2.5-coder:32b' }, preloadCtx);
     expect(preloadResult.isError).toBeUndefined();
-    expect((preloadResult.content[0] as { type: 'text'; text: string }).text).toContain('preloaded successfully');
+    expect((preloadResult.content[0] as { type: 'text'; text: string }).text).toContain(
+      'preloaded successfully',
+    );
 
     // Step 4: offload_work with model override
     const responseText = 'function sort(arr) { return arr.sort(); }';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(createOllamaStreamResponse(responseText, 'qwen2.5-coder:32b')), { status: 200 }),
+      new Response(ndjsonStream(createOllamaStreamResponse(responseText, 'qwen2.5-coder:32b')), {
+        status: 200,
+      }),
     );
 
     const queue = new FIFOQueue<OllamaTaskPayload, OllamaChatResponse>(
@@ -153,8 +214,14 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     );
     const costCalculator = new CostCalculator(DEFAULT_PRICING, DEFAULT_COMPARISON_MODEL);
     const toolCtx: ToolHandlerContext = {
-      ollamaClient, queue, tierConfig, costCalculator, logger: silentLogger,
-      ollamaHealthy: true, maxRequestSizeBytes: 200 * 1024, config,
+      ollamaClient,
+      queue,
+      tierConfig,
+      costCalculator,
+      logger: silentLogger,
+      ollamaHealthy: true,
+      maxRequestSizeBytes: 200 * 1024,
+      config,
     };
 
     const offloadResult = await handleOffloadWork(
@@ -175,18 +242,28 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     const config = makeConfig();
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
 
     const listCtx: ListLoadedModelsContext = {
-      ollamaClient, tierConfig, config, logger: silentLogger, ollamaHealthy: true,
+      ollamaClient,
+      tierConfig,
+      config,
+      logger: silentLogger,
+      ollamaHealthy: true,
     };
     vi.spyOn(ollamaClient, 'listRunning').mockResolvedValueOnce({
       models: [
         {
-          name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b',
-          size: 18_500_000_000, size_vram: 17_000_000_000,
-          digest: 'abc', expires_at: '9999-12-31T00:00:00Z', details: {},
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
         },
       ],
     });
@@ -205,11 +282,17 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     const config = makeConfig();
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
 
     const recCtx: RecommendModelContext = {
-      ollamaClient, tierConfig, config, logger: silentLogger, ollamaHealthy: false,
+      ollamaClient,
+      tierConfig,
+      config,
+      logger: silentLogger,
+      ollamaHealthy: false,
     };
 
     const result = await handleRecommendModel({ category: 'coding' }, recCtx);
@@ -223,18 +306,29 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     const config = makeConfig();
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
 
     // Mock installed models
     vi.spyOn(ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01',
+        },
+      ],
     });
     vi.spyOn(ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
 
     const responseText = 'result code';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(createOllamaStreamResponse(responseText, 'qwen2.5-coder:32b')), { status: 200 }),
+      new Response(ndjsonStream(createOllamaStreamResponse(responseText, 'qwen2.5-coder:32b')), {
+        status: 200,
+      }),
     );
 
     const queue = new FIFOQueue<OllamaTaskPayload, OllamaChatResponse>(
@@ -243,14 +337,17 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     );
     const costCalculator = new CostCalculator(DEFAULT_PRICING, DEFAULT_COMPARISON_MODEL);
     const toolCtx: ToolHandlerContext = {
-      ollamaClient, queue, tierConfig, costCalculator, logger: silentLogger,
-      ollamaHealthy: true, maxRequestSizeBytes: 200 * 1024, config,
+      ollamaClient,
+      queue,
+      tierConfig,
+      costCalculator,
+      logger: silentLogger,
+      ollamaHealthy: true,
+      maxRequestSizeBytes: 200 * 1024,
+      config,
     };
 
-    const result = await handleOffloadWork(
-      { task: 'test task', category: 'coding' },
-      toolCtx,
-    );
+    const result = await handleOffloadWork({ task: 'test task', category: 'coding' }, toolCtx);
     expect(result.isError).toBeUndefined();
     // The recommender should have selected qwen2.5-coder:32b (installed, tier 3 coding)
     const text = (result.content[0] as { type: 'text'; text: string }).text;
@@ -262,14 +359,21 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
   it('I-MS-05: pull_model handles already-installed model', async () => {
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
     const pullCtx: PullModelContext = {
-      ollamaClient, logger: silentLogger, ollamaHealthy: true,
+      ollamaClient,
+      logger: silentLogger,
+      ollamaHealthy: true,
     };
 
     vi.spyOn(ollamaClient, 'pullModel').mockResolvedValueOnce({
-      modelName: 'phi4:latest', sizeBytes: 0, durationMs: 200, alreadyUpToDate: true,
+      modelName: 'phi4:latest',
+      sizeBytes: 0,
+      durationMs: 200,
+      alreadyUpToDate: true,
     });
 
     const result = await handlePullModel({ model: 'phi4:latest' }, pullCtx);
@@ -299,10 +403,16 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     const config = makeConfig();
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
     const recCtx: RecommendModelContext = {
-      ollamaClient, tierConfig, config, logger: silentLogger, ollamaHealthy: false,
+      ollamaClient,
+      tierConfig,
+      config,
+      logger: silentLogger,
+      ollamaHealthy: false,
     };
 
     for (const category of categories) {
@@ -318,12 +428,16 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     const tierConfig = detectTier(32);
     const ollamaClient = new OllamaClient({
       baseUrl: 'http://localhost:11434',
-      requestTimeout: 10_000, heartbeatTimeout: 5_000, firstTokenTimeout: 10_000,
+      requestTimeout: 10_000,
+      heartbeatTimeout: 5_000,
+      firstTokenTimeout: 10_000,
     });
 
     const responseText = 'hello world';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(ndjsonStream(createOllamaStreamResponse(responseText, 'qwen2.5-coder:7b')), { status: 200 }),
+      new Response(ndjsonStream(createOllamaStreamResponse(responseText, 'qwen2.5-coder:7b')), {
+        status: 200,
+      }),
     );
 
     const queue = new FIFOQueue<OllamaTaskPayload, OllamaChatResponse>(
@@ -332,8 +446,13 @@ describe('Integration: Model Selector Pipeline (DMS-024)', () => {
     );
     const costCalculator = new CostCalculator(DEFAULT_PRICING, DEFAULT_COMPARISON_MODEL);
     const toolCtx: ToolHandlerContext = {
-      ollamaClient, queue, tierConfig, costCalculator, logger: silentLogger,
-      ollamaHealthy: true, maxRequestSizeBytes: 200 * 1024,
+      ollamaClient,
+      queue,
+      tierConfig,
+      costCalculator,
+      logger: silentLogger,
+      ollamaHealthy: true,
+      maxRequestSizeBytes: 200 * 1024,
     };
 
     // offload_work without model/category (v0.1.0 behavior)

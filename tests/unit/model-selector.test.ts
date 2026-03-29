@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { getRecommendations, getFullRegistry } from '../../src/model-selector/registry.js';
 import { calculateVramCapacity, canLoadModel } from '../../src/model-selector/vram-calculator.js';
-import { recommendModels, formatRecommendationMarkdown } from '../../src/model-selector/recommender.js';
+import {
+  recommendModels,
+  formatRecommendationMarkdown,
+} from '../../src/model-selector/recommender.js';
 import { TASK_CATEGORIES } from '../../src/model-selector/types.js';
 import type { TierLevel } from '../../src/tiering/config.js';
 
@@ -13,8 +16,10 @@ describe('Model Registry (DMS-006)', () => {
     for (const category of TASK_CATEGORIES) {
       for (const tier of tiers) {
         const recs = getRecommendations(category, tier);
-        expect(recs.length).toBeGreaterThanOrEqual(1,
-          `No recommendations for ${category} tier ${tier}`);
+        expect(recs.length).toBeGreaterThanOrEqual(
+          1,
+          `No recommendations for ${category} tier ${tier}`,
+        );
       }
     }
   });
@@ -27,17 +32,25 @@ describe('Model Registry (DMS-006)', () => {
   });
 
   it('all models have valid license types', () => {
-    const validLicenses = new Set(['Apache-2.0', 'MIT', 'NVIDIA-Open', 'Meta-Community', 'PLaMo-Community', 'Other']);
+    const validLicenses = new Set([
+      'Apache-2.0',
+      'MIT',
+      'NVIDIA-Open',
+      'Meta-Community',
+      'PLaMo-Community',
+      'Other',
+    ]);
     for (const rec of getFullRegistry()) {
-      expect(validLicenses.has(rec.license)).toBe(true,
-        `Invalid license ${rec.license} for ${rec.modelId}`);
+      expect(validLicenses.has(rec.license)).toBe(
+        true,
+        `Invalid license ${rec.license} for ${rec.modelId}`,
+      );
     }
   });
 
   it('all models have positive vramRequired', () => {
     for (const rec of getFullRegistry()) {
-      expect(rec.vramRequired).toBeGreaterThan(0,
-        `vramRequired must be > 0 for ${rec.modelId}`);
+      expect(rec.vramRequired).toBeGreaterThan(0, `vramRequired must be > 0 for ${rec.modelId}`);
     }
   });
 
@@ -47,8 +60,7 @@ describe('Model Registry (DMS-006)', () => {
         rec.benchmarks.humanEval !== undefined ||
         rec.benchmarks.sweBench !== undefined ||
         rec.benchmarks.japaneseMTBench !== undefined;
-      expect(hasBenchmark).toBe(true,
-        `No benchmark for ${rec.modelId} in ${rec.category}`);
+      expect(hasBenchmark).toBe(true, `No benchmark for ${rec.modelId} in ${rec.category}`);
     }
   });
 
@@ -263,9 +275,7 @@ describe('Recommender Engine (DMS-008)', () => {
     });
 
     const loadedIdx = result.recommendations.findIndex((r) => r.loaded);
-    const installedNotLoadedIdx = result.recommendations.findIndex(
-      (r) => r.installed && !r.loaded,
-    );
+    const installedNotLoadedIdx = result.recommendations.findIndex((r) => r.installed && !r.loaded);
 
     if (loadedIdx >= 0 && installedNotLoadedIdx >= 0) {
       expect(loadedIdx).toBeLessThan(installedNotLoadedIdx);
@@ -279,8 +289,10 @@ describe('Recommender Engine (DMS-008)', () => {
         totalRamGB: 32,
         installedModels: [],
       });
-      expect(result.recommendations.length).toBeGreaterThan(0,
-        `No results for category ${category}`);
+      expect(result.recommendations.length).toBeGreaterThan(
+        0,
+        `No results for category ${category}`,
+      );
     }
   });
 
@@ -380,24 +392,26 @@ describe('formatRecommendationMarkdown', () => {
   it('formatBenchmarks shows N/A when no benchmarks available', () => {
     // Build a custom recommendation output where recommendations have no benchmarks
     const output: import('../../src/model-selector/recommender.js').RecommendOutput = {
-      recommendations: [{
-        recommendation: {
-          modelId: 'custom-model',
-          displayName: 'Custom Model',
-          category: 'coding',
-          tier: 3 as TierLevel,
-          minRamGB: 0,
-          parameterSize: 'unknown',
-          quantization: 'Q4_K_M',
-          vramRequired: 10,
-          license: 'Apache-2.0',
-          benchmarks: {},
-          ollamaAvailable: true,
-          priority: 1,
+      recommendations: [
+        {
+          recommendation: {
+            modelId: 'custom-model',
+            displayName: 'Custom Model',
+            category: 'coding',
+            tier: 3 as TierLevel,
+            minRamGB: 0,
+            parameterSize: 'unknown',
+            quantization: 'Q4_K_M',
+            vramRequired: 10,
+            license: 'Apache-2.0',
+            benchmarks: {},
+            ollamaAvailable: true,
+            priority: 1,
+          },
+          installed: false,
+          loaded: false,
         },
-        installed: false,
-        loaded: false,
-      }],
+      ],
       tier: 3 as TierLevel,
       vramFallback: false,
       maxSimultaneousModels: 2,

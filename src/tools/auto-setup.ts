@@ -98,14 +98,17 @@ export async function handleAutoSetup(
       const recheck = await ctx.ollamaClient.healthCheck();
       if (!recheck) {
         return {
-          content: [{
-            type: 'text',
-            text: '[CTS-1001] Ollama is not available. Cannot run auto_setup.\n\n' +
-              '**To fix:**\n' +
-              '1. Install Ollama: https://ollama.com/download\n' +
-              '2. Start the server: `ollama serve`\n' +
-              '3. Retry `auto_setup`',
-          }],
+          content: [
+            {
+              type: 'text',
+              text:
+                '[CTS-1001] Ollama is not available. Cannot run auto_setup.\n\n' +
+                '**To fix:**\n' +
+                '1. Install Ollama: https://ollama.com/download\n' +
+                '2. Start the server: `ollama serve`\n' +
+                '3. Retry `auto_setup`',
+            },
+          ],
           isError: true,
         };
       }
@@ -153,16 +156,19 @@ export async function handleAutoSetup(
     // Step 4: Pick the #1 recommendation
     if (output.recommendations.length === 0) {
       return {
-        content: [{
-          type: 'text',
-          text: '## Auto Setup Failed\n\n' +
-            `No models found for category "${category}" on Tier ${output.tier} (${TIER_NAMES[output.tier]}).\n\n` +
-            '**Possible causes:**\n' +
-            '- All candidate models are in the blocked list\n' +
-            '- License filter is too restrictive\n' +
-            '- No models registered for this tier/category combination\n\n' +
-            'Use `configure_model_selector` to check blocked_models and license_filter settings.',
-        }],
+        content: [
+          {
+            type: 'text',
+            text:
+              '## Auto Setup Failed\n\n' +
+              `No models found for category "${category}" on Tier ${output.tier} (${TIER_NAMES[output.tier]}).\n\n` +
+              '**Possible causes:**\n' +
+              '- All candidate models are in the blocked list\n' +
+              '- License filter is too restrictive\n' +
+              '- No models registered for this tier/category combination\n\n' +
+              'Use `configure_model_selector` to check blocked_models and license_filter settings.',
+          },
+        ],
         isError: true,
       };
     }
@@ -176,7 +182,9 @@ export async function handleAutoSetup(
     const benchStr = formatBenchmarks(selectedModel.benchmarks);
 
     // Step result 1: Recommendation
-    steps.push(`1. Model recommended — ${modelId} (priority #1 for ${category}/Tier ${output.tier})`);
+    steps.push(
+      `1. Model recommended — ${modelId} (priority #1 for ${category}/Tier ${output.tier})`,
+    );
 
     // Step 5: Pull if not installed
     let wasInstalled = top.installed;
@@ -192,7 +200,7 @@ export async function handleAutoSetup(
         if (pullResult.alreadyUpToDate) {
           pullSizeStr = 'already up to date';
         } else {
-          pullSizeStr = `${(pullResult.sizeBytes / (1024 ** 3)).toFixed(1)} GB downloaded in ${(pullResult.durationMs / 1000).toFixed(1)}s`;
+          pullSizeStr = `${(pullResult.sizeBytes / 1024 ** 3).toFixed(1)} GB downloaded in ${(pullResult.durationMs / 1000).toFixed(1)}s`;
         }
         steps.push(`2. Pulled from registry (${pullSizeStr})`);
       } catch (err) {
@@ -203,7 +211,7 @@ export async function handleAutoSetup(
       }
     } else if (wasInstalled) {
       const sizeBytes = installedModelSizes.get(modelId);
-      const sizeStr = sizeBytes ? `${(sizeBytes / (1024 ** 3)).toFixed(1)} GB` : '';
+      const sizeStr = sizeBytes ? `${(sizeBytes / 1024 ** 3).toFixed(1)} GB` : '';
       steps.push(`2. Already installed${sizeStr ? ` (${sizeStr})` : ''}`);
     } else {
       steps.push('2. Skipped pull (skip_pull=true)');
@@ -254,7 +262,9 @@ export async function handleAutoSetup(
 
     if (output.vramFallback) {
       lines.push('');
-      lines.push('> **Note:** VRAM constraints limit to 1 model. Selected general-purpose model for versatility.');
+      lines.push(
+        '> **Note:** VRAM constraints limit to 1 model. Selected general-purpose model for versatility.',
+      );
     }
 
     lines.push('');
@@ -267,12 +277,18 @@ export async function handleAutoSetup(
     lines.push('');
     lines.push('### Usage');
     if (wasInstalled && wasLoaded) {
-      lines.push(`This model will be automatically used when you specify \`category: "${category}"\` in \`offload_work\`.`);
+      lines.push(
+        `This model will be automatically used when you specify \`category: "${category}"\` in \`offload_work\`.`,
+      );
       lines.push(`You can also use it directly: \`offload_work(task="...", model="${modelId}")\``);
     } else if (wasInstalled && !wasLoaded) {
-      lines.push(`Model is installed but not preloaded. Use \`preload_model(model="${modelId}")\` to load it into VRAM.`);
+      lines.push(
+        `Model is installed but not preloaded. Use \`preload_model(model="${modelId}")\` to load it into VRAM.`,
+      );
     } else {
-      lines.push(`Model is not yet installed. Use \`pull_model(model="${modelId}")\` to download it first.`);
+      lines.push(
+        `Model is not yet installed. Use \`pull_model(model="${modelId}")\` to download it first.`,
+      );
     }
 
     // Add warnings for partial success
@@ -287,17 +303,20 @@ export async function handleAutoSetup(
       }
     }
 
-    ctx.logger.info({
-      category,
-      tier: output.tier,
-      model: modelId,
-      wasInstalled: top.installed,
-      wasLoaded: top.loaded,
-      pulled: !top.installed && wasInstalled,
-      preloaded: !top.loaded && wasLoaded,
-      pullFailed,
-      preloadFailed,
-    }, 'auto_setup completed');
+    ctx.logger.info(
+      {
+        category,
+        tier: output.tier,
+        model: modelId,
+        wasInstalled: top.installed,
+        wasLoaded: top.loaded,
+        pulled: !top.installed && wasInstalled,
+        preloaded: !top.loaded && wasLoaded,
+        pullFailed,
+        preloadFailed,
+      },
+      'auto_setup completed',
+    );
 
     return {
       content: [{ type: 'text', text: lines.join('\n') }],
@@ -322,7 +341,11 @@ function getRamFromTier(tierConfig: TierConfig): number {
 /**
  * Format benchmark scores as a compact string.
  */
-function formatBenchmarks(benchmarks: { humanEval?: number; sweBench?: number; japaneseMTBench?: number }): string {
+function formatBenchmarks(benchmarks: {
+  humanEval?: number;
+  sweBench?: number;
+  japaneseMTBench?: number;
+}): string {
   const parts: string[] = [];
   if (benchmarks.humanEval !== undefined) {
     parts.push(`HumanEval: ${benchmarks.humanEval}%`);

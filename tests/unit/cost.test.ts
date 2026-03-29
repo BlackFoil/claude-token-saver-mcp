@@ -132,8 +132,16 @@ describe('CostCalculator', () => {
 
   it('C-12: cumulative savings increments across tools', () => {
     const calc = new CostCalculator(pricing, 'claude-sonnet-4-5');
-    const r1 = calc.calculateSavings({ inputTokens: 1000, outputTokens: 500, tool: 'offload_work' });
-    const r2 = calc.calculateSavings({ inputTokens: 1000, outputTokens: 500, tool: 'compress_context' });
+    const r1 = calc.calculateSavings({
+      inputTokens: 1000,
+      outputTokens: 500,
+      tool: 'offload_work',
+    });
+    const r2 = calc.calculateSavings({
+      inputTokens: 1000,
+      outputTokens: 500,
+      tool: 'compress_context',
+    });
     expect(r2.cumulativeSavingsUsd).toBeCloseTo(r1.savingsUsd + r2.savingsUsd, 6);
 
     const cum = calc.getCumulativeSavings();

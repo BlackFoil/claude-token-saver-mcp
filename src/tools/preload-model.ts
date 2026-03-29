@@ -14,7 +14,12 @@ import type { OllamaClient } from '../ollama/client.js';
 import type { TierConfig } from '../tiering/config.js';
 import type { AppConfig } from '../config/schema.js';
 import type { Logger } from 'pino';
-import { ctsErrorToCallToolResult, CTSError, ModelNotFoundError, InvalidConfigError } from '../errors.js';
+import {
+  ctsErrorToCallToolResult,
+  CTSError,
+  ModelNotFoundError,
+  InvalidConfigError,
+} from '../errors.js';
 import { calculateVramCapacity } from '../model-selector/vram-calculator.js';
 
 export interface PreloadModelContext {
@@ -39,16 +44,19 @@ export async function handlePreloadModel(
       throw new InvalidConfigError('model', 'model is required and must be a non-empty string');
     }
 
-    const keepAlive = typeof args['keep_alive'] === 'string'
-      ? args['keep_alive']
-      : ctx.config.modelSelector.preloadKeepAlive;
+    const keepAlive =
+      typeof args['keep_alive'] === 'string'
+        ? args['keep_alive']
+        : ctx.config.modelSelector.preloadKeepAlive;
 
     // Check Ollama health
     if (!ctx.ollamaHealthy) {
       const recheck = await ctx.ollamaClient.healthCheck();
       if (!recheck) {
         return {
-          content: [{ type: 'text', text: '[CTS-1001] Ollama is not available. Cannot preload model.' }],
+          content: [
+            { type: 'text', text: '[CTS-1001] Ollama is not available. Cannot preload model.' },
+          ],
           isError: true,
         };
       }
@@ -74,12 +82,15 @@ export async function handlePreloadModel(
     const alreadyLoaded = currentlyLoaded.models.some((m) => m.name === model);
     if (!alreadyLoaded && loadedCount >= vram.maxSimultaneousModels) {
       return {
-        content: [{
-          type: 'text',
-          text: `[CTS-4001] Cannot preload "${model}": ${loadedCount}/${vram.maxSimultaneousModels} model slots used.\n` +
-            `Currently loaded: ${currentlyLoaded.models.map((m) => m.name).join(', ')}\n` +
-            `Unload a model or increase MAX_SIMULTANEOUS_MODELS to proceed.`,
-        }],
+        content: [
+          {
+            type: 'text',
+            text:
+              `[CTS-4001] Cannot preload "${model}": ${loadedCount}/${vram.maxSimultaneousModels} model slots used.\n` +
+              `Currently loaded: ${currentlyLoaded.models.map((m) => m.name).join(', ')}\n` +
+              `Unload a model or increase MAX_SIMULTANEOUS_MODELS to proceed.`,
+          },
+        ],
         isError: true,
       };
     }
@@ -98,9 +109,7 @@ export async function handlePreloadModel(
     const psAfter = await ctx.ollamaClient.listRunning();
     const loadedModel = psAfter.models.find((m) => m.name === model);
 
-    const vramUsageGB = loadedModel
-      ? (loadedModel.size_vram / (1024 ** 3)).toFixed(1)
-      : 'unknown';
+    const vramUsageGB = loadedModel ? (loadedModel.size_vram / 1024 ** 3).toFixed(1) : 'unknown';
 
     const totalLoadedNow = psAfter.models.length;
 

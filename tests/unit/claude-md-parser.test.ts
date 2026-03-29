@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { parseClaudeMdRoles, extractUniqueCategories } from '../../src/model-selector/claude-md-parser.js';
+import {
+  parseClaudeMdRoles,
+  extractUniqueCategories,
+} from '../../src/model-selector/claude-md-parser.js';
 
 // ── Test Data ────────────────────────────────────────────────
 
@@ -160,9 +163,7 @@ describe('parseClaudeMdRoles (DMS-022)', () => {
 `;
     const result = parseClaudeMdRoles(table);
     // ShortRow should be skipped (too few columns), Coder should be parsed
-    expect(result).toEqual([
-      { role: 'Coder', category: 'coding' },
-    ]);
+    expect(result).toEqual([{ role: 'Coder', category: 'coding' }]);
   });
 
   it('skips rows with empty role or empty llm value', () => {
@@ -174,9 +175,7 @@ describe('parseClaudeMdRoles (DMS-022)', () => {
 | Valid | translation |
 `;
     const result = parseClaudeMdRoles(table);
-    expect(result).toEqual([
-      { role: 'Valid', category: 'translation' },
-    ]);
+    expect(result).toEqual([{ role: 'Valid', category: 'translation' }]);
   });
 
   it('defaults to first column as role when no 役割/Role header', () => {

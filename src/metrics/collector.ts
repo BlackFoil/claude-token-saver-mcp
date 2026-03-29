@@ -60,23 +60,16 @@ export class MetricsCollector {
    * Record a tool request with its duration and outcome.
    * If the request failed, an optional error code may be provided.
    */
-  recordRequest(
-    toolName: string,
-    durationMs: number,
-    success: boolean,
-    errorCode?: string,
-  ): void {
+  recordRequest(toolName: string, durationMs: number, success: boolean, errorCode?: string): void {
     this.requestsTotal += 1;
-    this.requestsByTool[toolName] =
-      (this.requestsByTool[toolName] ?? 0) + 1;
+    this.requestsByTool[toolName] = (this.requestsByTool[toolName] ?? 0) + 1;
 
     this.latencyValues.push(durationMs);
 
     if (!success) {
       this.errorsTotal += 1;
       if (errorCode) {
-        this.errorsByCode[errorCode] =
-          (this.errorsByCode[errorCode] ?? 0) + 1;
+        this.errorsByCode[errorCode] = (this.errorsByCode[errorCode] ?? 0) + 1;
       }
     }
   }
@@ -123,9 +116,7 @@ export class MetricsCollector {
       lines.push('cts_requests_total 0');
     } else {
       for (const tool of toolNames) {
-        lines.push(
-          `cts_requests_total{tool="${tool}"} ${this.requestsByTool[tool] ?? 0}`,
-        );
+        lines.push(`cts_requests_total{tool="${tool}"} ${this.requestsByTool[tool] ?? 0}`);
       }
     }
 
@@ -137,9 +128,7 @@ export class MetricsCollector {
       lines.push('cts_errors_total 0');
     } else {
       for (const code of errorCodes) {
-        lines.push(
-          `cts_errors_total{code="${code}"} ${this.errorsByCode[code] ?? 0}`,
-        );
+        lines.push(`cts_errors_total{code="${code}"} ${this.errorsByCode[code] ?? 0}`);
       }
     }
 

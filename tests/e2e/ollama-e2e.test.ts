@@ -84,9 +84,7 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
   it('E2E-05: chat — real inference returns non-empty text', async () => {
     const response = await client.chat({
       model: TEST_MODEL,
-      messages: [
-        { role: 'user', content: 'Return the number 42.' },
-      ],
+      messages: [{ role: 'user', content: 'Return the number 42.' }],
       stream: true,
       options: {
         num_predict: 10,
@@ -124,10 +122,7 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
   it('E2E-07: compress_context — compression ratio is positive', async () => {
     const longContent = 'TypeScript is a typed superset of JavaScript. '.repeat(20);
     const ctx = createE2EToolContext(client);
-    const result = await handleCompressContext(
-      { content: longContent, model: TEST_MODEL },
-      ctx,
-    );
+    const result = await handleCompressContext({ content: longContent, model: TEST_MODEL }, ctx);
 
     expect(result.isError).toBeUndefined();
     const text = (result.content[0] as { text: string }).text;
@@ -143,7 +138,12 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
   it('E2E-08: preload_model → list_loaded_models — VRAM confirmed', async () => {
     const tierConfig = detectTier(64);
     const config = createE2EConfig();
-    const logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as import('pino').Logger;
+    const logger = {
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    } as unknown as import('pino').Logger;
 
     const preloadCtx = {
       ollamaClient: client,
@@ -154,10 +154,7 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
     };
 
     // Preload the model
-    const preloadResult = await handlePreloadModel(
-      { model: TEST_MODEL },
-      preloadCtx,
-    );
+    const preloadResult = await handlePreloadModel({ model: TEST_MODEL }, preloadCtx);
     expect(preloadResult.isError).toBeUndefined();
 
     const preloadText = (preloadResult.content[0] as { text: string }).text;
@@ -178,7 +175,12 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
   it('E2E-09: recommend_model — returns recommendations for coding category', async () => {
     const tierConfig = detectTier(64);
     const config = createE2EConfig();
-    const logger = { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} } as unknown as import('pino').Logger;
+    const logger = {
+      debug: () => {},
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    } as unknown as import('pino').Logger;
 
     const ctx = {
       ollamaClient: client,
@@ -188,10 +190,7 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
       ollamaHealthy: true,
     };
 
-    const result = await handleRecommendModel(
-      { category: 'coding' },
-      ctx,
-    );
+    const result = await handleRecommendModel({ category: 'coding' }, ctx);
 
     expect(result.isError).toBeUndefined();
     const text = (result.content[0] as { text: string }).text;
@@ -205,10 +204,7 @@ describe.runIf(ollamaReady)('E2E: Ollama Integration', () => {
   it('E2E-10: cost_dashboard — shows cumulative savings after real calls', async () => {
     // First, make a real offload_work call to accumulate savings
     const ctx = createE2EToolContext(client);
-    await handleOffloadWork(
-      { task: 'Return the number 1', model: TEST_MODEL },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'Return the number 1', model: TEST_MODEL }, ctx);
 
     // Now check the dashboard
     const dashResult = await handleCostDashboard(

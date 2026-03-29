@@ -44,12 +44,14 @@ describe('handleCostDashboard (F-08)', () => {
   });
 
   it('returns zero stats when no requests', async () => {
-    const ctx = createCtx(makeSavings({
-      totalSavingsUsd: 0,
-      totalRequests: 0,
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-    }));
+    const ctx = createCtx(
+      makeSavings({
+        totalSavingsUsd: 0,
+        totalRequests: 0,
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+      }),
+    );
     const result = await handleCostDashboard({}, ctx);
     const text = (result.content[0] as { text: string }).text;
 
@@ -141,10 +143,12 @@ describe('handleCostDashboard (F-08)', () => {
   });
 
   it('includes input/output token counts in summary', async () => {
-    const ctx = createCtx(makeSavings({
-      totalInputTokens: 99999,
-      totalOutputTokens: 12345,
-    }));
+    const ctx = createCtx(
+      makeSavings({
+        totalInputTokens: 99999,
+        totalOutputTokens: 12345,
+      }),
+    );
     const result = await handleCostDashboard({}, ctx);
     const text = (result.content[0] as { text: string }).text;
 

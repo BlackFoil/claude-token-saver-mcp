@@ -7,9 +7,25 @@ import { z } from 'zod';
 
 /** offload_work ツールのサポート言語 */
 const supportedLanguages = [
-  'typescript', 'javascript', 'python', 'go', 'rust',
-  'java', 'c', 'cpp', 'csharp', 'ruby', 'php', 'swift',
-  'kotlin', 'scala', 'shell', 'sql', 'html', 'css', 'markdown',
+  'typescript',
+  'javascript',
+  'python',
+  'go',
+  'rust',
+  'java',
+  'c',
+  'cpp',
+  'csharp',
+  'ruby',
+  'php',
+  'swift',
+  'kotlin',
+  'scala',
+  'shell',
+  'sql',
+  'html',
+  'css',
+  'markdown',
 ] as const;
 
 /** offload_work ツールの出力フォーマット */
@@ -30,10 +46,7 @@ export const offloadWorkSchema = z.object({
     .string({ required_error: 'task は必須です' })
     .min(1, 'task は空文字列にできません')
     .max(50_000, 'task は50,000文字以内である必要があります'),
-  context: z
-    .string()
-    .max(100_000, 'context は100,000文字以内である必要があります')
-    .optional(),
+  context: z.string().max(100_000, 'context は100,000文字以内である必要があります').optional(),
   language: z
     .enum(supportedLanguages, {
       errorMap: () => ({
@@ -62,10 +75,7 @@ export const compressContextSchema = z.object({
     .string({ required_error: 'content は必須です' })
     .min(1, 'content は空文字列にできません')
     .max(200_000, 'content は200,000文字以内である必要があります'),
-  focus: z
-    .string()
-    .max(500, 'focus は500文字以内である必要があります')
-    .optional(),
+  focus: z.string().max(500, 'focus は500文字以内である必要があります').optional(),
   max_length: z
     .number({ invalid_type_error: 'max_length は数値である必要があります' })
     .int('max_length は整数である必要があります')
@@ -130,18 +140,14 @@ export function validateOffloadWorkInput(
     const messages = parseResult.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       .join('; ');
-    throw new Error(
-      `入力バリデーションエラー (CTS-5001): ${messages}`,
-    );
+    throw new Error(`入力バリデーションエラー (CTS-5001): ${messages}`);
   }
 
   const validated = parseResult.data;
 
   // 合計バイト数の計算
   const taskBytes = Buffer.byteLength(validated.task, 'utf-8');
-  const contextBytes = validated.context
-    ? Buffer.byteLength(validated.context, 'utf-8')
-    : 0;
+  const contextBytes = validated.context ? Buffer.byteLength(validated.context, 'utf-8') : 0;
   const totalBytes = taskBytes + contextBytes;
 
   // サイズ上限チェック
@@ -184,9 +190,7 @@ export function validateCompressContextInput(
     const messages = parseResult.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       .join('; ');
-    throw new Error(
-      `入力バリデーションエラー (CTS-5001): ${messages}`,
-    );
+    throw new Error(`入力バリデーションエラー (CTS-5001): ${messages}`);
   }
 
   const validated = parseResult.data;

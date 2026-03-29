@@ -46,7 +46,11 @@ function formatUserPrompt(input: OffloadWorkInput): string {
   return parts.join('\n');
 }
 
-function createFallbackResponse(reason: string, task: string, errorMessage: string): CallToolResult {
+function createFallbackResponse(
+  reason: string,
+  task: string,
+  errorMessage: string,
+): CallToolResult {
   return {
     content: [
       {
@@ -70,9 +74,10 @@ export async function handleOffloadWork(
     if (!context.ollamaHealthy) {
       const recheck = await ollamaClient.healthCheck();
       if (!recheck) {
-        const task = typeof rawInput === 'object' && rawInput !== null && 'task' in rawInput
-          ? String((rawInput as { task: unknown }).task)
-          : '';
+        const task =
+          typeof rawInput === 'object' && rawInput !== null && 'task' in rawInput
+            ? String((rawInput as { task: unknown }).task)
+            : '';
         return createFallbackResponse(
           'OLLAMA_UNREACHABLE',
           task,
@@ -103,12 +108,18 @@ export async function handleOffloadWork(
     }
 
     // DMS-016: Resolve model override (model > category > default)
-    const rawArgs = typeof rawInput === 'object' && rawInput !== null
-      ? rawInput as Record<string, unknown> : {};
-    const modelOverride = typeof rawArgs['model'] === 'string' && rawArgs['model'].trim()
-      ? rawArgs['model'].trim() : undefined;
-    const categoryOverride = typeof rawArgs['category'] === 'string' && rawArgs['category'].trim()
-      ? rawArgs['category'].trim() : undefined;
+    const rawArgs =
+      typeof rawInput === 'object' && rawInput !== null
+        ? (rawInput as Record<string, unknown>)
+        : {};
+    const modelOverride =
+      typeof rawArgs['model'] === 'string' && rawArgs['model'].trim()
+        ? rawArgs['model'].trim()
+        : undefined;
+    const categoryOverride =
+      typeof rawArgs['category'] === 'string' && rawArgs['category'].trim()
+        ? rawArgs['category'].trim()
+        : undefined;
 
     let effectiveModel = tierConfig.primaryModel;
     if (modelOverride) {
@@ -128,7 +139,9 @@ export async function handleOffloadWork(
           installedModels = tags.models.map((m) => m.name);
           const ps = await ollamaClient.listRunning();
           loadedModels = ps.models.map((m) => m.name);
-        } catch { /* proceed without install info */ }
+        } catch {
+          /* proceed without install info */
+        }
 
         const rec = recommendModels({
           category: categoryOverride as TaskCategory,
@@ -142,11 +155,14 @@ export async function handleOffloadWork(
         });
         if (rec.recommendations.length > 0) {
           effectiveModel = rec.recommendations[0]!.recommendation.modelId;
-          logger.info({
-            category: categoryOverride,
-            selectedModel: effectiveModel,
-            installed: rec.recommendations[0]!.installed,
-          }, 'offload_work: model selected by category');
+          logger.info(
+            {
+              category: categoryOverride,
+              selectedModel: effectiveModel,
+              installed: rec.recommendations[0]!.installed,
+            },
+            'offload_work: model selected by category',
+          );
         }
       } catch (recErr) {
         logger.warn(
@@ -178,24 +194,19 @@ export async function handleOffloadWork(
 
     let ollamaResponse: OllamaChatResponse;
     try {
-      ollamaResponse = await queue.enqueue(
-        payload,
-        validated.totalBytes,
-      );
+      ollamaResponse = await queue.enqueue(payload, validated.totalBytes);
     } catch (queueError) {
       if (queueError instanceof CTSError) {
-        return createFallbackResponse(
-          'QUEUE_ERROR',
-          input.task,
-          queueError.message,
-        );
+        return createFallbackResponse('QUEUE_ERROR', input.task, queueError.message);
       }
       throw queueError;
     }
 
     // DMS-029: Record successful execution
     if (context.executionTracker) {
-      const categoryValue = (typeof rawArgs['category'] === 'string' ? rawArgs['category'] : 'general') as TaskCategory;
+      const categoryValue = (
+        typeof rawArgs['category'] === 'string' ? rawArgs['category'] : 'general'
+      ) as TaskCategory;
       context.executionTracker.recordExecution({
         taskCategory: categoryValue,
         modelId: effectiveModel,
@@ -215,22 +226,28 @@ export async function handleOffloadWork(
 
     // Step 9: Log to stderr
     reportCost(costResult, 'offload_work');
-    logger.info({
-      tool: 'offload_work',
-      model: ollamaResponse.model,
-      inputTokens: ollamaResponse.inputTokens,
-      outputTokens: ollamaResponse.outputTokens,
-      durationMs: ollamaResponse.totalDurationMs,
-      savingsUsd: costResult.savingsUsd,
-    }, 'offload_work completed');
+    logger.info(
+      {
+        tool: 'offload_work',
+        model: ollamaResponse.model,
+        inputTokens: ollamaResponse.inputTokens,
+        outputTokens: ollamaResponse.outputTokens,
+        durationMs: ollamaResponse.totalDurationMs,
+        savingsUsd: costResult.savingsUsd,
+      },
+      'offload_work completed',
+    );
 
     // Sanitize output
     const sanitized = sanitizeOutput(ollamaResponse.text);
     if (sanitized.redactionCount > 0) {
-      logger.warn({
-        detectedCategories: sanitized.detectedCategories,
-        redactionCount: sanitized.redactionCount,
-      }, 'Sensitive info redacted from LLM output');
+      logger.warn(
+        {
+          detectedCategories: sanitized.detectedCategories,
+          redactionCount: sanitized.redactionCount,
+        },
+        'Sensitive info redacted from LLM output',
+      );
     }
 
     // Step 10: Build response
@@ -264,9 +281,10 @@ export async function handleOffloadWork(
 
     if (error instanceof CTSError) {
       if (error.fallbackToCloud) {
-        const task = typeof rawInput === 'object' && rawInput !== null && 'task' in rawInput
-          ? String((rawInput as { task: unknown }).task)
-          : '';
+        const task =
+          typeof rawInput === 'object' && rawInput !== null && 'task' in rawInput
+            ? String((rawInput as { task: unknown }).task)
+            : '';
         return createFallbackResponse('ERROR', task, error.message);
       }
       return ctsErrorToCallToolResult(error);

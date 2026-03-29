@@ -63,7 +63,10 @@ export function createToolLogContext(params: {
 
   if (params.error) {
     ctx.error = params.error.message;
-    if ('code' in params.error && typeof (params.error as Record<string, unknown>).code === 'string') {
+    if (
+      'code' in params.error &&
+      typeof (params.error as Record<string, unknown>).code === 'string'
+    ) {
       ctx.errorCode = (params.error as Record<string, unknown>).code as string;
     }
   }

@@ -348,9 +348,6 @@ describe('handleGetMetrics (P5-001)', () => {
     const ctx = createCtx();
     await handleGetMetrics({ format: 'prometheus' }, ctx);
 
-    expect(ctx.logger.debug).toHaveBeenCalledWith(
-      { format: 'prometheus' },
-      'get_metrics called',
-    );
+    expect(ctx.logger.debug).toHaveBeenCalledWith({ format: 'prometheus' }, 'get_metrics called');
   });
 });

@@ -4,11 +4,15 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 export type CTSErrorCode =
-  | 'CTS-1001' | 'CTS-1002'
-  | 'CTS-2001' | 'CTS-2002'
+  | 'CTS-1001'
+  | 'CTS-1002'
+  | 'CTS-2001'
+  | 'CTS-2002'
   | 'CTS-3001'
-  | 'CTS-4001' | 'CTS-4002'
-  | 'CTS-5001' | 'CTS-5002'
+  | 'CTS-4001'
+  | 'CTS-4002'
+  | 'CTS-5001'
+  | 'CTS-5002'
   | 'CTS-6001';
 
 export interface MCPErrorResponse {
@@ -71,9 +75,10 @@ export class OllamaConnectionError extends CTSError {
 
 export class OllamaNotRunningError extends OllamaConnectionError {
   constructor(message?: string | Error, cause?: Error) {
-    const msg = typeof message === 'string'
-      ? message
-      : 'Ollamaが起動していません。`ollama serve` を実行してください。';
+    const msg =
+      typeof message === 'string'
+        ? message
+        : 'Ollamaが起動していません。`ollama serve` を実行してください。';
     const errCause = message instanceof Error ? message : cause;
     super('CTS-1001', msg, errCause);
     this.name = 'OllamaNotRunningError';
@@ -95,12 +100,7 @@ export class OllamaVersionError extends OllamaConnectionError {
 export class OllamaTimeoutError extends CTSError {
   readonly timeoutMs: number;
 
-  constructor(
-    code: 'CTS-2001' | 'CTS-2002',
-    message: string,
-    timeoutMs: number,
-    cause?: Error,
-  ) {
+  constructor(code: 'CTS-2001' | 'CTS-2002', message: string, timeoutMs: number, cause?: Error) {
     super(code, message, {
       httpStatus: 504,
       retryable: false,
@@ -154,7 +154,9 @@ export class ModelNotFoundError extends CTSError {
     const isCustomMsg = modelNameOrMessage.includes(' ');
     super(
       'CTS-3001',
-      isCustomMsg ? modelNameOrMessage : `モデル ${modelNameOrMessage} が見つかりません。自動pullを試行します。`,
+      isCustomMsg
+        ? modelNameOrMessage
+        : `モデル ${modelNameOrMessage} が見つかりません。自動pullを試行します。`,
       {
         httpStatus: 404,
         retryable: true,
@@ -168,11 +170,7 @@ export class ModelNotFoundError extends CTSError {
 // --- キューエラー (CTS-4xxx) ---
 
 export class QueueError extends CTSError {
-  constructor(
-    code: 'CTS-4001' | 'CTS-4002',
-    message: string,
-    options?: { retryable?: boolean },
-  ) {
+  constructor(code: 'CTS-4001' | 'CTS-4002', message: string, options?: { retryable?: boolean }) {
     super(code, message, {
       httpStatus: 429,
       retryable: options?.retryable ?? false,
@@ -195,11 +193,9 @@ export class QueueFullError extends QueueError {
 
 export class RateLimitError extends QueueError {
   constructor(limitPerMinute: number) {
-    super(
-      'CTS-4002',
-      `レートリミット超過: ${limitPerMinute}リクエスト/分の上限に達しました。`,
-      { retryable: true },
-    );
+    super('CTS-4002', `レートリミット超過: ${limitPerMinute}リクエスト/分の上限に達しました。`, {
+      retryable: true,
+    });
     this.name = 'RateLimitError';
   }
 }
@@ -219,10 +215,7 @@ export class InputValidationError extends CTSError {
 
 export class PromptInjectionError extends InputValidationError {
   constructor(detectedPattern: string) {
-    super(
-      'CTS-5001',
-      `プロンプトインジェクションの疑いを検出しました: ${detectedPattern}`,
-    );
+    super('CTS-5001', `プロンプトインジェクションの疑いを検出しました: ${detectedPattern}`);
     this.name = 'PromptInjectionError';
   }
 }
@@ -261,9 +254,7 @@ export class InvalidConfigError extends ConfigError {
 
 export function ctsErrorToCallToolResult(error: unknown): CallToolResult {
   if (error instanceof CTSError) {
-    const lines: string[] = [
-      `[${error.code}] ${error.message}`,
-    ];
+    const lines: string[] = [`[${error.code}] ${error.message}`];
 
     if (error.fallbackToCloud) {
       lines.push('');

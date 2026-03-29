@@ -7,14 +7,16 @@ vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn(),
 }));
 
-function makeRecord(overrides: Partial<{
-  modelId: string;
-  taskCategory: TaskCategory;
-  executionTimeMs: number;
-  success: boolean;
-  inputTokens: number;
-  outputTokens: number;
-}> = {}) {
+function makeRecord(
+  overrides: Partial<{
+    modelId: string;
+    taskCategory: TaskCategory;
+    executionTimeMs: number;
+    success: boolean;
+    inputTokens: number;
+    outputTokens: number;
+  }> = {},
+) {
   return {
     modelId: overrides.modelId ?? 'qwen3:8b',
     taskCategory: overrides.taskCategory ?? 'coding',
@@ -88,9 +90,15 @@ describe('ExecutionTracker (DMS-029)', () => {
   });
 
   it('getPerformanceMetrics aggregates correctly for multiple models', () => {
-    tracker.recordExecution(makeRecord({ modelId: 'model-a', executionTimeMs: 500, success: true }));
-    tracker.recordExecution(makeRecord({ modelId: 'model-b', executionTimeMs: 1500, success: true }));
-    tracker.recordExecution(makeRecord({ modelId: 'model-b', executionTimeMs: 2500, success: false }));
+    tracker.recordExecution(
+      makeRecord({ modelId: 'model-a', executionTimeMs: 500, success: true }),
+    );
+    tracker.recordExecution(
+      makeRecord({ modelId: 'model-b', executionTimeMs: 1500, success: true }),
+    );
+    tracker.recordExecution(
+      makeRecord({ modelId: 'model-b', executionTimeMs: 2500, success: false }),
+    );
 
     const metrics = tracker.getPerformanceMetrics('coding');
     expect(metrics).toHaveLength(2);
@@ -134,8 +142,12 @@ describe('ExecutionTracker (DMS-029)', () => {
   });
 
   it('getRecommendationBoost returns value between 0 and 1 for known model', () => {
-    tracker.recordExecution(makeRecord({ modelId: 'test-model', executionTimeMs: 1000, success: true }));
-    tracker.recordExecution(makeRecord({ modelId: 'other-model', executionTimeMs: 2000, success: true }));
+    tracker.recordExecution(
+      makeRecord({ modelId: 'test-model', executionTimeMs: 1000, success: true }),
+    );
+    tracker.recordExecution(
+      makeRecord({ modelId: 'other-model', executionTimeMs: 2000, success: true }),
+    );
 
     const boost = tracker.getRecommendationBoost('test-model', 'coding');
     expect(boost).toBeGreaterThanOrEqual(0);
@@ -144,9 +156,13 @@ describe('ExecutionTracker (DMS-029)', () => {
 
   it('getRecommendationBoost: fastest model with 100% success gets boost close to 1.0', () => {
     // fast model: 500ms, 100% success
-    tracker.recordExecution(makeRecord({ modelId: 'fast-model', executionTimeMs: 500, success: true }));
+    tracker.recordExecution(
+      makeRecord({ modelId: 'fast-model', executionTimeMs: 500, success: true }),
+    );
     // slow model: 2000ms, 100% success
-    tracker.recordExecution(makeRecord({ modelId: 'slow-model', executionTimeMs: 2000, success: true }));
+    tracker.recordExecution(
+      makeRecord({ modelId: 'slow-model', executionTimeMs: 2000, success: true }),
+    );
 
     const boost = tracker.getRecommendationBoost('fast-model', 'coding');
     // fast model is 4x faster than slow model: successRate(1.0) * (slowestAvg/modelAvg) = 1.0 * (2000/500) = 4.0, capped at 1.0
@@ -177,8 +193,24 @@ describe('ExecutionTracker (DMS-029)', () => {
   it('loadFromFile loads records from JSON array', async () => {
     const { readFile } = await import('node:fs/promises');
     const records = [
-      { modelId: 'model-a', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: Date.now() },
-      { modelId: 'model-b', taskCategory: 'coding', executionTimeMs: 2000, success: false, inputTokens: 200, outputTokens: 100, timestamp: Date.now() },
+      {
+        modelId: 'model-a',
+        taskCategory: 'coding',
+        executionTimeMs: 1000,
+        success: true,
+        inputTokens: 100,
+        outputTokens: 50,
+        timestamp: Date.now(),
+      },
+      {
+        modelId: 'model-b',
+        taskCategory: 'coding',
+        executionTimeMs: 2000,
+        success: false,
+        inputTokens: 200,
+        outputTokens: 100,
+        timestamp: Date.now(),
+      },
     ];
     vi.mocked(readFile).mockResolvedValue(JSON.stringify(records));
 
@@ -200,9 +232,33 @@ describe('ExecutionTracker (DMS-029)', () => {
     const smallTracker = new ExecutionTracker(2);
     const { readFile } = await import('node:fs/promises');
     const records = [
-      { modelId: 'old', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: 1 },
-      { modelId: 'mid', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: 2 },
-      { modelId: 'new', taskCategory: 'coding', executionTimeMs: 1000, success: true, inputTokens: 100, outputTokens: 50, timestamp: 3 },
+      {
+        modelId: 'old',
+        taskCategory: 'coding',
+        executionTimeMs: 1000,
+        success: true,
+        inputTokens: 100,
+        outputTokens: 50,
+        timestamp: 1,
+      },
+      {
+        modelId: 'mid',
+        taskCategory: 'coding',
+        executionTimeMs: 1000,
+        success: true,
+        inputTokens: 100,
+        outputTokens: 50,
+        timestamp: 2,
+      },
+      {
+        modelId: 'new',
+        taskCategory: 'coding',
+        executionTimeMs: 1000,
+        success: true,
+        inputTokens: 100,
+        outputTokens: 50,
+        timestamp: 3,
+      },
     ];
     vi.mocked(readFile).mockResolvedValue(JSON.stringify(records));
 
@@ -226,11 +282,7 @@ describe('ExecutionTracker (DMS-029)', () => {
 
     await tracker.saveToFile('/tmp/records.json');
 
-    expect(writeFile).toHaveBeenCalledWith(
-      '/tmp/records.json',
-      expect.any(String),
-      'utf-8',
-    );
+    expect(writeFile).toHaveBeenCalledWith('/tmp/records.json', expect.any(String), 'utf-8');
 
     const writtenData = JSON.parse(vi.mocked(writeFile).mock.calls[0]![1] as string);
     expect(Array.isArray(writtenData)).toBe(true);

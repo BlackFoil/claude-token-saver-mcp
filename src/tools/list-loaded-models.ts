@@ -73,8 +73,8 @@ export async function handleListLoadedModels(
 
     for (let i = 0; i < psResult.models.length; i++) {
       const m = psResult.models[i]!;
-      const vramGB = (m.size_vram / (1024 ** 3)).toFixed(1);
-      const sizeGB = (m.size / (1024 ** 3)).toFixed(1);
+      const vramGB = (m.size_vram / 1024 ** 3).toFixed(1);
+      const sizeGB = (m.size / 1024 ** 3).toFixed(1);
       totalVramBytes += m.size_vram;
 
       // Format expiry
@@ -100,7 +100,7 @@ export async function handleListLoadedModels(
       lines.push(`| ${i + 1} | ${m.name} | ${vramGB} GB | ${expiresStr} | ${sizeGB} GB |`);
     }
 
-    const totalVramGB = (totalVramBytes / (1024 ** 3)).toFixed(1);
+    const totalVramGB = (totalVramBytes / 1024 ** 3).toFixed(1);
     const estimatedAvailableGB = vram.estimatedVramGB.toFixed(0);
 
     lines.push('');

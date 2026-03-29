@@ -90,10 +90,7 @@ export class PriorityQueue<T, R> {
 
     // 1. Request size check
     if (requestSizeBytes > this.config.maxRequestSizeBytes) {
-      throw new QueueFullError(
-        this.queue.length,
-        this.config.maxQueueLength,
-      );
+      throw new QueueFullError(this.queue.length, this.config.maxQueueLength);
     }
 
     // 2. Rate limit check
@@ -103,10 +100,7 @@ export class PriorityQueue<T, R> {
 
     // 3. Queue length check
     if (this.queue.length >= this.config.maxQueueLength) {
-      throw new QueueFullError(
-        this.queue.length,
-        this.config.maxQueueLength,
-      );
+      throw new QueueFullError(this.queue.length, this.config.maxQueueLength);
     }
 
     // 4. Create promise and enqueue with priority insertion
@@ -118,9 +112,7 @@ export class PriorityQueue<T, R> {
         if (idx !== -1) {
           this.queue.splice(idx, 1);
           this.stats.totalRejected++;
-          reject(
-            new QueueFullError(this.queue.length, this.config.maxQueueLength),
-          );
+          reject(new QueueFullError(this.queue.length, this.config.maxQueueLength));
         }
       }, this.config.queueTimeoutMs);
 
@@ -170,14 +162,8 @@ export class PriorityQueue<T, R> {
       isProcessing: this.isProcessingFlag,
       totalProcessed,
       totalRejected: this.stats.totalRejected,
-      averageWaitMs:
-        totalProcessed > 0
-          ? this.stats.totalWaitMs / totalProcessed
-          : 0,
-      averageProcessingMs:
-        totalProcessed > 0
-          ? this.stats.totalProcessingMs / totalProcessed
-          : 0,
+      averageWaitMs: totalProcessed > 0 ? this.stats.totalWaitMs / totalProcessed : 0,
+      averageProcessingMs: totalProcessed > 0 ? this.stats.totalProcessingMs / totalProcessed : 0,
       byPriority: {
         [Priority.URGENT]: {
           pending: pendingByPriority[Priority.URGENT],

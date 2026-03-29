@@ -56,27 +56,16 @@ export class FIFOQueue<T, R> {
     totalProcessingMs: 0,
   };
 
-  constructor(
-    config: QueueConfig,
-    processor: (item: T) => Promise<R>,
-    rateLimiter?: RateLimiter,
-  ) {
+  constructor(config: QueueConfig, processor: (item: T) => Promise<R>, rateLimiter?: RateLimiter) {
     this.config = config;
     this.processor = processor;
     this.rateLimiter = rateLimiter ?? null;
   }
 
-  async enqueue(
-    payload: T,
-    requestSizeBytes: number,
-    agentId?: string,
-  ): Promise<R> {
+  async enqueue(payload: T, requestSizeBytes: number, agentId?: string): Promise<R> {
     // 1. Request size check
     if (requestSizeBytes > this.config.maxRequestSizeBytes) {
-      throw new QueueFullError(
-        this.queue.length,
-        this.config.maxQueueLength,
-      );
+      throw new QueueFullError(this.queue.length, this.config.maxQueueLength);
     }
 
     // 2. Rate limit check
@@ -86,10 +75,7 @@ export class FIFOQueue<T, R> {
 
     // 3. Queue length check
     if (this.queue.length >= this.config.maxQueueLength) {
-      throw new QueueFullError(
-        this.queue.length,
-        this.config.maxQueueLength,
-      );
+      throw new QueueFullError(this.queue.length, this.config.maxQueueLength);
     }
 
     // 4. Create promise and enqueue
@@ -101,9 +87,7 @@ export class FIFOQueue<T, R> {
         if (idx !== -1) {
           this.queue.splice(idx, 1);
           this.stats.totalRejected++;
-          reject(
-            new QueueFullError(this.queue.length, this.config.maxQueueLength),
-          );
+          reject(new QueueFullError(this.queue.length, this.config.maxQueueLength));
         }
       }, this.config.queueTimeoutMs);
 
@@ -132,14 +116,8 @@ export class FIFOQueue<T, R> {
       isProcessing: this.isProcessingFlag,
       totalProcessed,
       totalRejected: this.stats.totalRejected,
-      averageWaitMs:
-        totalProcessed > 0
-          ? this.stats.totalWaitMs / totalProcessed
-          : 0,
-      averageProcessingMs:
-        totalProcessed > 0
-          ? this.stats.totalProcessingMs / totalProcessed
-          : 0,
+      averageWaitMs: totalProcessed > 0 ? this.stats.totalWaitMs / totalProcessed : 0,
+      averageProcessingMs: totalProcessed > 0 ? this.stats.totalProcessingMs / totalProcessed : 0,
     };
   }
 

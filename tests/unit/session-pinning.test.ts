@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handlePreloadModel, type PreloadModelContext } from '../../src/tools/preload-model.js';
-import { handleListLoadedModels, type ListLoadedModelsContext } from '../../src/tools/list-loaded-models.js';
+import {
+  handleListLoadedModels,
+  type ListLoadedModelsContext,
+} from '../../src/tools/list-loaded-models.js';
 import { handleOffloadWork } from '../../src/tools/offload-work.js';
 import { handleCompressContext } from '../../src/tools/compress-context.js';
 import type { ToolHandlerContext } from '../../src/tools/offload-work.js';
@@ -36,18 +39,30 @@ function makeConfig(overrides?: Partial<AppConfig['modelSelector']>): AppConfig 
 function makeTierConfig(tier: 1 | 2 | 3): TierConfig {
   const configs: Record<number, TierConfig> = {
     1: {
-      level: 1, name: 'Light', primaryModel: 'phi4:latest', fallbackModel: null,
-      contextLimit: 4_000, ramRange: { min: 0, max: 16 },
+      level: 1,
+      name: 'Light',
+      primaryModel: 'phi4:latest',
+      fallbackModel: null,
+      contextLimit: 4_000,
+      ramRange: { min: 0, max: 16 },
       timeout: { requestTimeout: 60_000, heartbeatTimeout: 30_000, firstTokenTimeout: 120_000 },
     },
     2: {
-      level: 2, name: 'Standard', primaryModel: 'qwen2.5-coder:7b', fallbackModel: null,
-      contextLimit: 12_000, ramRange: { min: 16, max: 48 },
+      level: 2,
+      name: 'Standard',
+      primaryModel: 'qwen2.5-coder:7b',
+      fallbackModel: null,
+      contextLimit: 12_000,
+      ramRange: { min: 16, max: 48 },
       timeout: { requestTimeout: 90_000, heartbeatTimeout: 30_000, firstTokenTimeout: 120_000 },
     },
     3: {
-      level: 3, name: 'Ultra', primaryModel: 'qwen2.5-coder:32b', fallbackModel: null,
-      contextLimit: 32_000, ramRange: { min: 48, max: Infinity },
+      level: 3,
+      name: 'Ultra',
+      primaryModel: 'qwen2.5-coder:32b',
+      fallbackModel: null,
+      contextLimit: 32_000,
+      ramRange: { min: 48, max: Infinity },
       timeout: { requestTimeout: 180_000, heartbeatTimeout: 45_000, firstTokenTimeout: 180_000 },
     },
   };
@@ -59,10 +74,7 @@ const silentLogger = pino({ level: 'silent' });
 // ── DMS-014: preload_model Tests ────────────────────────────
 
 describe('handlePreloadModel (DMS-014)', () => {
-  function makePreloadContext(
-    tier: 1 | 2 | 3 = 3,
-    ollamaHealthy = true,
-  ): PreloadModelContext {
+  function makePreloadContext(tier: 1 | 2 | 3 = 3, ollamaHealthy = true): PreloadModelContext {
     const client = new OllamaClient({
       baseUrl: 'http://localhost:11434',
       requestTimeout: 10_000,
@@ -91,15 +103,36 @@ describe('handlePreloadModel (DMS-014)', () => {
     const ctx = makePreloadContext(3, false);
     vi.spyOn(ctx.ollamaClient, 'healthCheck').mockResolvedValueOnce(true);
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01',
+        },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
     vi.spyOn(ctx.ollamaClient, 'chat').mockResolvedValueOnce({
-      text: '', model: 'qwen2.5-coder:32b', inputTokens: 0, outputTokens: 0,
-      totalDurationMs: 100, loadDurationMs: 50,
+      text: '',
+      model: 'qwen2.5-coder:32b',
+      inputTokens: 0,
+      outputTokens: 0,
+      totalDurationMs: 100,
+      loadDurationMs: 50,
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b', size: 18_500_000_000, size_vram: 17_000_000_000, digest: 'abc', expires_at: '9999-12-31T00:00:00Z', details: {} }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'qwen2.5-coder:32b' }, ctx);
@@ -122,7 +155,9 @@ describe('handlePreloadModel (DMS-014)', () => {
   it('returns error when model is not installed', async () => {
     const ctx = makePreloadContext(3);
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'phi4:latest', size: 5_000_000_000, digest: 'xyz', modified_at: '2026-01-01' }],
+      models: [
+        { name: 'phi4:latest', size: 5_000_000_000, digest: 'xyz', modified_at: '2026-01-01' },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'nonexistent:latest' }, ctx);
@@ -140,7 +175,17 @@ describe('handlePreloadModel (DMS-014)', () => {
       ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{ name: 'phi4:latest', model: 'phi4:latest', size: 5_000_000_000, size_vram: 4_500_000_000, digest: 'a', expires_at: '9999-12-31T00:00:00Z', details: {} }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'a',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'qwen3:8b' }, ctx);
@@ -153,17 +198,43 @@ describe('handlePreloadModel (DMS-014)', () => {
   it('skips slot check when model is already loaded', async () => {
     const ctx = makePreloadContext(1); // Tier 1 = 1 slot max
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'phi4:latest', size: 5_000_000_000, digest: 'a', modified_at: '2026-01-01' }],
+      models: [
+        { name: 'phi4:latest', size: 5_000_000_000, digest: 'a', modified_at: '2026-01-01' },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{ name: 'phi4:latest', model: 'phi4:latest', size: 5_000_000_000, size_vram: 4_500_000_000, digest: 'a', expires_at: '9999-12-31T00:00:00Z', details: {} }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'a',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'chat').mockResolvedValueOnce({
-      text: '', model: 'phi4:latest', inputTokens: 0, outputTokens: 0,
-      totalDurationMs: 50, loadDurationMs: 10,
+      text: '',
+      model: 'phi4:latest',
+      inputTokens: 0,
+      outputTokens: 0,
+      totalDurationMs: 50,
+      loadDurationMs: 10,
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{ name: 'phi4:latest', model: 'phi4:latest', size: 5_000_000_000, size_vram: 4_500_000_000, digest: 'a', expires_at: '9999-12-31T00:00:00Z', details: {} }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'a',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'phi4:latest' }, ctx);
@@ -175,19 +246,36 @@ describe('handlePreloadModel (DMS-014)', () => {
   it('preloads model successfully with VRAM info', async () => {
     const ctx = makePreloadContext(3);
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01',
+        },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
     vi.spyOn(ctx.ollamaClient, 'chat').mockResolvedValueOnce({
-      text: '', model: 'qwen2.5-coder:32b', inputTokens: 0, outputTokens: 1,
-      totalDurationMs: 2000, loadDurationMs: 1500,
+      text: '',
+      model: 'qwen2.5-coder:32b',
+      inputTokens: 0,
+      outputTokens: 1,
+      totalDurationMs: 2000,
+      loadDurationMs: 1500,
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{
-        name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b',
-        size: 18_500_000_000, size_vram: 17_000_000_000,
-        digest: 'abc', expires_at: '9999-12-31T00:00:00Z', details: {},
-      }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'qwen2.5-coder:32b' }, ctx);
@@ -202,15 +290,36 @@ describe('handlePreloadModel (DMS-014)', () => {
   it('uses custom keep_alive when provided', async () => {
     const ctx = makePreloadContext(3);
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01',
+        },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
     vi.spyOn(ctx.ollamaClient, 'chat').mockResolvedValueOnce({
-      text: '', model: 'qwen2.5-coder:32b', inputTokens: 0, outputTokens: 0,
-      totalDurationMs: 100, loadDurationMs: 50,
+      text: '',
+      model: 'qwen2.5-coder:32b',
+      inputTokens: 0,
+      outputTokens: 0,
+      totalDurationMs: 100,
+      loadDurationMs: 50,
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b', size: 18_500_000_000, size_vram: 17_000_000_000, digest: 'abc', expires_at: '2026-01-01T01:00:00Z', details: {} }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: '2026-01-01T01:00:00Z',
+          details: {},
+        },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'qwen2.5-coder:32b', keep_alive: '1h' }, ctx);
@@ -222,15 +331,36 @@ describe('handlePreloadModel (DMS-014)', () => {
   it('shows permanent for default keep_alive (-1)', async () => {
     const ctx = makePreloadContext(3);
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01',
+        },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
     vi.spyOn(ctx.ollamaClient, 'chat').mockResolvedValueOnce({
-      text: '', model: 'qwen2.5-coder:32b', inputTokens: 0, outputTokens: 0,
-      totalDurationMs: 100, loadDurationMs: 50,
+      text: '',
+      model: 'qwen2.5-coder:32b',
+      inputTokens: 0,
+      outputTokens: 0,
+      totalDurationMs: 100,
+      loadDurationMs: 50,
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b', size: 18_500_000_000, size_vram: 17_000_000_000, digest: 'abc', expires_at: '9999-12-31T00:00:00Z', details: {} }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
+        },
+      ],
     });
 
     const result = await handlePreloadModel({ model: 'qwen2.5-coder:32b' }, ctx);
@@ -241,7 +371,14 @@ describe('handlePreloadModel (DMS-014)', () => {
   it('returns CTS-0000 for non-CTSError in catch', async () => {
     const ctx = makePreloadContext(3);
     vi.spyOn(ctx.ollamaClient, 'listModelsFull').mockResolvedValueOnce({
-      models: [{ name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01T00:00:00Z' }],
+      models: [
+        {
+          name: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          digest: 'abc',
+          modified_at: '2026-01-01T00:00:00Z',
+        },
+      ],
     });
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({ models: [] });
     // Make chat throw a non-CTSError
@@ -257,10 +394,7 @@ describe('handlePreloadModel (DMS-014)', () => {
 // ── DMS-015: list_loaded_models Tests ───────────────────────
 
 describe('handleListLoadedModels (DMS-015)', () => {
-  function makeListContext(
-    tier: 1 | 2 | 3 = 3,
-    ollamaHealthy = true,
-  ): ListLoadedModelsContext {
+  function makeListContext(tier: 1 | 2 | 3 = 3, ollamaHealthy = true): ListLoadedModelsContext {
     const client = new OllamaClient({
       baseUrl: 'http://localhost:11434',
       requestTimeout: 10_000,
@@ -302,14 +436,22 @@ describe('handleListLoadedModels (DMS-015)', () => {
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
       models: [
         {
-          name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b',
-          size: 18_500_000_000, size_vram: 17_000_000_000,
-          digest: 'abc', expires_at: futureDate, details: {},
+          name: 'qwen2.5-coder:32b',
+          model: 'qwen2.5-coder:32b',
+          size: 18_500_000_000,
+          size_vram: 17_000_000_000,
+          digest: 'abc',
+          expires_at: futureDate,
+          details: {},
         },
         {
-          name: 'phi4:latest', model: 'phi4:latest',
-          size: 5_000_000_000, size_vram: 4_500_000_000,
-          digest: 'def', expires_at: '9999-12-31T00:00:00Z', details: {},
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'def',
+          expires_at: '9999-12-31T00:00:00Z',
+          details: {},
         },
       ],
     });
@@ -330,11 +472,17 @@ describe('handleListLoadedModels (DMS-015)', () => {
     const ctx = makeListContext(3);
     const pastDate = new Date(Date.now() - 60_000).toISOString(); // 1 min ago
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{
-        name: 'phi4:latest', model: 'phi4:latest',
-        size: 5_000_000_000, size_vram: 4_500_000_000,
-        digest: 'def', expires_at: pastDate, details: {},
-      }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'def',
+          expires_at: pastDate,
+          details: {},
+        },
+      ],
     });
 
     const result = await handleListLoadedModels({}, ctx);
@@ -346,11 +494,17 @@ describe('handleListLoadedModels (DMS-015)', () => {
     const ctx = makeListContext(3);
     const futureDate = new Date(Date.now() + 15 * 60_000).toISOString(); // 15 min from now
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{
-        name: 'phi4:latest', model: 'phi4:latest',
-        size: 5_000_000_000, size_vram: 4_500_000_000,
-        digest: 'def', expires_at: futureDate, details: {},
-      }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'def',
+          expires_at: futureDate,
+          details: {},
+        },
+      ],
     });
 
     const result = await handleListLoadedModels({}, ctx);
@@ -362,11 +516,17 @@ describe('handleListLoadedModels (DMS-015)', () => {
     const ctx = makeListContext(3);
     const futureDate = new Date(Date.now() + 3 * 60 * 60_000).toISOString(); // 3 hours from now
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{
-        name: 'phi4:latest', model: 'phi4:latest',
-        size: 5_000_000_000, size_vram: 4_500_000_000,
-        digest: 'def', expires_at: futureDate, details: {},
-      }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'def',
+          expires_at: futureDate,
+          details: {},
+        },
+      ],
     });
 
     const result = await handleListLoadedModels({}, ctx);
@@ -377,11 +537,17 @@ describe('handleListLoadedModels (DMS-015)', () => {
   it('handles invalid expiry date gracefully', async () => {
     const ctx = makeListContext(3);
     vi.spyOn(ctx.ollamaClient, 'listRunning').mockResolvedValueOnce({
-      models: [{
-        name: 'phi4:latest', model: 'phi4:latest',
-        size: 5_000_000_000, size_vram: 4_500_000_000,
-        digest: 'def', expires_at: 'not-a-date', details: {},
-      }],
+      models: [
+        {
+          name: 'phi4:latest',
+          model: 'phi4:latest',
+          size: 5_000_000_000,
+          size_vram: 4_500_000_000,
+          digest: 'def',
+          expires_at: 'not-a-date',
+          details: {},
+        },
+      ],
     });
 
     const result = await handleListLoadedModels({}, ctx);
@@ -418,12 +584,32 @@ describe('offload_work model/category override (DMS-016)', () => {
         pullModel: vi.fn(),
         listModelsFull: vi.fn().mockResolvedValue({
           models: [
-            { name: 'qwen2.5-coder:32b', size: 18_500_000_000, digest: 'abc', modified_at: '2026-01-01' },
-            { name: 'devstral:24b', size: 14_000_000_000, digest: 'def', modified_at: '2026-01-01' },
+            {
+              name: 'qwen2.5-coder:32b',
+              size: 18_500_000_000,
+              digest: 'abc',
+              modified_at: '2026-01-01',
+            },
+            {
+              name: 'devstral:24b',
+              size: 14_000_000_000,
+              digest: 'def',
+              modified_at: '2026-01-01',
+            },
           ],
         }),
         listRunning: vi.fn().mockResolvedValue({
-          models: [{ name: 'qwen2.5-coder:32b', model: 'qwen2.5-coder:32b', size: 18_500_000_000, size_vram: 17_000_000_000, digest: 'abc', expires_at: '9999-12-31T00:00:00Z', details: {} }],
+          models: [
+            {
+              name: 'qwen2.5-coder:32b',
+              model: 'qwen2.5-coder:32b',
+              size: 18_500_000_000,
+              size_vram: 17_000_000_000,
+              digest: 'abc',
+              expires_at: '9999-12-31T00:00:00Z',
+              details: {},
+            },
+          ],
         }),
       } as unknown as ToolHandlerContext['ollamaClient'],
       queue: {
@@ -465,10 +651,7 @@ describe('offload_work model/category override (DMS-016)', () => {
 
   it('uses explicit model override when provided', async () => {
     const ctx = createMockContext();
-    await handleOffloadWork(
-      { task: 'write a test', model: 'devstral:24b' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'write a test', model: 'devstral:24b' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('devstral:24b');
@@ -484,10 +667,7 @@ describe('offload_work model/category override (DMS-016)', () => {
 
   it('model takes precedence over category', async () => {
     const ctx = createMockContext();
-    await handleOffloadWork(
-      { task: 'test', model: 'devstral:24b', category: 'coding' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'test', model: 'devstral:24b', category: 'coding' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('devstral:24b');
@@ -495,10 +675,7 @@ describe('offload_work model/category override (DMS-016)', () => {
 
   it('category selects model via recommender', async () => {
     const ctx = createMockContext();
-    await handleOffloadWork(
-      { task: 'test', category: 'coding' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'test', category: 'coding' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     // Should be the recommender's top pick for coding + tier 3 + installed models
@@ -510,10 +687,7 @@ describe('offload_work model/category override (DMS-016)', () => {
     const ctx = createMockContext({
       config: makeConfig({ enabled: false }),
     });
-    await handleOffloadWork(
-      { task: 'test', category: 'coding' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'test', category: 'coding' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:32b'); // falls back to tierConfig.primaryModel
@@ -521,10 +695,7 @@ describe('offload_work model/category override (DMS-016)', () => {
 
   it('ignores invalid category and uses default model', async () => {
     const ctx = createMockContext();
-    await handleOffloadWork(
-      { task: 'test', category: 'invalid-category' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'test', category: 'invalid-category' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:32b'); // tierConfig.primaryModel
@@ -542,10 +713,7 @@ describe('offload_work model/category override (DMS-016)', () => {
         listRunning: vi.fn().mockRejectedValue(new Error('connection failed')),
       } as unknown as ToolHandlerContext['ollamaClient'],
     });
-    await handleOffloadWork(
-      { task: 'test', category: 'coding' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'test', category: 'coding' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     // Should still succeed, using a recommendation (without installed models info)
@@ -556,10 +724,7 @@ describe('offload_work model/category override (DMS-016)', () => {
   it('works without config (backward compat)', async () => {
     const ctx = createMockContext();
     delete (ctx as Partial<ToolHandlerContext>).config;
-    await handleOffloadWork(
-      { task: 'test', category: 'coding' },
-      ctx,
-    );
+    await handleOffloadWork({ task: 'test', category: 'coding' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:32b'); // tierConfig.primaryModel
@@ -620,10 +785,7 @@ describe('compress_context model override (DMS-017)', () => {
 
   it('uses explicit model override when provided', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'some long text to compress', model: 'qwen3:8b' },
-      ctx,
-    );
+    await handleCompressContext({ content: 'some long text to compress', model: 'qwen3:8b' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen3:8b');
@@ -631,10 +793,7 @@ describe('compress_context model override (DMS-017)', () => {
 
   it('uses default model when no override is specified', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'some text' },
-      ctx,
-    );
+    await handleCompressContext({ content: 'some text' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:32b'); // tierConfig.primaryModel
@@ -642,10 +801,7 @@ describe('compress_context model override (DMS-017)', () => {
 
   it('ignores empty model string', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'some text', model: '   ' },
-      ctx,
-    );
+    await handleCompressContext({ content: 'some text', model: '   ' }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:32b'); // tierConfig.primaryModel
@@ -653,10 +809,7 @@ describe('compress_context model override (DMS-017)', () => {
 
   it('ignores non-string model value', async () => {
     const ctx = createMockContext();
-    await handleCompressContext(
-      { content: 'some text', model: 42 },
-      ctx,
-    );
+    await handleCompressContext({ content: 'some text', model: 42 }, ctx);
 
     const enqueuedPayload = (ctx.queue.enqueue as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(enqueuedPayload.request.model).toBe('qwen2.5-coder:32b'); // tierConfig.primaryModel

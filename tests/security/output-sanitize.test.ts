@@ -3,9 +3,7 @@ import { sanitizeOutput } from '../../src/validators/prompt-guard.js';
 
 describe('Output Sanitization: API Keys', () => {
   it('OS-01: redacts Anthropic API key (sk-...)', () => {
-    const result = sanitizeOutput(
-      'Here is the key: sk-ant1234567890abcdefghij and more text',
-    );
+    const result = sanitizeOutput('Here is the key: sk-ant1234567890abcdefghij and more text');
     expect(result.sanitized).toContain('[REDACTED:API_KEY]');
     expect(result.sanitized).not.toContain('sk-ant1234567890abcdefghij');
     expect(result.detectedCategories).toContain('api-key-anthropic');
@@ -13,9 +11,7 @@ describe('Output Sanitization: API Keys', () => {
   });
 
   it('OS-02: redacts OpenAI API key (sk-proj-...)', () => {
-    const result = sanitizeOutput(
-      'export OPENAI_API_KEY=sk-proj-abcdef123456_GHIJKL789012 end',
-    );
+    const result = sanitizeOutput('export OPENAI_API_KEY=sk-proj-abcdef123456_GHIJKL789012 end');
     expect(result.sanitized).toContain('[REDACTED:API_KEY]');
     expect(result.sanitized).not.toContain('sk-proj-');
     expect(result.detectedCategories).toContain('api-key-openai');
@@ -31,9 +27,7 @@ describe('Output Sanitization: API Keys', () => {
   });
 
   it('OS-04: redacts GitHub OAuth (gho_...)', () => {
-    const result = sanitizeOutput(
-      'TOKEN=gho_abcdefghijklmnopqrstuvwxyz0123456789 done',
-    );
+    const result = sanitizeOutput('TOKEN=gho_abcdefghijklmnopqrstuvwxyz0123456789 done');
     expect(result.sanitized).toContain('[REDACTED:GITHUB_TOKEN]');
     expect(result.detectedCategories).toContain('github-oauth');
   });
@@ -47,9 +41,7 @@ describe('Output Sanitization: API Keys', () => {
   });
 
   it('OS-06: redacts AWS access key', () => {
-    const result = sanitizeOutput(
-      'aws_access_key_id = AKIAIOSFODNN7EXAMPLE done',
-    );
+    const result = sanitizeOutput('aws_access_key_id = AKIAIOSFODNN7EXAMPLE done');
     expect(result.sanitized).toContain('[REDACTED:AWS_KEY]');
     expect(result.detectedCategories).toContain('aws-access-key');
   });
@@ -57,18 +49,14 @@ describe('Output Sanitization: API Keys', () => {
 
 describe('Output Sanitization: Credentials', () => {
   it('OS-07: redacts password fields', () => {
-    const result = sanitizeOutput(
-      'DB config: password=SuperSecret123! host=localhost',
-    );
+    const result = sanitizeOutput('DB config: password=SuperSecret123! host=localhost');
     expect(result.sanitized).toContain('[REDACTED:PASSWORD]');
     expect(result.sanitized).not.toContain('SuperSecret123');
     expect(result.detectedCategories).toContain('password');
   });
 
   it('OS-08: redacts password with quotes', () => {
-    const result = sanitizeOutput(
-      'password="my_secret_pass" and passwd=\'another_pass\'',
-    );
+    const result = sanitizeOutput('password="my_secret_pass" and passwd=\'another_pass\'');
     expect(result.sanitized).toContain('[REDACTED:PASSWORD]');
     expect(result.sanitized).not.toContain('my_secret_pass');
     expect(result.detectedCategories).toContain('password');
@@ -102,17 +90,13 @@ describe('Output Sanitization: Connection Strings', () => {
   });
 
   it('OS-12: redacts PostgreSQL connection string', () => {
-    const result = sanitizeOutput(
-      'postgres://user:pass@db.example.com:5432/prod',
-    );
+    const result = sanitizeOutput('postgres://user:pass@db.example.com:5432/prod');
     expect(result.sanitized).toContain('[REDACTED:CONNECTION_STRING]');
     expect(result.detectedCategories).toContain('connection-string');
   });
 
   it('OS-13: redacts Redis connection string', () => {
-    const result = sanitizeOutput(
-      'REDIS_URL=redis://default:secret@redis.example.com:6379',
-    );
+    const result = sanitizeOutput('REDIS_URL=redis://default:secret@redis.example.com:6379');
     expect(result.sanitized).toContain('[REDACTED:CONNECTION_STRING]');
   });
 });
@@ -127,17 +111,13 @@ describe('Output Sanitization: JWT & File Paths', () => {
   });
 
   it('OS-15: redacts Unix file paths', () => {
-    const result = sanitizeOutput(
-      'Reading config from /Users/john/Documents/secrets/config.json',
-    );
+    const result = sanitizeOutput('Reading config from /Users/john/Documents/secrets/config.json');
     expect(result.sanitized).toContain('[REDACTED:FILE_PATH]');
     expect(result.sanitized).not.toContain('/Users/john');
   });
 
   it('OS-16: redacts /home/ paths', () => {
-    const result = sanitizeOutput(
-      'File located at /home/deploy/.ssh/id_rsa',
-    );
+    const result = sanitizeOutput('File located at /home/deploy/.ssh/id_rsa');
     expect(result.sanitized).toContain('[REDACTED:FILE_PATH]');
   });
 });

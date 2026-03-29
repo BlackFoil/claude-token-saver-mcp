@@ -14,7 +14,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleOffloadWork } from '../../src/tools/offload-work.js';
 import type { ToolHandlerContext } from '../../src/tools/offload-work.js';
 import { handleCompressContext } from '../../src/tools/compress-context.js';
-import { recommendModels, formatRecommendationMarkdown } from '../../src/model-selector/recommender.js';
+import {
+  recommendModels,
+  formatRecommendationMarkdown,
+} from '../../src/model-selector/recommender.js';
 import { BenchmarkStore } from '../../src/model-selector/benchmark-db.js';
 import type { TierConfig } from '../../src/tiering/config.js';
 import type { ExecutionTracker } from '../../src/model-selector/execution-tracker.js';
@@ -137,7 +140,10 @@ describe('ExecutionTracker integration (DMS-029)', () => {
     const tracker = createMockExecutionTracker();
     const ctx = createMockContext({ executionTracker: tracker });
 
-    await handleCompressContext({ content: 'Some long text to compress for testing purposes here' }, ctx);
+    await handleCompressContext(
+      { content: 'Some long text to compress for testing purposes here' },
+      ctx,
+    );
 
     expect(tracker.recordExecution).toHaveBeenCalledTimes(1);
     const call = (tracker.recordExecution as ReturnType<typeof vi.fn>).mock.calls[0]![0];

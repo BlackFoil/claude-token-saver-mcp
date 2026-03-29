@@ -4,10 +4,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  ListToolsRequestSchema,
-  CallToolRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import pino from 'pino';
 
 import { loadConfig, loadCostHistory, saveCostHistory } from './config/index.js';
@@ -17,13 +14,23 @@ import { ModelManager } from './ollama/model-manager.js';
 import { FIFOQueue } from './queue/fifo-queue.js';
 import { CostCalculator } from './cost/calculator.js';
 import { loadPricing, DEFAULT_COMPARISON_MODEL } from './cost/pricing.js';
-import { handleOffloadWork, type ToolHandlerContext, type OllamaTaskPayload } from './tools/offload-work.js';
+import {
+  handleOffloadWork,
+  type ToolHandlerContext,
+  type OllamaTaskPayload,
+} from './tools/offload-work.js';
 import { handleCompressContext } from './tools/compress-context.js';
 import { handleRecommendModel, type RecommendModelContext } from './tools/recommend-model.js';
 import { handlePreloadModel, type PreloadModelContext } from './tools/preload-model.js';
-import { handleListLoadedModels, type ListLoadedModelsContext } from './tools/list-loaded-models.js';
+import {
+  handleListLoadedModels,
+  type ListLoadedModelsContext,
+} from './tools/list-loaded-models.js';
 import { handlePullModel, type PullModelContext } from './tools/pull-model.js';
-import { handleConfigureModelSelector, type ConfigureModelSelectorContext } from './tools/configure-model-selector.js';
+import {
+  handleConfigureModelSelector,
+  type ConfigureModelSelectorContext,
+} from './tools/configure-model-selector.js';
 import { handleCostDashboard, type CostDashboardContext } from './tools/cost-dashboard.js';
 import { handleBatchOffload } from './tools/batch-offload.js';
 import { handleGetMetrics, type GetMetricsContext } from './tools/get-metrics.js';
@@ -46,33 +53,48 @@ async function main(): Promise<void> {
   try {
     config = loadConfig();
   } catch (err) {
-    process.stderr.write(`[WARN] 設定読み込みエラー: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.stderr.write(
+      `[WARN] 設定読み込みエラー: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
     config = loadConfig(undefined); // retry with defaults
   }
 
   // Logger (stderr only - stdout is for MCP protocol)
-  const logger = pino({
-    level: config.logLevel,
-    transport: undefined,
-  }, pino.destination({ fd: 2 }));
+  const logger = pino(
+    {
+      level: config.logLevel,
+      transport: undefined,
+    },
+    pino.destination({ fd: 2 }),
+  );
 
   // 2. Detect tier
   let baseTier = detectTier();
   if (config.tier?.forceLevel) {
     baseTier = detectTier(
-      config.tier.forceLevel === 1 ? 8 :
-      config.tier.forceLevel === 2 ? 32 : 64,
+      config.tier.forceLevel === 1 ? 8 : config.tier.forceLevel === 2 ? 32 : 64,
     );
   }
 
-  const tierConfig: TierConfig = applyConfigOverrides(baseTier, config.tier ? {
-    primaryModel: config.tier.primaryModel ?? baseTier.primaryModel,
-    fallbackModel: config.tier.fallbackModel !== undefined ? config.tier.fallbackModel : baseTier.fallbackModel,
-    contextLimit: config.tier.contextLimit ?? baseTier.contextLimit,
-    timeout: config.timeout ?? {},
-  } : null);
+  const tierConfig: TierConfig = applyConfigOverrides(
+    baseTier,
+    config.tier
+      ? {
+          primaryModel: config.tier.primaryModel ?? baseTier.primaryModel,
+          fallbackModel:
+            config.tier.fallbackModel !== undefined
+              ? config.tier.fallbackModel
+              : baseTier.fallbackModel,
+          contextLimit: config.tier.contextLimit ?? baseTier.contextLimit,
+          timeout: config.timeout ?? {},
+        }
+      : null,
+  );
 
-  logger.info({ tier: tierConfig.level, name: tierConfig.name, model: tierConfig.primaryModel }, 'Tier detected');
+  logger.info(
+    { tier: tierConfig.level, name: tierConfig.name, model: tierConfig.primaryModel },
+    'Tier detected',
+  );
 
   // 3. Create OllamaClient and check health
   const ollamaClient = new OllamaClient({
@@ -97,11 +119,17 @@ async function main(): Promise<void> {
           logger.info({ model: modelName }, 'Using fallback model');
         }
       } catch (modelErr) {
-        logger.warn({ error: modelErr instanceof Error ? modelErr.message : String(modelErr) }, 'Model setup failed');
+        logger.warn(
+          { error: modelErr instanceof Error ? modelErr.message : String(modelErr) },
+          'Model setup failed',
+        );
       }
     }
   } catch (err) {
-    logger.warn({ error: err instanceof Error ? err.message : String(err) }, 'Ollama not available at startup');
+    logger.warn(
+      { error: err instanceof Error ? err.message : String(err) },
+      'Ollama not available at startup',
+    );
   }
 
   // 4. Create FIFO Queue
@@ -118,15 +146,21 @@ async function main(): Promise<void> {
 
   // 5. Create CostCalculator
   const pricing = loadPricing(config.cost.pricing);
-  const costCalculator = new CostCalculator(pricing, config.cost.comparisonModel ?? DEFAULT_COMPARISON_MODEL);
+  const costCalculator = new CostCalculator(
+    pricing,
+    config.cost.comparisonModel ?? DEFAULT_COMPARISON_MODEL,
+  );
 
   const costHistory = loadCostHistory();
   if (costHistory) {
     costCalculator.restoreFromHistory(costHistory);
-    logger.info({
-      totalSavings: costHistory.totalSavingsUsd,
-      totalRequests: costHistory.totalRequests,
-    }, 'Cost history restored');
+    logger.info(
+      {
+        totalSavings: costHistory.totalSavingsUsd,
+        totalRequests: costHistory.totalRequests,
+      },
+      'Cost history restored',
+    );
   }
 
   // 5b. Create ExecutionTracker
@@ -273,14 +307,31 @@ async function main(): Promise<void> {
             },
             context: {
               type: 'string',
-              description: 'Additional context such as file content or specifications (optional, max 100000 chars)',
+              description:
+                'Additional context such as file content or specifications (optional, max 100000 chars)',
             },
             language: {
               type: 'string',
               enum: [
-                'typescript', 'javascript', 'python', 'go', 'rust',
-                'java', 'c', 'cpp', 'csharp', 'ruby', 'php', 'swift',
-                'kotlin', 'scala', 'shell', 'sql', 'html', 'css', 'markdown',
+                'typescript',
+                'javascript',
+                'python',
+                'go',
+                'rust',
+                'java',
+                'c',
+                'cpp',
+                'csharp',
+                'ruby',
+                'php',
+                'swift',
+                'kotlin',
+                'scala',
+                'shell',
+                'sql',
+                'html',
+                'css',
+                'markdown',
               ],
               description: 'Programming language (optional)',
             },
@@ -291,12 +342,14 @@ async function main(): Promise<void> {
             },
             model: {
               type: 'string',
-              description: 'Override the Ollama model to use (optional). Takes precedence over category-based selection.',
+              description:
+                'Override the Ollama model to use (optional). Takes precedence over category-based selection.',
             },
             category: {
               type: 'string',
               enum: [...TASK_CATEGORIES],
-              description: 'Task category for automatic model selection (optional). Ignored if model is specified.',
+              description:
+                'Task category for automatic model selection (optional). Ignored if model is specified.',
             },
           },
           required: ['task'],
@@ -320,7 +373,8 @@ async function main(): Promise<void> {
             },
             max_length: {
               type: 'number',
-              description: 'Target max length of the summary in chars (optional, 100-10000, default: 2000)',
+              description:
+                'Target max length of the summary in chars (optional, 100-10000, default: 2000)',
             },
             model: {
               type: 'string',
@@ -366,7 +420,8 @@ async function main(): Promise<void> {
             },
             sequential: {
               type: 'boolean',
-              description: 'Process tasks sequentially, passing previous result as context (default: false)',
+              description:
+                'Process tasks sequentially, passing previous result as context (default: false)',
             },
           },
           required: ['tasks'],
@@ -405,7 +460,8 @@ async function main(): Promise<void> {
             category: {
               type: 'string',
               enum: [...TASK_CATEGORIES],
-              description: 'Task category: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general',
+              description:
+                'Task category: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general',
             },
             prefer_quality: {
               type: 'boolean' as const,
@@ -431,7 +487,8 @@ async function main(): Promise<void> {
             },
             keep_alive: {
               type: 'string',
-              description: 'Duration to keep the model loaded (optional, default: "-1" = permanent). Examples: "5m", "1h", "-1"',
+              description:
+                'Duration to keep the model loaded (optional, default: "-1" = permanent). Examples: "5m", "1h", "-1"',
             },
           },
           required: ['model'],
@@ -486,7 +543,8 @@ async function main(): Promise<void> {
             action: {
               type: 'string',
               enum: ['get', 'set', 'add', 'remove'],
-              description: 'Action to perform. "add"/"remove" for blocked_models/license_filter only.',
+              description:
+                'Action to perform. "add"/"remove" for blocked_models/license_filter only.',
             },
             values: {
               type: 'array',
@@ -495,7 +553,8 @@ async function main(): Promise<void> {
             },
             custom_config: {
               type: 'object',
-              description: 'Custom recommendations config for "set" action on custom_recommendations. Format: { category: { tier: [modelId, ...] } }',
+              description:
+                'Custom recommendations config for "set" action on custom_recommendations. Format: { category: { tier: [modelId, ...] } }',
             },
           },
           required: ['setting', 'action'],
@@ -514,7 +573,8 @@ async function main(): Promise<void> {
             category: {
               type: 'string',
               enum: [...TASK_CATEGORIES],
-              description: 'Task category: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general. Default: "general"',
+              description:
+                'Task category: coding, coding-agent, japanese-text, japanese-coding, translation, summarization, general. Default: "general"',
             },
             prefer_quality: {
               type: 'boolean' as const,
@@ -588,10 +648,13 @@ async function main(): Promise<void> {
     shuttingDown = true;
 
     const cumulative = costCalculator.getCumulativeSavings();
-    logger.info({
-      totalRequests: cumulative.totalRequests,
-      totalSavings: cumulative.totalSavingsUsd,
-    }, 'Shutting down');
+    logger.info(
+      {
+        totalRequests: cumulative.totalRequests,
+        totalSavings: cumulative.totalSavingsUsd,
+      },
+      'Shutting down',
+    );
 
     if (healthCheckTimer) {
       clearInterval(healthCheckTimer);
@@ -607,7 +670,10 @@ async function main(): Promise<void> {
     try {
       saveCostHistory(cumulative);
     } catch (err) {
-      logger.error({ error: err instanceof Error ? err.message : String(err) }, 'Failed to save cost history');
+      logger.error(
+        { error: err instanceof Error ? err.message : String(err) },
+        'Failed to save cost history',
+      );
     }
 
     await server.close();
@@ -656,9 +722,9 @@ async function main(): Promise<void> {
   // 10. Startup message
   process.stderr.write(
     `[claude-token-saver-mcp v${PACKAGE_VERSION}] ` +
-    `Tier ${tierConfig.level} (${tierConfig.name}) | ` +
-    `Model: ${tierConfig.primaryModel} | ` +
-    `Ollama: ${ollamaHealthy ? 'connected' : 'not available'}\n`,
+      `Tier ${tierConfig.level} (${tierConfig.name}) | ` +
+      `Model: ${tierConfig.primaryModel} | ` +
+      `Ollama: ${ollamaHealthy ? 'connected' : 'not available'}\n`,
   );
 }
 

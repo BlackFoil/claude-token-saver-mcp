@@ -24,14 +24,27 @@ export interface SanitizeResult {
 
 export const INJECTION_PATTERNS: readonly InjectionPattern[] = [
   // Direct override
-  { pattern: /\bignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?|commands?)/i,
-    category: 'direct-override', severity: 'block' },
-  { pattern: /\boverride\s+(system|previous|all)\s*(prompt|instruction|rule|command)?s?/i,
-    category: 'direct-override', severity: 'block' },
-  { pattern: /\bdisregard\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?)/i,
-    category: 'direct-override', severity: 'block' },
-  { pattern: /\bforget\s+(all\s+)?(previous|prior|your)\s+(instructions?|rules?|context)/i,
-    category: 'direct-override', severity: 'block' },
+  {
+    pattern:
+      /\bignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?|commands?)/i,
+    category: 'direct-override',
+    severity: 'block',
+  },
+  {
+    pattern: /\boverride\s+(system|previous|all)\s*(prompt|instruction|rule|command)?s?/i,
+    category: 'direct-override',
+    severity: 'block',
+  },
+  {
+    pattern: /\bdisregard\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?)/i,
+    category: 'direct-override',
+    severity: 'block',
+  },
+  {
+    pattern: /\bforget\s+(all\s+)?(previous|prior|your)\s+(instructions?|rules?|context)/i,
+    category: 'direct-override',
+    severity: 'block',
+  },
 
   // Role injection
   { pattern: /\bsystem\s*:/i, category: 'role-injection', severity: 'block' },
@@ -45,10 +58,17 @@ export const INJECTION_PATTERNS: readonly InjectionPattern[] = [
   { pattern: /\bEND\s+SYSTEM\s+PROMPT\b/i, category: 'role-injection', severity: 'block' },
 
   // Prompt leak
-  { pattern: /\b(show|print|display|reveal|output|repeat|echo)\s+(me\s+)?(your|the|system)\s*(prompt|instruction|rule|config)/i,
-    category: 'prompt-leak', severity: 'block' },
-  { pattern: /\bwhat\s+(are|is)\s+your\s+(system\s+)?(prompt|instruction|rule)/i,
-    category: 'prompt-leak', severity: 'block' },
+  {
+    pattern:
+      /\b(show|print|display|reveal|output|repeat|echo)\s+(me\s+)?(your|the|system)\s*(prompt|instruction|rule|config)/i,
+    category: 'prompt-leak',
+    severity: 'block',
+  },
+  {
+    pattern: /\bwhat\s+(are|is)\s+your\s+(system\s+)?(prompt|instruction|rule)/i,
+    category: 'prompt-leak',
+    severity: 'block',
+  },
 
   // Encoding evasion
   { pattern: /\\x[0-9a-fA-F]{2}/g, category: 'encoding-evasion', severity: 'warn' },
@@ -56,10 +76,17 @@ export const INJECTION_PATTERNS: readonly InjectionPattern[] = [
   { pattern: /&#x?[0-9a-fA-F]+;/g, category: 'encoding-evasion', severity: 'warn' },
 
   // Role switch
-  { pattern: /\b(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|from\s+now\s+on\s+you\s+are)\b/i,
-    category: 'role-switch', severity: 'block' },
-  { pattern: /\bnew\s+(persona|identity|role|character)\s*:/i,
-    category: 'role-switch', severity: 'block' },
+  {
+    pattern:
+      /\b(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|from\s+now\s+on\s+you\s+are)\b/i,
+    category: 'role-switch',
+    severity: 'block',
+  },
+  {
+    pattern: /\bnew\s+(persona|identity|role|character)\s*:/i,
+    category: 'role-switch',
+    severity: 'block',
+  },
 ];
 
 const SENSITIVE_PATTERNS: readonly {
@@ -67,28 +94,62 @@ const SENSITIVE_PATTERNS: readonly {
   category: string;
   replacement: string;
 }[] = [
-  { pattern: /\b(sk-[a-zA-Z0-9]{20,})\b/g,
-    category: 'api-key-anthropic', replacement: '[REDACTED:API_KEY]' },
-  { pattern: /\b(sk-proj-[a-zA-Z0-9_-]{20,})\b/g,
-    category: 'api-key-openai', replacement: '[REDACTED:API_KEY]' },
-  { pattern: /\b(ghp_[a-zA-Z0-9]{36,})\b/g,
-    category: 'github-pat', replacement: '[REDACTED:GITHUB_TOKEN]' },
-  { pattern: /\b(gho_[a-zA-Z0-9]{36,})\b/g,
-    category: 'github-oauth', replacement: '[REDACTED:GITHUB_TOKEN]' },
-  { pattern: /\b(npm_[a-zA-Z0-9]{36,})\b/g,
-    category: 'npm-token', replacement: '[REDACTED:NPM_TOKEN]' },
-  { pattern: /\b(AKIA[0-9A-Z]{16})\b/g,
-    category: 'aws-access-key', replacement: '[REDACTED:AWS_KEY]' },
-  { pattern: /(?:password|passwd|pwd)\s*[:=]\s*["']?([^\s"']{8,})["']?/gi,
-    category: 'password', replacement: 'password=[REDACTED:PASSWORD]' },
-  { pattern: /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(RSA\s+)?PRIVATE\s+KEY-----/g,
-    category: 'private-key', replacement: '[REDACTED:PRIVATE_KEY]' },
-  { pattern: /(?:mongodb|postgres|mysql|redis):\/\/[^\s"']+/gi,
-    category: 'connection-string', replacement: '[REDACTED:CONNECTION_STRING]' },
-  { pattern: /\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b/g,
-    category: 'jwt', replacement: '[REDACTED:JWT]' },
-  { pattern: /(?:\/Users\/|\/home\/|C:\\Users\\)[^\s"']+/g,
-    category: 'file-path', replacement: '[REDACTED:FILE_PATH]' },
+  {
+    pattern: /\b(sk-[a-zA-Z0-9]{20,})\b/g,
+    category: 'api-key-anthropic',
+    replacement: '[REDACTED:API_KEY]',
+  },
+  {
+    pattern: /\b(sk-proj-[a-zA-Z0-9_-]{20,})\b/g,
+    category: 'api-key-openai',
+    replacement: '[REDACTED:API_KEY]',
+  },
+  {
+    pattern: /\b(ghp_[a-zA-Z0-9]{36,})\b/g,
+    category: 'github-pat',
+    replacement: '[REDACTED:GITHUB_TOKEN]',
+  },
+  {
+    pattern: /\b(gho_[a-zA-Z0-9]{36,})\b/g,
+    category: 'github-oauth',
+    replacement: '[REDACTED:GITHUB_TOKEN]',
+  },
+  {
+    pattern: /\b(npm_[a-zA-Z0-9]{36,})\b/g,
+    category: 'npm-token',
+    replacement: '[REDACTED:NPM_TOKEN]',
+  },
+  {
+    pattern: /\b(AKIA[0-9A-Z]{16})\b/g,
+    category: 'aws-access-key',
+    replacement: '[REDACTED:AWS_KEY]',
+  },
+  {
+    pattern: /(?:password|passwd|pwd)\s*[:=]\s*["']?([^\s"']{8,})["']?/gi,
+    category: 'password',
+    replacement: 'password=[REDACTED:PASSWORD]',
+  },
+  {
+    pattern:
+      /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(RSA\s+)?PRIVATE\s+KEY-----/g,
+    category: 'private-key',
+    replacement: '[REDACTED:PRIVATE_KEY]',
+  },
+  {
+    pattern: /(?:mongodb|postgres|mysql|redis):\/\/[^\s"']+/gi,
+    category: 'connection-string',
+    replacement: '[REDACTED:CONNECTION_STRING]',
+  },
+  {
+    pattern: /\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\b/g,
+    category: 'jwt',
+    replacement: '[REDACTED:JWT]',
+  },
+  {
+    pattern: /(?:\/Users\/|\/home\/|C:\\Users\\)[^\s"']+/g,
+    category: 'file-path',
+    replacement: '[REDACTED:FILE_PATH]',
+  },
 ];
 
 export function detectPromptInjection(text: string): InjectionResult {
