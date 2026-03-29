@@ -127,7 +127,7 @@ claude-token-saver-mcp/
   "author": "claude-token-saver-mcp Contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hiko99/claude-token-saver-mcp"
+    "url": "https://github.com/BlackFoil/claude-token-saver-mcp"
   },
   "keywords": [
     "mcp",
@@ -751,7 +751,7 @@ GitHub Release 作成
 
 ```bash
 # 1. リポジトリのクローン
-git clone https://github.com/hiko99/claude-token-saver-mcp.git
+git clone https://github.com/BlackFoil/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 
 # 2. 依存パッケージのインストール

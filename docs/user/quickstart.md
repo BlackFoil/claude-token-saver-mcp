@@ -32,7 +32,7 @@ ollama serve
 ollama pull qwen2.5-coder:7b
 ```
 
-> RAM がわからない場合は、macOS なら `` > `このMacについて`、Linux なら `free -h` で確認できます。
+> RAM がわからない場合は、macOS なら「この Mac について」、Linux なら `free -h` で確認できます。
 
 ---
 
@@ -57,7 +57,7 @@ npm install -g claude-token-saver-mcp
 ### ソースからビルド
 
 ```bash
-git clone https://github.com/hiko99/claude-token-saver-mcp.git
+git clone https://github.com/BlackFoil/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 npm install
 npm run build
@@ -67,7 +67,7 @@ npm run build
 
 ## ステップ 3: Claude Code に登録 (1 分)
 
-`~/.claude/claude_desktop_config.json` を編集し、`mcpServers` に追加します。
+プロジェクトルートに `.mcp.json` を作成し、`mcpServers` に追加します。
 
 ### npm 版
 

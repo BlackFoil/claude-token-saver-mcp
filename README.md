@@ -1,6 +1,6 @@
 [English](./README.en.md) | 日本語
 
-[![CI](https://github.com/hiko99/claude-token-saver-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/hiko99/claude-token-saver-mcp/actions) [![npm](https://img.shields.io/npm/v/claude-token-saver-mcp)](https://www.npmjs.com/package/claude-token-saver-mcp) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/hiko99/claude-token-saver-mcp/actions) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+[![CI](https://github.com/BlackFoil/claude-token-saver-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/BlackFoil/claude-token-saver-mcp/actions) [![npm](https://img.shields.io/npm/v/claude-token-saver-mcp)](https://www.npmjs.com/package/claude-token-saver-mcp) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/BlackFoil/claude-token-saver-mcp/actions) [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
 # claude-token-saver-mcp
 
@@ -22,7 +22,7 @@ Claude Code の API 利用を分析してみたら、**リクエストの約 40%
 
 ローカル LLM の進化は速いです。2024 年の Llama 3 から 2025 年の Qwen3 まで、わずか 1 年でコード生成ベンチマーク ([HumanEval](https://arxiv.org/abs/2107.03374)) のスコアは **60% → 85%** に跳ね上がりました。
 
-この調子なら、Agent ワークフローにローカル LLM が当たり前に組み込まれる日もそう遠くないでしょう。claude-token-saver-mcp は **Cloud × Local のハイブリッド実行基盤**を一足先に提供します。
+この調子なら、Agent ワークフローにローカル LLM が当たり前に組み込まれる日もそう遠くないでしょう。claude-token-saver-mcp は **Cloud と Local を使い分けるための土台**を提供します。
 
 ## しくみ
 
@@ -36,7 +36,7 @@ Claude Code ──MCP──▶ token-saver ──HTTP──▶ Ollama (ローカ
      └─── 高度な推論・設計判断は Cloud で継続 ───┘
 ```
 
-Ollama が落ちていたり応答が遅い場合は Cloud API に自動フォールバック。処理が止まることはありません。
+Ollama が落ちていたり応答が遅い場合は Cloud API にフォールバック可能です。
 
 ## 30 秒セットアップ
 
@@ -83,7 +83,7 @@ TypeScript で配列をシャッフルする関数を書いて
 <summary>ソースからビルドする場合</summary>
 
 ```bash
-git clone https://github.com/hiko99/claude-token-saver-mcp.git
+git clone https://github.com/BlackFoil/claude-token-saver-mcp.git
 cd claude-token-saver-mcp
 npm ci && npm run build
 ```
@@ -105,11 +105,11 @@ npm ci && npm run build
 
 ## 特徴
 
-- **ゼロコスト実行** — 定型タスクはローカル完結。Cloud API を消費しない
+- **ローカル完結** — 定型タスクは Cloud API を使わずに処理できる
 - **自動モデル選択** — RAM を検出して最適なモデルを推奨・DL・プリロード（`auto_setup`）
-- **セキュリティ内蔵** — プロンプトインジェクション検知 + 出力サニタイズ。ローカル LLM ツールで見落とされがちな保護層
-- **コスト可視化** — 節約額をリアルタイムで追跡。月 $200 プランなら **$50〜80 の節約**が見込める（定型タスク比率 40% ベース）
-- **自動フォールバック** — Ollama が落ちたら Cloud にシームレス切り替え
+- **セキュリティ内蔵** — プロンプトインジェクション検知 + 出力サニタイズ
+- **コスト可視化** — 節約額をリアルタイムで追跡（定型タスク比率 40% なら月 $50〜80 程度の削減が目安）
+- **Cloud フォールバック** — Ollama が落ちても Cloud に自動切り替え可能
 
 ## 使用例
 
