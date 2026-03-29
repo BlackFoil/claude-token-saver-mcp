@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 620" width="1280" height="620" role="img" aria-label="claude-token-saver-mcp banner">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M1 2L8 5L1 8" fill="none" stroke="#00695c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arr-ret" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M9 2L2 5L9 8" fill="none" stroke="#999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- ========== BACKGROUND ========== -->
+  <rect width="1280" height="620" fill="#ffffff"/>
+  <rect x="0" y="0" width="1280" height="5" fill="#00695c"/>
+
+  <!-- ========== HEADER ========== -->
+  <rect x="40" y="22" width="6" height="48" fill="#00695c"/>
+  <text x="56" y="50" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="28" font-weight="700" fill="#1a1a1a" letter-spacing="-0.5">claude-token-saver-mcp</text>
+  <text x="56" y="72" font-family="'Arial',sans-serif" font-size="13" fill="#888">MCP server that offloads routine coding tasks to local LLM (Ollama) · Apache-2.0</text>
+  <text x="1240" y="44" text-anchor="end" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="20" font-weight="700" fill="#00695c">推論は Cloud、作業は Local</text>
+  <text x="1240" y="68" text-anchor="end" font-family="'Hiragino Sans','Noto Sans JP',Arial,sans-serif" font-size="12" fill="#888">Claude Code API呼び出しの約40%は定型タスク → ローカルLLMで自動代替</text>
+
+  <line x1="40" y1="88" x2="1240" y2="88" stroke="#e0e0e0" stroke-width="1"/>
+  <line x1="598" y1="88" x2="598" y2="572" stroke="#e0e0e0" stroke-width="1"/>
+
+  <!-- ========== LEFT COLUMN ========== -->
+
+  <rect x="40" y="102" width="10" height="10" fill="#00695c"/>
+  <text x="56" y="113" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="15" font-weight="700" fill="#1a1a1a">30秒セットアップ</text>
+  <text x="194" y="113" font-family="'Arial',sans-serif" font-size="12" fill="#aaa">Quick Start</text>
+  <line x1="40" y1="120" x2="566" y2="120" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Prerequisites -->
+  <text x="40" y="138" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" fill="#888">前提：</text>
+  <rect x="70" y="126" width="130" height="16" rx="8" fill="#e8f5e9"/>
+  <text x="135" y="138" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="10" fill="#2e7d32">Node.js 20+</text>
+  <rect x="208" y="126" width="80" height="16" rx="8" fill="#e8f5e9"/>
+  <text x="248" y="138" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="10" fill="#2e7d32">Ollama</text>
+  <text x="296" y="138" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" fill="#888">がインストール済みであること</text>
+
+  <!-- STEP 0 -->
+  <circle cx="60" cy="167" r="14" fill="#00695c"/>
+  <text x="60" y="172" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">0</text>
+  <line x1="60" y1="181" x2="60" y2="228" stroke="#b2dfdb" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="84" y="162" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Ollama を起動する</text>
+  <rect x="84" y="169" width="478" height="26" rx="4" fill="#1c2026"/>
+  <text x="98" y="186" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" fill="#8b949e">$</text>
+  <text x="112" y="186" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" fill="#e6edf3">ollama serve</text>
+  <text x="84" y="209" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#aaa">未インストールの場合は ollama.com からダウンロードしてインストール</text>
+
+  <!-- STEP 1 -->
+  <circle cx="60" cy="238" r="14" fill="#00695c"/>
+  <text x="60" y="243" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">1</text>
+  <line x1="60" y1="252" x2="60" y2="336" stroke="#b2dfdb" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="84" y="234" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">プロジェクトルートに .mcp.json を作成</text>
+  <rect x="84" y="241" width="478" height="86" rx="4" fill="#1c2026"/>
+  <text x="98" y="260" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#79c0ff">{</text>
+  <text x="116" y="276" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">  "mcpServers": {</text>
+  <text x="116" y="291" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">    "token-saver": {</text>
+  <text x="116" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">      "command": </text>
+  <text x="227" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#a5d6ff">"npx"</text>
+  <text x="264" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">, "args": [</text>
+  <text x="352" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#a5d6ff">"-y"</text>
+  <text x="383" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#8b949e">, </text>
+  <text x="400" y="306" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#a5d6ff">"claude-token-saver-mcp"</text>
+  <text x="98" y="321" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" fill="#79c0ff">    ] } } }</text>
+
+  <!-- STEP 2 -->
+  <circle cx="60" cy="346" r="14" fill="#00695c"/>
+  <text x="60" y="351" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">2</text>
+  <line x1="60" y1="360" x2="60" y2="440" stroke="#b2dfdb" stroke-width="2" stroke-dasharray="3 2"/>
+  <text x="84" y="342" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Claude Code を起動してセットアップを指示</text>
+  <rect x="84" y="349" width="478" height="26" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="98" y="366" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" fill="#1b5e20">コーディング用にローカルLLMをセットアップして</text>
+  <text x="84" y="391" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#888">自動実行：</text>
+  <rect x="142" y="381" width="74" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="179" y="393" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#2e7d32">RAM自動検出</text>
+  <text x="220" y="393" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">→</text>
+  <rect x="228" y="381" width="74" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="265" y="393" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#2e7d32">モデル推奨</text>
+  <text x="306" y="393" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">→</text>
+  <rect x="314" y="381" width="100" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="364" y="393" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#2e7d32">DL（約4GB）</text>
+  <text x="418" y="393" font-family="'Arial',sans-serif" font-size="10" fill="#aaa">→</text>
+  <rect x="426" y="381" width="68" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="460" y="393" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#2e7d32">プリロード</text>
+  <text x="84" y="414" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#aaa">すべて Claude Code が自動実行します。手動作業は不要です。</text>
+
+  <!-- STEP 3 -->
+  <circle cx="60" cy="450" r="14" fill="#00695c"/>
+  <text x="60" y="455" text-anchor="middle" font-family="'Arial',sans-serif" font-size="12" font-weight="700" fill="#fff">3</text>
+  <text x="84" y="446" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">動作確認</text>
+  <rect x="84" y="453" width="478" height="26" rx="4" fill="#1c2026"/>
+  <text x="98" y="466" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#8b949e">入力例：</text>
+  <text x="152" y="466" font-family="'SF Mono','Cascadia Code',monospace" font-size="10.5" fill="#e6edf3">TypeScript で配列をシャッフルする関数を書いて</text>
+  <rect x="84" y="485" width="478" height="44" rx="4" fill="#f0f9f5" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="98" y="502" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#888">成功すると：</text>
+  <text x="156" y="502" font-family="'SF Mono','Cascadia Code',monospace" font-size="10" fill="#2e7d32">「ローカルLLM（qwen2.5-coder:...）で生成しました」</text>
+  <text x="455" y="502" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#2e7d32">と表示されれば完了</text>
+  <text x="98" y="522" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="9.5" fill="#aaa">表示されない場合は ollama list でモデルを確認し、トラブルシューティングを参照してください</text>
+
+  <!-- ========== RIGHT COLUMN ========== -->
+
+  <!-- Architecture section -->
+  <rect x="622" y="102" width="10" height="10" fill="#00695c"/>
+  <text x="638" y="113" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="15" font-weight="700" fill="#1a1a1a">しくみ</text>
+  <text x="686" y="113" font-family="'Arial',sans-serif" font-size="12" fill="#aaa">Architecture</text>
+  <line x1="622" y1="120" x2="1240" y2="120" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Claude Code box -->
+  <rect x="622" y="132" width="152" height="74" rx="6" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.8"/>
+  <text x="698" y="160" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" font-weight="700" fill="#1565c0">Claude Code</text>
+  <line x1="636" y1="168" x2="760" y2="168" stroke="#c5cae9" stroke-width="0.5"/>
+  <text x="698" y="183" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#3949ab">高度な推論・設計</text>
+  <text x="698" y="197" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#3949ab">はCloud で継続</text>
+
+  <line x1="774" y1="169" x2="820" y2="169" stroke="#00695c" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="797" y="161" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="9" fill="#00695c">MCP</text>
+
+  <!-- token-saver box -->
+  <rect x="820" y="126" width="168" height="86" rx="6" fill="#e8f5e9" stroke="#00695c" stroke-width="1.2"/>
+  <rect x="820" y="126" width="168" height="22" rx="6" fill="#00695c"/>
+  <rect x="820" y="140" width="168" height="8" fill="#00695c"/>
+  <text x="904" y="141" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="11" font-weight="700" fill="#fff">token-saver</text>
+  <text x="904" y="160" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#1b5e20">タスクを分類して振り分け</text>
+  <text x="904" y="175" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#1b5e20">定型 → Local / 複雑 → Cloud</text>
+  <text x="904" y="191" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="9" fill="#81c784">security / fallback</text>
+
+  <line x1="988" y1="169" x2="1034" y2="169" stroke="#00695c" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="1011" y="161" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="9" fill="#00695c">HTTP</text>
+
+  <!-- Ollama box -->
+  <rect x="1034" y="132" width="196" height="74" rx="6" fill="#fff8e1" stroke="#ffca28" stroke-width="0.8"/>
+  <text x="1132" y="160" text-anchor="middle" font-family="'SF Mono','Cascadia Code',monospace" font-size="12" font-weight="700" fill="#e65100">Ollama</text>
+  <line x1="1048" y1="168" x2="1216" y2="168" stroke="#ffe082" stroke-width="0.5"/>
+  <text x="1132" y="183" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#bf360c">ローカルLLM</text>
+  <text x="1132" y="197" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#bf360c">完全ローカル完結</text>
+
+  <!-- Return arrow -->
+  <path d="M1132 206 Q1132 228 904 228 Q676 228 698 206" fill="none" stroke="#aaa" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr-ret)"/>
+  <text x="904" y="244" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10" fill="#999">結果を返却（Ollamaが落ちた場合はCloudへ自動フォールバック）</text>
+
+  <!-- ========== AUTO-TIERING SECTION (追加) ========== -->
+  <rect x="622" y="258" width="10" height="10" fill="#00695c"/>
+  <text x="638" y="269" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="14" font-weight="700" fill="#1a1a1a">自動ティアリング</text>
+  <text x="750" y="269" font-family="'Arial',sans-serif" font-size="11" fill="#aaa">Auto-tiering by RAM</text>
+  <line x1="622" y1="276" x2="1240" y2="276" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Description -->
+  <text x="622" y="293" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" fill="#666">搭載RAMを自動検出し、最適なモデルを推奨・ダウンロード・プリロードまで一括で実行します。</text>
+
+  <!-- Table header -->
+  <rect x="622" y="300" width="618" height="22" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="0.5"/>
+  <text x="720" y="314" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" font-weight="700" fill="#555">RAM</text>
+  <text x="840" y="314" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" font-weight="700" fill="#555">Tier</text>
+  <text x="990" y="314" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" font-weight="700" fill="#555">推奨モデル</text>
+  <text x="1180" y="314" text-anchor="middle" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="11" font-weight="700" fill="#555">DLサイズ</text>
+  <line x1="622" y1="322" x2="1240" y2="322" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- Row 1 -->
+  <text x="720" y="338" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">&lt; 16 GB</text>
+  <rect x="800" y="328" width="80" height="18" rx="9" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="840" y="340" text-anchor="middle" font-family="'SF Mono',monospace" font-size="10" fill="#1565c0">Light</text>
+  <text x="990" y="338" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">phi4:latest</text>
+  <text x="1180" y="338" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#888">~2.5 GB</text>
+  <line x1="622" y1="346" x2="1240" y2="346" stroke="#f0f0f0" stroke-width="0.5"/>
+
+  <!-- Row 2 -->
+  <rect x="622" y="346" width="618" height="26" fill="#fafafa"/>
+  <text x="720" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">16 – 48 GB</text>
+  <rect x="796" y="351" width="88" height="18" rx="9" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="840" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="10" fill="#2e7d32">Standard</text>
+  <text x="990" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">qwen2.5-coder:7b</text>
+  <text x="1180" y="363" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#888">~4.7 GB</text>
+  <line x1="622" y1="372" x2="1240" y2="372" stroke="#f0f0f0" stroke-width="0.5"/>
+
+  <!-- Row 3 -->
+  <text x="720" y="388" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">&gt; 48 GB</text>
+  <rect x="808" y="378" width="64" height="18" rx="9" fill="#fff8e1" stroke="#ffca28" stroke-width="0.5"/>
+  <text x="840" y="390" text-anchor="middle" font-family="'SF Mono',monospace" font-size="10" fill="#e65100">Ultra</text>
+  <text x="990" y="388" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#333">qwen2.5-coder:32b</text>
+  <text x="1180" y="388" text-anchor="middle" font-family="'SF Mono',monospace" font-size="11" fill="#888">~18 GB</text>
+  <line x1="622" y1="398" x2="1240" y2="398" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- ========== KEY FEATURES ========== -->
+  <rect x="622" y="410" width="10" height="10" fill="#00695c"/>
+  <text x="638" y="421" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif" font-size="13" font-weight="700" fill="#1a1a1a">主な機能</text>
+  <text x="706" y="421" font-family="'Arial',sans-serif" font-size="11" fill="#aaa">Key Features</text>
+  <line x1="622" y1="428" x2="1240" y2="428" stroke="#e0e0e0" stroke-width="0.5"/>
+
+  <!-- F1 -->
+  <rect x="622" y="436" width="298" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="622" y="436" width="4" height="62" rx="2" fill="#00695c"/>
+  <text x="636" y="455" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">ローカル完結</text>
+  <text x="636" y="472" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">定型タスクはCloud APIを使わずに処理。</text>
+  <text x="636" y="488" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">外部への送信は一切なし。</text>
+
+  <!-- F2 -->
+  <rect x="930" y="436" width="310" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="930" y="436" width="4" height="62" rx="2" fill="#1565c0"/>
+  <text x="944" y="455" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">セキュリティ内蔵</text>
+  <text x="944" y="472" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">プロンプトインジェクション検知（20パターン）</text>
+  <text x="944" y="488" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">+ APIキー等を自動REDACTED化。</text>
+
+  <!-- F3 -->
+  <rect x="622" y="506" width="298" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="622" y="506" width="4" height="62" rx="2" fill="#e65100"/>
+  <text x="636" y="525" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">コスト可視化</text>
+  <text x="636" y="542" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">節約額をリアルタイムで追跡。</text>
+  <text x="636" y="558" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">定型比率40%なら月$50〜80削減が目安。</text>
+
+  <!-- F4 -->
+  <rect x="930" y="506" width="310" height="62" rx="4" fill="#f9f9f9" stroke="#e8e8e8" stroke-width="0.5"/>
+  <rect x="930" y="506" width="4" height="62" rx="2" fill="#7c3aed"/>
+  <text x="944" y="525" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">自動フォールバック</text>
+  <text x="944" y="542" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">Ollamaが落ちていても応答が遅くても</text>
+  <text x="944" y="558" font-family="'Hiragino Sans','Noto Sans JP',sans-serif" font-size="10.5" fill="#666">Cloudへ自動切り替えで業務を止めない。</text>
+
+  <!-- ========== FOOTER ========== -->
+  <line x1="40" y1="572" x2="1240" y2="572" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="40" y="593" font-family="'Hiragino Sans','Noto Sans JP',Arial,sans-serif" font-size="11" fill="#aaa">対応プラットフォーム：macOS / Linux / Windows（Ollamaが動く環境）· TypeScript 96% · v0.3.0 Beta</text>
+  <text x="1240" y="593" text-anchor="end" font-family="'Arial',sans-serif" font-size="11" fill="#aaa">github.com/BlackFoil/claude-token-saver-mcp</text>
+
+  <rect x="0" y="615" width="1280" height="5" fill="#00695c"/>
+
+  <!-- ========== OUTER BLACK BORDER (drawn last) ========== -->
+  <rect x="0.5" y="0.5" width="1279" height="619" fill="none" stroke="#000000" stroke-width="1.5"/>
+</svg>

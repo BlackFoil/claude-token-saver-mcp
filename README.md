@@ -4,6 +4,10 @@
 
 # claude-token-saver-mcp
 
+<p align="center">
+  <img src="./docs/assets/banner.svg" alt="claude-token-saver-mcp banner" width="100%">
+</p>
+
 > **Beta** — 個人利用向け。736 テスト / カバレッジ 97%。
 
 **Claude Code の「それ、ローカルでよくない？」を自動化する MCP サーバー。**
