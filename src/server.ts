@@ -45,7 +45,7 @@ import { RegistryUpdater } from './model-selector/registry-updater.js';
 import type { OllamaChatResponse } from './ollama/client.js';
 import type { TierConfig } from './tiering/config.js';
 
-const PACKAGE_VERSION = '0.3.1';
+const PACKAGE_VERSION = '0.3.2';
 
 async function main(): Promise<void> {
   // 1. Load config

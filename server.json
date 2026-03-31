@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.blackfoil/claude-token-saver-mcp",
+  "name": "io.github.BlackFoil/claude-token-saver-mcp",
   "description": "MCP server that offloads routine coding tasks to local LLM (Ollama) to save Claude API tokens",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "repository": {
     "url": "https://github.com/BlackFoil/claude-token-saver-mcp",
     "source": "github"
@@ -11,7 +11,7 @@
     {
       "registryType": "npm",
       "identifier": "claude-token-saver-mcp",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "transport": {
         "type": "stdio"
       }
