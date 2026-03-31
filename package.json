@@ -1,6 +1,7 @@
 {
   "name": "claude-token-saver-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
+  "mcpName": "io.github.blackfoil/claude-token-saver-mcp",
   "description": "MCP server that offloads coding tasks to local LLM (Ollama) to save Claude API tokens",
   "license": "Apache-2.0",
   "author": "claude-token-saver-mcp team",
